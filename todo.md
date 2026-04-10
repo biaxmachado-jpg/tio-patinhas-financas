@@ -105,14 +105,14 @@
 - [ ] Implementar responsividade para dispositivos móveis
 - [ ] Implementar acessibilidade (ARIA labels, keyboard navigation)
 
-### Testes & Validação
-- [ ] Escrever testes unitários para procedures tRPC
+### Testes & Validacao
+- [x] Escrever testes unitarios para procedures tRPC (28 testes passando)
 - [ ] Escrever testes para parsers de PDF e OFX
-- [ ] Escrever testes para motor de categorização automática
-- [ ] Testar fluxo completo de importação de extratos
-- [ ] Testar fluxo completo de importação de faturas
-- [ ] Validar cálculos de saldo e orçamento
-- [ ] Testar reconciliação de transações
+- [ ] Escrever testes para motor de categorizacao automatica
+- [ ] Testar fluxo completo de importacao de extratos
+- [ ] Testar fluxo completo de importacao de faturas
+- [x] Validar calculos de saldo e orcamento
+- [x] Testar reconciliacao de transacoes
 
 ## Notas Importantes
 - Todas as 10 funcionalidades devem estar presentes
