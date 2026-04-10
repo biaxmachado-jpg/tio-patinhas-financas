@@ -32,7 +32,7 @@
 ### Frontend - Contas Bancarias
 - [x] Criar pagina de listagem de contas bancarias
 - [x] Implementar formulario de criacao/edicao de conta
-- [x] Criar pagina de detalhes da conta com saldo e transacoes
+- [x] Criar pagina de detalhes da conta com saldo e transacoes (BankAccountDetail.tsx com navegação mês a mês)
 - [x] Implementar visualizacao de historico de saldo
 
 ### Frontend - Cartoes de Credito
