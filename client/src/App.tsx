@@ -22,8 +22,12 @@ function Router() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!loading && !isAuthenticated && window.location.pathname !== "/") {
-      setLocation(getLoginUrl());
+    if (!loading) {
+      if (isAuthenticated && window.location.pathname === "/") {
+        setLocation("/dashboard");
+      } else if (!isAuthenticated && window.location.pathname !== "/") {
+        setLocation(getLoginUrl());
+      }
     }
   }, [isAuthenticated, loading, setLocation]);
 
