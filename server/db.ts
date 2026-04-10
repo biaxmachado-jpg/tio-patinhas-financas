@@ -407,3 +407,46 @@ export async function getDashboardStats(userId: number, month: number, year: num
   
   return { totalIncome, totalExpense, totalBalance };
 }
+
+export async function getCreditCardTransactionsByMonth(userId: number, cardId: number, month: number, year: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0, 23, 59, 59);
+  
+  return db.select()
+    .from(creditCardTransactions)
+    .where(and(
+      eq(creditCardTransactions.userId, userId),
+      eq(creditCardTransactions.cardId, cardId),
+      gte(creditCardTransactions.date, startDate),
+      lte(creditCardTransactions.date, endDate)
+    ))
+    .orderBy(desc(creditCardTransactions.date));
+}
+
+export async function getCreditCardUtilization(userId: number, cardId: number, month: number, year: number) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const card = await getCreditCardById(cardId, userId);
+  if (!card) return null;
+  
+  const transactions = await getCreditCardTransactionsByMonth(userId, cardId, month, year);
+  
+  const totalUsed = transactions.reduce((sum, t) => {
+    const amount = parseFloat(t.amount.toString());
+    return sum + (amount > 0 ? amount : 0);
+  }, 0);
+  
+  const limit = parseFloat(card.limit.toString());
+  const available = limit - totalUsed;
+  
+  return {
+    limit,
+    used: totalUsed,
+    available: Math.max(0, available),
+    percentage: (totalUsed / limit) * 100,
+  };
+}

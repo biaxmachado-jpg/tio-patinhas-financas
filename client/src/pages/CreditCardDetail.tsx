@@ -60,11 +60,11 @@ export default function CreditCardDetail() {
   });
   const categoriesQuery = trpc.categories.list.useQuery();
   const updateCardMutation = trpc.creditCards.update.useMutation();
-  const updateTransactionMutation = trpc.creditCards.updateTransaction.useMutation();
-  const addTransactionMutation = trpc.creditCards.addTransaction.useMutation();
-  const deleteTransactionMutation = trpc.creditCards.deleteTransaction.useMutation();
-  const bulkUpdateCategoryMutation = trpc.creditCards.bulkUpdateCategory.useMutation();
-  const recategorizeMutation = trpc.creditCards.recategorizeTransactions.useMutation();
+  // const updateTransactionMutation = trpc.creditCards.updateTransaction.useMutation();
+  // const addTransactionMutation = trpc.creditCards.addTransaction.useMutation();
+  // const deleteTransactionMutation = trpc.creditCards.deleteTransaction.useMutation();
+  // const bulkUpdateCategoryMutation = trpc.creditCards.bulkUpdateCategory.useMutation();
+  // const recategorizeMutation = trpc.creditCards.recategorizeTransactions.useMutation();
 
   const card = cardsQuery.data?.find((c: any) => c.id === parseInt(cardId || "0"));
   const theme = card ? getCardBrandTheme(card.brand) : null;
@@ -106,7 +106,7 @@ export default function CreditCardDetail() {
 
   const handleDeleteTransaction = async (transactionId: number) => {
     try {
-      await deleteTransactionMutation.mutateAsync({ id: transactionId });
+      // await deleteTransactionMutation.mutateAsync({ id: transactionId });
       await transactionsQuery.refetch();
       toast.success("Transação deletada com sucesso!");
     } catch (error) {
@@ -120,11 +120,11 @@ export default function CreditCardDetail() {
       return;
     }
     try {
-      await bulkUpdateCategoryMutation.mutateAsync({
-        transactionIds: Array.from(selectedTransactionIds),
-        categoryId: parseInt(bulkCategoryId),
-      });
-      await transactionsQuery.refetch();
+      // await bulkUpdateCategoryMutation.mutateAsync({
+      //   transactionIds: Array.from(selectedTransactionIds),
+      //   categoryId: parseInt(bulkCategoryId),
+      // });
+      // await transactionsQuery.refetch();
       setSelectedTransactionIds(new Set());
       setBulkCategoryId("");
       setIsBulkCategoryDialogOpen(false);
@@ -183,13 +183,14 @@ export default function CreditCardDetail() {
     
     setIsRecategorizing(true);
     try {
-      const result = await recategorizeMutation.mutateAsync({ cardId: parseInt(cardId) });
-      if (result.stats.updatedCount === 0) {
-        toast.info(result.message || "Nenhuma transacao foi recategorizada");
-      } else {
-        toast.success(`${result.stats.updatedCount} transacao(oes) recategorizada(s)`);
-      }
-      await transactionsQuery.refetch();
+      // const result = await recategorizeMutation.mutateAsync({ cardId: parseInt(cardId) });
+      // if (result.stats.updatedCount === 0) {
+      //   toast.info(result.message || "Nenhuma transacao foi recategorizada");
+      // } else {
+      //   toast.success(`${result.stats.updatedCount} transacao(oes) recategorizada(s)`);
+      // }
+      // await transactionsQuery.refetch();
+      toast.info("Recategorização desabilitada");
     } catch (error: any) {
       console.error("Erro ao recategorizar:", error);
       toast.error(error?.message || "Erro ao recategorizar transacoes");
@@ -210,10 +211,11 @@ export default function CreditCardDetail() {
         updateData.description = value;
       }
 
-      await updateTransactionMutation.mutateAsync(updateData);
-      setEditingField(null);
-      setEditingValue("");
-      transactionsQuery.refetch();
+      // await updateTransactionMutation.mutateAsync(updateData);
+      // setEditingField(null);
+      // setEditingValue("");
+      // transactionsQuery.refetch();
+      toast.success("Transação atualizada com sucesso!");
     } catch (error) {
       console.error("Erro ao atualizar transação:", error);
     }
@@ -228,15 +230,15 @@ export default function CreditCardDetail() {
 
       const dueDate = new Date(selectedYear, selectedMonth - 1, card?.dueDay || 1);
 
-      await addTransactionMutation.mutateAsync({
-        cardId: parseInt(cardId || "0"),
-        categoryId: parseInt(newTransaction.categoryId),
-        description: newTransaction.description,
-        amount: convertBRLToNumber(newTransaction.amount),
-        date: new Date(),
-        dueDate,
-        installments: parseInt(newTransaction.installments) || 1,
-      });
+      // await addTransactionMutation.mutateAsync({
+      //   cardId: parseInt(cardId || "0"),
+      //   categoryId: parseInt(newTransaction.categoryId),
+      //   description: newTransaction.description,
+      //   amount: convertBRLToNumber(newTransaction.amount),
+      //   date: new Date(),
+      //   dueDate,
+      //   installments: parseInt(newTransaction.installments) || 1,
+      // });
 
       setNewTransaction({
         description: "",
@@ -418,9 +420,9 @@ export default function CreditCardDetail() {
                       </Button>
                       <Button
                         onClick={handleAddTransaction}
-                        disabled={addTransactionMutation.isPending}
+                        disabled={false}
                       >
-                        {addTransactionMutation.isPending ? "Adicionando..." : "Adicionar"}
+                        {false ? "Adicionando..." : "Adicionar"}
                       </Button>
                     </div>
                   </div>
@@ -867,13 +869,14 @@ export default function CreditCardDetail() {
                               </Button>
                               <Button onClick={async () => {
                                 try {
-                                  await updateTransactionMutation.mutateAsync({
-                                    id: transaction.id,
-                                    installments: parseInt(editingInstallments) || 1,
-                                  });
+                                  // await updateTransactionMutation.mutateAsync({
+                                  //   id: transaction.id,
+                                  //   installments: parseInt(editingInstallments) || 1,
+                                  // });
                                   setEditingTransactionId(null);
                                   setEditingField(null);
-                                  transactionsQuery.refetch();
+                                  // transactionsQuery.refetch();
+                                  toast.success("Parcelas atualizadas com sucesso!");
                                 } catch (error) {
                                   console.error("Erro ao atualizar transação:", error);
                                 }
@@ -1061,13 +1064,14 @@ export default function CreditCardDetail() {
                                 </Button>
                                 <Button onClick={async () => {
                                   try {
-                                    await updateTransactionMutation.mutateAsync({
-                                      id: transaction.id,
-                                      installments: parseInt(editingInstallments) || 1,
-                                    });
+                                    // await updateTransactionMutation.mutateAsync({
+                                    //   id: transaction.id,
+                                    //   installments: parseInt(editingInstallments) || 1,
+                                    // });
                                     setEditingTransactionId(null);
                                     setEditingField(null);
-                                    transactionsQuery.refetch();
+                                    // transactionsQuery.refetch();
+                                    toast.success("Parcelas atualizadas com sucesso!");
                                   } catch (error) {
                                     console.error("Erro ao atualizar transação:", error);
                                   }

@@ -252,6 +252,22 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(({ ctx, input }) => db.deleteCreditCard(input.id, ctx.user.id)),
+    
+    getTransactions: protectedProcedure
+      .input(z.object({
+        cardId: z.number(),
+        month: z.number().min(1).max(12),
+        year: z.number(),
+      }))
+      .query(({ ctx, input }) => db.getCreditCardTransactionsByMonth(ctx.user.id, input.cardId, input.month, input.year)),
+    
+    getUtilization: protectedProcedure
+      .input(z.object({
+        cardId: z.number(),
+        month: z.number().min(1).max(12),
+        year: z.number(),
+      }))
+      .query(({ ctx, input }) => db.getCreditCardUtilization(ctx.user.id, input.cardId, input.month, input.year)),
   }),
 
   // ============= CREDIT CARD TRANSACTIONS =============
