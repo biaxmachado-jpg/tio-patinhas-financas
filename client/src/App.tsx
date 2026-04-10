@@ -12,6 +12,7 @@ import BankAccountDetail from "./pages/BankAccountDetail";
 import Transactions from "./pages/Transactions";
 import Budgets from "./pages/Budgets";
 import CreditCards from "./pages/CreditCards";
+import CreditCardDetail from "./pages/CreditCardDetail";
 
 function Router() {
   return (
@@ -55,9 +56,7 @@ function Router() {
         </DashboardLayout>
       </Route>
       <Route path="/cartoes/:cardId">
-        <DashboardLayout>
-          <CreditCards />
-        </DashboardLayout>
+        <CreditCardDetail />
       </Route>
       <Route path="/banco-de-dados">
         <DashboardLayout>

@@ -38,7 +38,7 @@
 ### Frontend - Cartoes de Credito
 - [x] Criar pagina de listagem de cartoes de credito
 - [x] Implementar formulario de criacao/edicao de cartao
-- [x] Criar pagina de detalhes do cartao com transacoes
+- [x] Criar pagina de detalhes do cartao com transacoes (CreditCardDetail.tsx com filtros e visualizacao de fatura)
 - [x] Implementar visualizacao de fatura mensal
 - [x] Implementar acompanhamento de limite utilizado vs disponivel
 
