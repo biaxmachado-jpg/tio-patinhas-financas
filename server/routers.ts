@@ -302,12 +302,16 @@ export const appRouter = router({
       .mutation(({ ctx, input }) => db.deleteCreditCardTransaction(input.id, ctx.user.id)),
   }),
 
-  // ============= DASHBOARD =============
+   // ============= DASHBOARD =============
   dashboard: router({
     stats: protectedProcedure
       .input(z.object({ month: z.number(), year: z.number() }))
       .query(({ ctx, input }) => db.getDashboardStats(ctx.user.id, input.month, input.year)),
   }),
+  
+  // Aliases para compatibilidade com layout original
+  accounts: router({
+    list: protectedProcedure.query(({ ctx }) => db.getBankAccounts(ctx.user.id)),
+  }),
 });
-
 export type AppRouter = typeof appRouter;
