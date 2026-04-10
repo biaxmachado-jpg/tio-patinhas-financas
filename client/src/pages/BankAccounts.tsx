@@ -7,10 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Plus, Trash2, Edit2 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useLocation } from "wouter";
 import { toast } from "sonner";
 
 export default function BankAccounts() {
   const { user } = useAuth();
+  const [, navigate] = useLocation();
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
@@ -132,13 +134,13 @@ export default function BankAccounts() {
         {/* Accounts Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {accounts?.map((account) => (
-            <div key={account.id} className="bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-colors p-6 space-y-4">
+            <div key={account.id} className="bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-colors p-6 space-y-4 cursor-pointer" onClick={() => navigate(`/contas/${account.id}`)}>
               <div className="flex items-start justify-between">
-                <div>
+                <div onClick={(e) => e.stopPropagation()}>
                   <h3 className="font-semibold text-foreground">{account.name}</h3>
                   <p className="text-sm text-muted-foreground">{account.bank}</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                   <Button
                     variant="ghost"
                     size="sm"

@@ -8,6 +8,7 @@ import DashboardLayout from "./components/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
 import Categories from "./pages/Categories";
 import BankAccounts from "./pages/BankAccounts";
+import BankAccountDetail from "./pages/BankAccountDetail";
 import Transactions from "./pages/Transactions";
 import Budgets from "./pages/Budgets";
 import CreditCards from "./pages/CreditCards";
@@ -31,9 +32,7 @@ function Router() {
         </DashboardLayout>
       </Route>
       <Route path="/contas/:accountId">
-        <DashboardLayout>
-          <BankAccounts />
-        </DashboardLayout>
+        <BankAccountDetail />
       </Route>
       <Route path="/despesas">
         <DashboardLayout>
