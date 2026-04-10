@@ -33,7 +33,9 @@ function Router() {
         </DashboardLayout>
       </Route>
       <Route path="/contas/:accountId">
-        <BankAccountDetail />
+        <DashboardLayout>
+          <BankAccountDetail />
+        </DashboardLayout>
       </Route>
       <Route path="/despesas">
         <DashboardLayout>
@@ -56,7 +58,9 @@ function Router() {
         </DashboardLayout>
       </Route>
       <Route path="/cartoes/:cardId">
-        <CreditCardDetail />
+        <DashboardLayout>
+          <CreditCardDetail />
+        </DashboardLayout>
       </Route>
       <Route path="/banco-de-dados">
         <DashboardLayout>
