@@ -197,7 +197,7 @@ export default function Transactions() {
         </div>
 
         {/* Transactions Table */}
-        <div className="card-elevated overflow-hidden">
+        <div className="bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-colors overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>

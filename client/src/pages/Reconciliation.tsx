@@ -113,7 +113,7 @@ export default function Reconciliation() {
                 Transações a Reconciliar ({unreconciled.length})
               </h2>
             </div>
-            <div className="card-elevated overflow-hidden">
+            <div className="bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-colors overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -155,7 +155,7 @@ export default function Reconciliation() {
                 Transações Reconciliadas ({reconciled.length})
               </h2>
             </div>
-            <div className="card-elevated overflow-hidden">
+            <div className="bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-colors overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>

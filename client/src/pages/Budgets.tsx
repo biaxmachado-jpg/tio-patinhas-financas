@@ -182,7 +182,7 @@ export default function Budgets() {
             const isOverBudget = spent > limit;
 
             return (
-              <div key={budget.id} className="card-elevated p-6 space-y-4">
+              <div key={budget.id} className="bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-colors p-6 space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div

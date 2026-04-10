@@ -166,7 +166,7 @@ export default function Categories() {
             <h2 className="text-xl font-semibold text-foreground">Receitas</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {incomeCategories.map((category) => (
-                <div key={category.id} className="card-elevated p-4 flex items-center justify-between">
+                <div key={category.id} className="bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-colors p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div
                       className="w-10 h-10 rounded-lg flex items-center justify-center text-white"
@@ -216,7 +216,7 @@ export default function Categories() {
             <h2 className="text-xl font-semibold text-foreground">Despesas</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {expenseCategories.map((category) => (
-                <div key={category.id} className="card-elevated p-4 flex items-center justify-between">
+                <div key={category.id} className="bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-colors p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div
                       className="w-10 h-10 rounded-lg flex items-center justify-center text-white"

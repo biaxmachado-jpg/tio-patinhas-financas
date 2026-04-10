@@ -166,16 +166,12 @@
     min-width: 0;
   }
 
-  .card-elevated {
-    @apply bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-shadow;
-  }
-
   .input-elegant {
     @apply bg-input border border-border rounded-lg px-4 py-2 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all;
   }
 
   .stat-card {
-    @apply flex flex-col gap-2 p-6 card-elevated;
+    @apply flex flex-col gap-2 p-6 bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-shadow;
   }
 
   .stat-value {

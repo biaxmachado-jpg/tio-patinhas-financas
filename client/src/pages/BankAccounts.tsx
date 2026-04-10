@@ -132,7 +132,7 @@ export default function BankAccounts() {
         {/* Accounts Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {accounts?.map((account) => (
-            <div key={account.id} className="card-elevated p-6 space-y-4">
+            <div key={account.id} className="bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-colors p-6 space-y-4">
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="font-semibold text-foreground">{account.name}</h3>

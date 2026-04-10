@@ -63,7 +63,7 @@ export default function Home() {
 
           <div className="grid md:grid-cols-2 gap-6">
             {/* Feature 1 */}
-            <div className="card-elevated p-8 space-y-4">
+            <div className="bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-colors p-8 space-y-4">
               <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
                 <TrendingUp className="w-6 h-6 text-primary" />
               </div>
@@ -74,7 +74,7 @@ export default function Home() {
             </div>
 
             {/* Feature 2 */}
-            <div className="card-elevated p-8 space-y-4">
+            <div className="bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-colors p-8 space-y-4">
               <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Wallet className="w-6 h-6 text-primary" />
               </div>
@@ -85,7 +85,7 @@ export default function Home() {
             </div>
 
             {/* Feature 3 */}
-            <div className="card-elevated p-8 space-y-4">
+            <div className="bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-colors p-8 space-y-4">
               <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
                 <CreditCard className="w-6 h-6 text-primary" />
               </div>
@@ -96,7 +96,7 @@ export default function Home() {
             </div>
 
             {/* Feature 4 */}
-            <div className="card-elevated p-8 space-y-4">
+            <div className="bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-colors p-8 space-y-4">
               <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
                 <PieChart className="w-6 h-6 text-primary" />
               </div>

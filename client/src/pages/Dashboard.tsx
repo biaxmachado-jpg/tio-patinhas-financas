@@ -124,7 +124,7 @@ export default function Dashboard() {
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Income vs Expenses Chart */}
-          <div className="card-elevated p-6">
+          <div className="bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-colors p-6">
             <h3 className="text-lg font-semibold text-foreground mb-4">Receitas vs Despesas</h3>
             {isLoading ? (
               <Skeleton className="h-64 w-full" />
@@ -148,7 +148,7 @@ export default function Dashboard() {
           </div>
 
           {/* Category Breakdown */}
-          <div className="card-elevated p-6">
+          <div className="bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-colors p-6">
             <h3 className="text-lg font-semibold text-foreground mb-4">Despesas por Categoria</h3>
             {isLoading ? (
               <Skeleton className="h-64 w-full" />
@@ -191,7 +191,7 @@ export default function Dashboard() {
         </div>
 
         {/* Recent Transactions */}
-        <div className="card-elevated p-6 space-y-4">
+        <div className="bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-colors p-6 space-y-4">
           <h3 className="text-lg font-semibold text-foreground">Transações Recentes</h3>
           {!transactions || transactions.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">Nenhuma transação registrada</p>
