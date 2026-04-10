@@ -120,3 +120,18 @@
 - Visual elegante e sofisticado é requisito obrigatório
 - Bia é a proprietária do sistema
 - Usar DashboardLayout para navegação consistente
+
+
+## Importacao de Dados do Projeto Original
+
+### Migracao de Dados
+- [x] Analisar estrutura do banco de dados original
+- [x] Criar script de migracao de usuarios
+- [x] Criar script de migracao de categorias
+- [x] Criar script de migracao de contas bancarias
+- [x] Criar script de migracao de cartoes de credito
+- [x] Criar script de migracao de transacoes
+- [x] Criar script de migracao de transacoes de cartao de credito
+- [x] Criar script de migracao de regras de categorizacao
+- [x] Executar migracao completa
+- [x] Validar integridade dos dados migrados
