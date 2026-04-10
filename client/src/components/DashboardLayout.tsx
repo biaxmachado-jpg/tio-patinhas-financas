@@ -27,9 +27,17 @@ import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
+import { Wallet, CreditCard, Tag, TrendingUp, Settings, FileText, BarChart3 } from "lucide-react";
+
 const menuItems = [
-  { icon: LayoutDashboard, label: "Page 1", path: "/" },
-  { icon: Users, label: "Page 2", path: "/some-path" },
+  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
+  { icon: Wallet, label: "Contas Bancárias", path: "/bank-accounts" },
+  { icon: CreditCard, label: "Cartões de Crédito", path: "/credit-cards" },
+  { icon: Tag, label: "Categorias", path: "/categories" },
+  { icon: TrendingUp, label: "Transações", path: "/transactions" },
+  { icon: BarChart3, label: "Orçamentos", path: "/budgets" },
+  { icon: FileText, label: "Regras de Categorização", path: "/categorization-rules" },
+  { icon: Settings, label: "Reconciliação", path: "/reconciliation" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";

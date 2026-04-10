@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
@@ -43,16 +44,16 @@
 }
 
 :root {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-600);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --radius: 0.65rem;
+  --primary: oklch(0.623 0.214 259.815);
+  --primary-foreground: oklch(1 0 0);
+  --sidebar-primary: oklch(0.623 0.214 259.815);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --chart-1: oklch(0.623 0.214 259.815);
+  --chart-2: oklch(0.623 0.214 259.815);
+  --chart-3: oklch(0.623 0.214 259.815);
+  --chart-4: oklch(0.623 0.214 259.815);
+  --chart-5: oklch(0.623 0.214 259.815);
+  --radius: 0.75rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.235 0.015 65);
   --card: oklch(1 0 0);
@@ -119,6 +120,11 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Poppins', sans-serif;
+    @apply font-semibold tracking-tight;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -158,6 +164,34 @@
   .flex {
     min-height: 0;
     min-width: 0;
+  }
+
+  .card-elevated {
+    @apply bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-shadow;
+  }
+
+  .input-elegant {
+    @apply bg-input border border-border rounded-lg px-4 py-2 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all;
+  }
+
+  .stat-card {
+    @apply flex flex-col gap-2 p-6 card-elevated;
+  }
+
+  .stat-value {
+    @apply text-3xl font-bold text-foreground;
+  }
+
+  .stat-label {
+    @apply text-sm text-muted-foreground font-medium;
+  }
+
+  .badge-soft {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-muted text-muted-foreground;
+  }
+
+  .divider-subtle {
+    @apply border-t border-border;
   }
 
   @media (min-width: 640px) {
