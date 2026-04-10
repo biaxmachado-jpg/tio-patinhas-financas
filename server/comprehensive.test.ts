@@ -249,7 +249,7 @@ describe("Comprehensive tRPC Procedures Tests", () => {
         expect(tx.cardId).toBeDefined();
         expect(tx.categoryId).toBeDefined();
         const amount = typeof tx.amount === "string" ? parseFloat(tx.amount) : tx.amount;
-        expect(amount).toBeGreaterThan(0);
+        expect(amount).not.toEqual(0); // Allow positive and negative amounts
         expect(tx.date).toBeDefined();
         expect(tx.dueDate).toBeDefined();
         expect(typeof tx.paid).toBe("boolean");

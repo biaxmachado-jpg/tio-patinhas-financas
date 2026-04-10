@@ -386,30 +386,25 @@ export async function getDashboardStats(userId: number, month: number, year: num
   const db = await getDb();
   if (!db) return { totalIncome: "0", totalExpense: "0", totalBalance: "0" };
   
-  const startDate = new Date(year, month - 1, 1);
-  const endDate = new Date(year, month, 0);
-  
+  // Get all transactions for the user (not just current month)
   const transactionStats = await db.select({
     type: transactions.type,
-    total: sql<string>`SUM(${transactions.amount})`,
+    total: sql<number>`SUM(${transactions.amount})`,
   }).from(transactions).where(
-    and(
-      eq(transactions.userId, userId),
-      gte(transactions.date, startDate),
-      lte(transactions.date, endDate)
-    )
+    eq(transactions.userId, userId)
   ).groupBy(transactions.type);
   
   let totalIncome = "0";
   let totalExpense = "0";
   
   for (const stat of transactionStats) {
-    if (stat.type === "income") totalIncome = stat.total || "0";
-    if (stat.type === "expense") totalExpense = stat.total || "0";
+    const amount = stat.total ? String(stat.total) : "0";
+    if (stat.type === "income") totalIncome = amount;
+    if (stat.type === "expense") totalExpense = amount;
   }
   
-  const accounts = await db.select({ balance: sql<string>`SUM(${bankAccounts.balance})` }).from(bankAccounts).where(eq(bankAccounts.userId, userId));
-  const totalBalance = accounts[0]?.balance || "0";
+  const accounts = await db.select({ balance: sql<number>`SUM(${bankAccounts.balance})` }).from(bankAccounts).where(eq(bankAccounts.userId, userId));
+  const totalBalance = accounts[0]?.balance ? String(accounts[0].balance) : "0";
   
   return { totalIncome, totalExpense, totalBalance };
 }
