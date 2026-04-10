@@ -39,7 +39,7 @@ const menuItems = [
   { icon: TrendingDown, label: "Despesas", path: "/despesas" },
   { icon: TrendingUp, label: "Receitas", path: "/receitas" },
   { icon: Target, label: "Orçamentos", path: "/orcamentos" },
-  { icon: Database, label: "Banco de Dados", path: "/banco-de-dados", external: true },
+  { icon: Database, label: "Banco de Dados", path: "/banco-de-dados" },
 ]
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -303,25 +303,6 @@ function DashboardLayoutContent({
                 }
                 
                 const isActive = location === item.path;
-                
-                // Handle external links (like Database)
-                if ((item as any).external) {
-                  return (
-                    <SidebarMenuItem key={item.path}>
-                      <SidebarMenuButton
-                        asChild
-                        tooltip={item.label}
-                        className={`h-10 transition-all font-normal`}
-                      >
-                        <a href="/admin/database" target="_blank" rel="noopener noreferrer">
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.label}</span>
-                        </a>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                }
-                
                 return (
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton
