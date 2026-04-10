@@ -27,18 +27,20 @@ import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
-import { Wallet, CreditCard, Tag, TrendingUp, Settings, FileText, BarChart3 } from "lucide-react";
+import { BarChart3, Tag, Banknote, TrendingDown, TrendingUp, Target, Upload, Zap, CreditCard, ChevronDown, User, Database } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { trpc } from "@/lib/trpc";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { icon: Wallet, label: "Contas Bancárias", path: "/bank-accounts" },
-  { icon: CreditCard, label: "Cartões de Crédito", path: "/credit-cards" },
-  { icon: Tag, label: "Categorias", path: "/categories" },
-  { icon: TrendingUp, label: "Transações", path: "/transactions" },
-  { icon: BarChart3, label: "Orçamentos", path: "/budgets" },
-  { icon: FileText, label: "Regras de Categorização", path: "/categorization-rules" },
-  { icon: Settings, label: "Reconciliação", path: "/reconciliation" },
-];
+  { icon: LayoutDashboard, label: "Visão Geral", path: "/" },
+  { icon: Tag, label: "Categorias", path: "/categorias" },
+  { icon: Banknote, label: "Contas", path: "/contas" },
+  { icon: CreditCard, label: "Cartões de Crédito", path: "/cartoes" },
+  { icon: TrendingDown, label: "Despesas", path: "/despesas" },
+  { icon: TrendingUp, label: "Receitas", path: "/receitas" },
+  { icon: Target, label: "Orçamentos", path: "/orcamentos" },
+  { icon: Database, label: "Banco de Dados", path: "/banco-de-dados" },
+]
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 280;
@@ -122,6 +124,10 @@ function DashboardLayoutContent({
   const sidebarRef = useRef<HTMLDivElement>(null);
   const activeMenuItem = menuItems.find(item => item.path === location);
   const isMobile = useIsMobile();
+  const [accountsExpanded, setAccountsExpanded] = useState(true);
+  const [cardsExpanded, setCardsExpanded] = useState(true);
+  const accountsQuery = trpc.accounts.list.useQuery(undefined, { enabled: !!user });
+  const cardsQuery = trpc.creditCards.list.useQuery(undefined, { enabled: !!user });
 
   useEffect(() => {
     if (isCollapsed) {
@@ -189,6 +195,113 @@ function DashboardLayoutContent({
           <SidebarContent className="gap-0">
             <SidebarMenu className="px-2 py-1">
               {menuItems.map(item => {
+                if (item.label === "Contas") {
+                  const isActive = location === "/contas";
+                  return (
+                    <Collapsible key="accounts" open={accountsExpanded} onOpenChange={setAccountsExpanded}>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton
+                          tooltip="Contas Bancárias"
+                          isActive={isActive}
+                          onClick={() => {
+                            if (isMobile) toggleSidebar();
+                            setLocation("/contas");
+                          }}
+                          className="h-10 transition-all font-normal"
+                        >
+                          <Banknote className="h-4 w-4" />
+                          <span className="flex-1 truncate">Contas Bancárias</span>
+                          <ChevronDown className="shrink-0 h-4 w-4 transition-transform" style={{
+                            transform: accountsExpanded ? "rotate(0deg)" : "rotate(-90deg)"
+                          }} />
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pl-4 pt-1 pb-1">
+                        <SidebarMenu>
+                          {accountsQuery.data?.map((account: any) => {
+                            const isActive = location === `/contas/${account.id}`;
+                            return (
+                              <SidebarMenuItem key={account.id}>
+                                <SidebarMenuButton
+                                  isActive={isActive}
+                                  onClick={() => {
+                                    if (isMobile) toggleSidebar();
+                                    setLocation(`/contas/${account.id}`);
+                                  }}
+                                  tooltip={account.name}
+                                  className="h-9 transition-all font-normal text-sm"
+                                >
+                                  <div className="h-2 w-2 rounded-full" style={{
+                                    backgroundColor: account.bank === "Itaú" ? "#FF6B35" :
+                                                   account.bank === "Bradesco" ? "#C41E3A" :
+                                                   account.bank === "BRB" ? "#000000" : "#999"
+                                  }} />
+                                  <span>{account.name}</span>
+                                </SidebarMenuButton>
+                              </SidebarMenuItem>
+                            );
+                          })}
+                        </SidebarMenu>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  );
+                }
+                
+                if (item.label === "Cartões de Crédito") {
+                  const isActive = location === "/cartoes";
+                  return (
+                    <Collapsible key="cards" open={cardsExpanded} onOpenChange={setCardsExpanded}>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton
+                          tooltip="Cartões de Crédito"
+                          isActive={isActive}
+                          onClick={() => {
+                            if (isMobile) toggleSidebar();
+                            setLocation("/cartoes");
+                          }}
+                          className="h-10 transition-all font-normal"
+                        >
+                          <CreditCard className="h-4 w-4" />
+                          <span className="flex-1 truncate">Cartões de Crédito</span>
+                          <ChevronDown className="shrink-0 h-4 w-4 transition-transform" style={{
+                            transform: cardsExpanded ? "rotate(0deg)" : "rotate(-90deg)"
+                          }} />
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pl-4 pt-1 pb-1">
+                        <SidebarMenu>
+                          {cardsQuery.data?.map((card: any) => {
+                            const isActive = location === `/cartoes/${card.id}`;
+                            return (
+                              <SidebarMenuItem key={card.id}>
+                                <SidebarMenuButton
+                                  isActive={isActive}
+                                  onClick={() => {
+                                    if (isMobile) toggleSidebar();
+                                    setLocation(`/cartoes/${card.id}`);
+                                  }}
+                                  tooltip={card.name}
+                                  className="h-9 transition-all font-normal text-sm"
+                                >
+                                  <div className="h-2 w-2 rounded-full" style={{
+                                    backgroundColor: card.brand === "Visa" ? "#1434CB" :
+                                                   card.brand === "Mastercard" ? "#EB001B" :
+                                                   card.brand === "Elo" ? "#FF6000" :
+                                                   card.brand === "American Express" ? "#006FCF" :
+                                                   card.brand === "Hipercard" ? "#CC0000" :
+                                                   card.brand === "Discover" ? "#FF6000" : "#999",
+                                  }} />
+                                  <span>{card.name}</span>
+                                </SidebarMenuButton>
+                              </SidebarMenuItem>
+                            );
+                          })}
+                        </SidebarMenu>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  );
+                }
+                
                 const isActive = location === item.path;
                 return (
                   <SidebarMenuItem key={item.path}>
@@ -229,6 +342,13 @@ function DashboardLayoutContent({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem
+                  onClick={() => setLocation('/perfil')}
+                  className="cursor-pointer"
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Meu Perfil</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={logout}
                   className="cursor-pointer text-destructive focus:text-destructive"

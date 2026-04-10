@@ -1,57 +1,71 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch, useLocation } from "wouter";
+import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Home from "./pages/Home";
+import DashboardLayout from "./components/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
-import BankAccounts from "./pages/BankAccounts";
-import CreditCards from "./pages/CreditCards";
 import Categories from "./pages/Categories";
+import BankAccounts from "./pages/BankAccounts";
 import Transactions from "./pages/Transactions";
 import Budgets from "./pages/Budgets";
-import CategorizationRules from "./pages/CategorizationRules";
-import Reconciliation from "./pages/Reconciliation";
-import { useAuth } from "./_core/hooks/useAuth";
-import { useEffect } from "react";
-import { getLoginUrl } from "./const";
+import CreditCards from "./pages/CreditCards";
 
 function Router() {
-  const { isAuthenticated, loading } = useAuth();
-  const [, setLocation] = useLocation();
-
-  useEffect(() => {
-    if (!loading) {
-      if (isAuthenticated && window.location.pathname === "/") {
-        setLocation("/dashboard");
-      } else if (!isAuthenticated && window.location.pathname !== "/") {
-        setLocation(getLoginUrl());
-      }
-    }
-  }, [isAuthenticated, loading, setLocation]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
   return (
     <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/bank-accounts" component={BankAccounts} />
-      <Route path="/credit-cards" component={CreditCards} />
-      <Route path="/categories" component={Categories} />
-      <Route path="/transactions" component={Transactions} />
-      <Route path="/budgets" component={Budgets} />
-      <Route path="/categorization-rules" component={CategorizationRules} />
-      <Route path="/reconciliation" component={Reconciliation} />
+      <Route path="/">
+        <DashboardLayout>
+          <Dashboard />
+        </DashboardLayout>
+      </Route>
+      <Route path="/categorias">
+        <DashboardLayout>
+          <Categories />
+        </DashboardLayout>
+      </Route>
+      <Route path="/contas">
+        <DashboardLayout>
+          <BankAccounts />
+        </DashboardLayout>
+      </Route>
+      <Route path="/contas/:accountId">
+        <DashboardLayout>
+          <BankAccounts />
+        </DashboardLayout>
+      </Route>
+      <Route path="/despesas">
+        <DashboardLayout>
+          <Transactions />
+        </DashboardLayout>
+      </Route>
+      <Route path="/receitas">
+        <DashboardLayout>
+          <Transactions />
+        </DashboardLayout>
+      </Route>
+      <Route path="/orcamentos">
+        <DashboardLayout>
+          <Budgets />
+        </DashboardLayout>
+      </Route>
+      <Route path="/cartoes">
+        <DashboardLayout>
+          <CreditCards />
+        </DashboardLayout>
+      </Route>
+      <Route path="/cartoes/:cardId">
+        <DashboardLayout>
+          <CreditCards />
+        </DashboardLayout>
+      </Route>
+      <Route path="/banco-de-dados">
+        <DashboardLayout>
+          <Dashboard />
+        </DashboardLayout>
+      </Route>
       <Route path="/404" component={NotFound} />
-      {/* Final fallback route */}
       <Route component={NotFound} />
     </Switch>
   );
