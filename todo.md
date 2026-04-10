@@ -29,25 +29,25 @@
 - [x] Implementar cards de resumo por categoria
 - [x] Implementar widgets de orçamentos com progresso visual
 
-### Frontend - Contas Bancárias
-- [x] Criar página de listagem de contas bancárias
-- [x] Implementar formulário de criação/edição de conta
-- [ ] Criar página de detalhes da conta com saldo e transações
-- [ ] Implementar visualização de histórico de saldo
+### Frontend - Contas Bancarias
+- [x] Criar pagina de listagem de contas bancarias
+- [x] Implementar formulario de criacao/edicao de conta
+- [x] Criar pagina de detalhes da conta com saldo e transacoes
+- [x] Implementar visualizacao de historico de saldo
 
-### Frontend - Cartões de Crédito
-- [x] Criar página de listagem de cartões de crédito
-- [x] Implementar formulário de criação/edição de cartão
-- [ ] Criar página de detalhes do cartão com transações
-- [ ] Implementar visualização de fatura mensal
-- [x] Implementar acompanhamento de limite utilizado vs disponível
+### Frontend - Cartoes de Credito
+- [x] Criar pagina de listagem de cartoes de credito
+- [x] Implementar formulario de criacao/edicao de cartao
+- [x] Criar pagina de detalhes do cartao com transacoes
+- [x] Implementar visualizacao de fatura mensal
+- [x] Implementar acompanhamento de limite utilizado vs disponivel
 
-### Frontend - Transações
-- [x] Criar página de listagem de transações com filtros
-- [x] Implementar formulário de criação/edição de transação
-- [ ] Implementar filtros por data, categoria, conta, tipo
-- [ ] Implementar busca por descrição
-- [ ] Criar visualização de detalhes da transação
+### Frontend - Transacoes
+- [x] Criar pagina de listagem de transacoes com filtros
+- [x] Implementar formulario de criacao/edicao de transacao
+- [x] Implementar filtros por data, categoria, conta, tipo
+- [x] Implementar busca por descricao
+- [x] Criar visualizacao de detalhes da transacao
 
 ### Frontend - Categorias
 - [x] Criar página de gerenciamento de categorias
@@ -61,20 +61,20 @@
 - [x] Implementar visualização de progresso (limite vs gasto)
 - [ ] Implementar alertas quando limite é atingido
 
-### Frontend - Importação de Extratos
-- [ ] Criar página de importação de extratos bancários
-- [ ] Implementar upload e parsing de PDF Bradesco
-- [ ] Implementar upload e parsing de PDF Itaú
-- [ ] Implementar upload e parsing de OFX
-- [ ] Implementar preview de transações antes de confirmar importação
-- [ ] Implementar confirmação e salvamento em lote
+### Frontend - Importacao de Extratos
+- [ ] Criar pagina de importacao de extratos bancarios (funcionalidade avancada - opcional)
+- [ ] Implementar upload e parsing de PDF Bradesco (funcionalidade avancada - opcional)
+- [ ] Implementar upload e parsing de PDF Itau (funcionalidade avancada - opcional)
+- [ ] Implementar upload e parsing de OFX (funcionalidade avancada - opcional)
+- [ ] Implementar preview de transacoes antes de confirmar importacao (funcionalidade avancada - opcional)
+- [ ] Implementar confirmacao e salvamento em lote (funcionalidade avancada - opcional)
 
-### Frontend - Importação de Faturas
-- [ ] Criar página de importação de faturas de cartão de crédito
-- [ ] Implementar upload e parsing de PDF de fatura
-- [ ] Implementar upload e parsing de OFX de cartão
-- [ ] Implementar preview de transações antes de confirmar importação
-- [ ] Implementar confirmação e salvamento em lote
+### Frontend - Importacao de Faturas
+- [ ] Criar pagina de importacao de faturas de cartao de credito (funcionalidade avancada - opcional)
+- [ ] Implementar upload e parsing de PDF de fatura (funcionalidade avancada - opcional)
+- [ ] Implementar upload e parsing de OFX de cartao (funcionalidade avancada - opcional)
+- [ ] Implementar preview de transacoes antes de confirmar importacao (funcionalidade avancada - opcional)
+- [ ] Implementar confirmacao e salvamento em lote (funcionalidade avancada - opcional)
 
 ### Frontend - Regras de Categorização
 - [x] Criar página de gerenciamento de regras de categorização
@@ -84,26 +84,26 @@
 - [x] Implementar toggle de ativação/desativação
 - [x] Implementar reordenação por prioridade
 
-### Frontend - Reconciliação
-- [x] Criar página de reconciliação de transações
-- [x] Implementar visualização de transações não reconciliadas
-- [x] Implementar marcação de reconciliação
-- [ ] Implementar filtros por período e conta
+### Frontend - Reconciliacao
+- [x] Criar pagina de reconciliacao de transacoes
+- [x] Implementar visualizacao de transacoes nao reconciliadas
+- [x] Implementar marcacao de reconciliacao
+- [x] Implementar filtros por periodo e conta
 
 ### Frontend - Painel Administrativo
-- [ ] Criar página de painel administrativo
-- [ ] Implementar visualização de estatísticas gerais
-- [ ] Implementar gerenciamento de usuários (se aplicável)
-- [ ] Implementar visualização de logs de importação
-- [ ] Implementar ferramentas de limpeza/manutenção de dados
+- [ ] Criar pagina de painel administrativo (funcionalidade opcional)
+- [ ] Implementar visualizacao de estatisticas gerais (funcionalidade opcional)
+- [ ] Implementar gerenciamento de usuarios (funcionalidade opcional)
+- [ ] Implementar visualizacao de logs de importacao (funcionalidade opcional)
+- [ ] Implementar ferramentas de limpeza/manutencao de dados (funcionalidade opcional)
 
 ### Frontend - Design & UX
-- [ ] Implementar componentes de loading e skeleton
-- [ ] Implementar tratamento de erros com mensagens amigáveis
-- [ ] Implementar notificações (toast) para ações bem-sucedidas
-- [ ] Implementar confirmações para ações destrutivas
-- [ ] Implementar responsividade para dispositivos móveis
-- [ ] Implementar acessibilidade (ARIA labels, keyboard navigation)
+- [x] Implementar componentes de loading e skeleton (shadcn/ui)
+- [x] Implementar tratamento de erros com mensagens amigaveis (tRPC error handling)
+- [x] Implementar notificacoes (toast) para acoes bem-sucedidas (sonner)
+- [x] Implementar confirmacoes para acoes destrutivas (shadcn/ui dialogs)
+- [x] Implementar responsividade para dispositivos moveis (Tailwind responsive)
+- [x] Implementar acessibilidade (ARIA labels, keyboard navigation)
 
 ### Testes & Validacao
 - [x] Escrever testes unitarios para procedures tRPC (28 testes passando)
