@@ -135,3 +135,27 @@
 - [x] Criar script de migracao de regras de categorizacao
 - [x] Executar migracao completa
 - [x] Validar integridade dos dados migrados
+
+## Funcionalidades em Progresso
+
+### Frontend - Transacoes (Continuação)
+- [ ] Implementar adicionar transação diretamente na página de detalhes do cartão
+- [ ] Implementar editar transação diretamente na página de detalhes do cartão
+- [ ] Implementar deletar transação com confirmação
+- [ ] Implementar reclassificação de transações em lote
+
+## Correções de Cálculos
+
+### Saldo Bancário e de Cartão
+- [ ] Garantir no backend/tRPC que initialBalance seja realmente opcional (input optional + default 0.00 no servidor)
+- [ ] Unificar e aplicar cálculo de saldo final (saldo inicial + entradas - saídas) em todas as páginas de detalhe
+- [ ] Atualizar visualização de saldos em detalhes de conta/cartão com estados de erro/vazio
+- [ ] Validar cálculos com testes (incluindo TypeScript sem erros)
+
+## Cálculos de Cartão de Crédito
+
+- [x] Valor Total da Fatura = soma de todas as transações
+- [x] Valor À Vista = soma de transações com installments === 1
+- [x] Valor Parcelado = soma de transações com installments > 1
+- [x] Adicionar card de "Valor À Vista" na página de detalhes
+- [x] Validar que Total = À Vista + Parcelado

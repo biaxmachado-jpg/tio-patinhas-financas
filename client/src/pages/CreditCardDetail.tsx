@@ -60,11 +60,9 @@ export default function CreditCardDetail() {
   });
   const categoriesQuery = trpc.categories.list.useQuery();
   const updateCardMutation = trpc.creditCards.update.useMutation();
-  // const updateTransactionMutation = trpc.creditCards.updateTransaction.useMutation();
-  // const addTransactionMutation = trpc.creditCards.addTransaction.useMutation();
-  // const deleteTransactionMutation = trpc.creditCards.deleteTransaction.useMutation();
-  // const bulkUpdateCategoryMutation = trpc.creditCards.bulkUpdateCategory.useMutation();
-  // const recategorizeMutation = trpc.creditCards.recategorizeTransactions.useMutation();
+  const addCreditCardTransactionMutation = trpc.creditCardTransactions.create.useMutation();
+  const updateCreditCardTransactionMutation = trpc.creditCardTransactions.update.useMutation();
+  const deleteCreditCardTransactionMutation = trpc.creditCardTransactions.delete.useMutation();
 
   const card = cardsQuery.data?.find((c: any) => c.id === parseInt(cardId || "0"));
   const theme = card ? getCardBrandTheme(card.brand) : null;
@@ -100,6 +98,11 @@ export default function CreditCardDetail() {
     return sum + amount;
   }, 0);
   const totalInstallments = filteredTransactions.filter((t) => t.installments > 1).reduce((sum, t) => {
+    const amount = parseFloat(t.amount.toString());
+    return sum + amount;
+  }, 0);
+  
+  const totalVista = filteredTransactions.filter((t) => t.installments === 1).reduce((sum, t) => {
     const amount = parseFloat(t.amount.toString());
     return sum + amount;
   }, 0);
@@ -169,7 +172,7 @@ export default function CreditCardDetail() {
         id: parseInt(cardId || "0"),
         lastFourDigits: editForm.lastFourDigits || undefined,
         dueDay: editForm.dueDay ? parseInt(editForm.dueDay) : undefined,
-        limit: editForm.limit ? convertBRLToNumber(editForm.limit) : undefined,
+        limit: editForm.limit || undefined,
       });
       setIsEditDialogOpen(false);
       cardsQuery.refetch();
@@ -230,15 +233,16 @@ export default function CreditCardDetail() {
 
       const dueDate = new Date(selectedYear, selectedMonth - 1, card?.dueDay || 1);
 
-      // await addTransactionMutation.mutateAsync({
-      //   cardId: parseInt(cardId || "0"),
-      //   categoryId: parseInt(newTransaction.categoryId),
-      //   description: newTransaction.description,
-      //   amount: convertBRLToNumber(newTransaction.amount),
-      //   date: new Date(),
-      //   dueDate,
-      //   installments: parseInt(newTransaction.installments) || 1,
-      // });
+      await addCreditCardTransactionMutation.mutateAsync({
+        cardId: parseInt(cardId || "0"),
+        categoryId: parseInt(newTransaction.categoryId),
+        description: newTransaction.description,
+        amount: newTransaction.amount,
+        date: new Date(),
+        dueDate,
+        installments: parseInt(newTransaction.installments) || 1,
+      });
+      toast.success("Transação adicionada com sucesso!");
 
       setNewTransaction({
         description: "",
@@ -528,7 +532,7 @@ export default function CreditCardDetail() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="p-6">
           <p className="text-sm text-muted-foreground mb-2">Limite Total</p>
           <p className="text-3xl font-bold text-foreground">
@@ -540,6 +544,13 @@ export default function CreditCardDetail() {
           <p className="text-sm text-muted-foreground mb-2">Valor Total da Fatura</p>
           <p className="text-3xl font-bold text-red-600">
             {formatBRL(totalInvoice)}
+          </p>
+        </Card>
+
+        <Card className="p-6">
+          <p className="text-sm text-muted-foreground mb-2">Valor À Vista</p>
+          <p className="text-3xl font-bold text-green-600">
+            {formatBRL(totalVista)}
           </p>
         </Card>
 
