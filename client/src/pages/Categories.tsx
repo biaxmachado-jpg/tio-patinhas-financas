@@ -39,20 +39,20 @@ export default function Categories() {
     name: "",
     type: "expense" as "income" | "expense",
     color: "#6366f1",
+    icon: "tag",
   });
 
   // Queries
   const categoriesQuery = trpc.categories.list.useQuery();
-  const rulesQuery = trpc.rules.list.useQuery();
+  const rulesQuery = trpc.categorizationRules.list.useQuery();
 
   // Mutations
   const createCategoryMutation = trpc.categories.create.useMutation();
   const updateCategoryMutation = trpc.categories.update.useMutation();
   const deleteCategoryMutation = trpc.categories.delete.useMutation();
-  const createRuleMutation = trpc.rules.create.useMutation();
-  const updateRuleMutation = trpc.rules.update.useMutation();
-  const deleteRuleMutation = trpc.rules.delete.useMutation();
-  const applyRulesMutation = trpc.rules.applyToExistingTransactions.useMutation();
+  const createRuleMutation = trpc.categorizationRules.create.useMutation();
+  const updateRuleMutation = trpc.categorizationRules.update.useMutation();
+  const deleteRuleMutation = trpc.categorizationRules.delete.useMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,6 +70,7 @@ export default function Categories() {
           name: formData.name,
           type: formData.type,
           color: formData.color,
+          icon: formData.icon,
         });
         toast.success("Categoria criada com sucesso!");
       }
@@ -77,7 +78,7 @@ export default function Categories() {
       await categoriesQuery.refetch();
       setOpen(false);
       setEditingId(null);
-      setFormData({ name: "", type: "expense", color: "#6366f1" });
+      setFormData({ name: "", type: "expense", color: "#6366f1", icon: "tag" });
     } catch (error) {
       toast.error("Erro ao salvar categoria");
     }
@@ -89,6 +90,7 @@ export default function Categories() {
       name: category.name,
       type: category.type,
       color: category.color,
+      icon: category.icon || "tag",
     });
     setOpen(true);
   };
@@ -107,7 +109,7 @@ export default function Categories() {
     setOpen(newOpen);
     if (!newOpen) {
       setEditingId(null);
-      setFormData({ name: "", type: "expense", color: "#6366f1" });
+      setFormData({ name: "", type: "expense", color: "#6366f1", icon: "tag" });
     }
   };
 
@@ -117,23 +119,14 @@ export default function Categories() {
       return;
     }
 
-    const keywords = ruleFormData.keywords
-      .split(",")
-      .map(k => k.trim())
-      .filter(k => k.length > 0);
-
-    if (keywords.length === 0) {
-      toast.error("Adicione pelo menos uma palavra-chave");
-      return;
-    }
-
     try {
       await createRuleMutation.mutateAsync({
         categoryId: selectedCategoryForRule,
-        keywords,
+        keywords: ruleFormData.keywords,
         matchType: ruleFormData.matchType,
         caseSensitive: ruleFormData.caseSensitive,
         priority: parseInt(ruleFormData.priority),
+        enabled: true,
       });
       toast.success("Regra criada com sucesso!");
       await rulesQuery.refetch();
@@ -150,11 +143,21 @@ export default function Categories() {
     }
   };
 
+
+
+  const handleApplyRules = async () => {
+    toast.info("Funcionalidade de aplicação em lote ainda não implementada");
+  };
+
+  const getCategoriesRules = (categoryId: number) => {
+    return rulesQuery.data?.filter((r: any) => r.categoryId === categoryId) || [];
+  };
+
   const handleDeleteRule = async (ruleId: number) => {
     setDeletingRuleId(ruleId);
     try {
-      const rule = rulesQuery.data?.find(r => r.id === ruleId);
-      const ruleDescription = rule?.keywords?.join(", ") || "Regra";
+      const rule = rulesQuery.data?.find((r: any) => r.id === ruleId);
+      const ruleDescription = rule?.keywords || "Regra";
       
       await deleteRuleMutation.mutateAsync({ id: ruleId });
       await rulesQuery.refetch();
@@ -176,23 +179,6 @@ export default function Categories() {
     }
   };
 
-  const handleApplyRules = async () => {
-    if (!confirm("Deseja aplicar as regras de categorização a todas as transações? Isso pode levar alguns segundos.")) {
-      return;
-    }
-
-    try {
-      const result = await applyRulesMutation.mutateAsync();
-      toast.success(`${result.stats.updatedCount} transações foram categorizadas!`);
-    } catch (error) {
-      toast.error("Erro ao aplicar regras");
-    }
-  };
-
-  const getCategoriesRules = (categoryId: number) => {
-    return rulesQuery.data?.filter(r => r.categoryId === categoryId) || [];
-  };
-
   const incomeCategories = categoriesQuery.data?.filter(c => c.type === "income") || [];
   const expenseCategories = categoriesQuery.data?.filter(c => c.type === "expense") || [];
 
@@ -205,24 +191,6 @@ export default function Categories() {
         </div>
 
         <div className="flex gap-2">
-          <Button 
-            onClick={handleApplyRules}
-            disabled={applyRulesMutation.isPending}
-            variant="outline"
-            className="gap-2"
-          >
-            {applyRulesMutation.isPending ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Aplicando...
-              </>
-            ) : (
-              <>
-                <Zap className="w-4 h-4" />
-                Aplicar Regras
-              </>
-            )}
-          </Button>
 
           <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>

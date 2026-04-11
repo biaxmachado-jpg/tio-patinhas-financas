@@ -160,9 +160,15 @@
 - [x] Adicionar card de "Valor À Vista" na página de detalhes
 - [x] Validar que Total = À Vista + Parcelado
 
-
 ## Filtro de Transações por Período
 
 - [x] Vincular transações exibidas ao mês/ano selecionado no topo da página de contas
 - [x] Vincular transações exibidas ao mês/ano selecionado no topo da página de cartões
 - [x] Manter filtro de data customizável como adicional (já implementado)
+
+## Correções de TypeScript
+
+- [x] Corrigir erro de tipo em Categories.tsx (adicionar icon ao formData)
+- [x] Corrigir referências a procedures não definidas (usar categorizationRules em vez de rules)
+- [ ] Adicionar type assertions para filter operations (aplicar de forma consistente em todos os filtros)
+- [x] Validar que Categories.tsx compila sem erros
