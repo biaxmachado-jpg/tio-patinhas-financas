@@ -415,15 +415,17 @@ export async function getCreditCardTransactionsByMonth(userId: number, cardId: n
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0, 23, 59, 59);
   
+  // Filter by dueDate (when the charge is due) instead of date (when it was purchased)
+  // This ensures the invoice shows charges that are due in this month
   return db.select()
     .from(creditCardTransactions)
     .where(and(
       eq(creditCardTransactions.userId, userId),
       eq(creditCardTransactions.cardId, cardId),
-      gte(creditCardTransactions.date, startDate),
-      lte(creditCardTransactions.date, endDate)
+      gte(creditCardTransactions.dueDate, startDate),
+      lte(creditCardTransactions.dueDate, endDate)
     ))
-    .orderBy(desc(creditCardTransactions.date));
+    .orderBy(desc(creditCardTransactions.dueDate));
 }
 
 export async function getCreditCardUtilization(userId: number, cardId: number, month: number, year: number) {

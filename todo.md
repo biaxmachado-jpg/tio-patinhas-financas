@@ -163,11 +163,14 @@
 - [x] Valor Parcelado = soma de transações com installments > 1
 - [x] Adicionar card de "Valor À Vista" na página de detalhes
 - [x] Validar que Total = À Vista + Parcelado
+- [x] CORRIGIDO: Fatura agora filtra por dueDate (data de vencimento) em vez de date (data de compra)
+  * A fatura do mês mostra as compras do mês anterior até o dia de fechamento + parceladas vencendo neste mês
+  * Procedure getCreditCardTransactionsByMonth atualizada para usar dueDate
 
 ## Filtro de Transações por Período
 
-- [x] Vincular transações exibidas ao mês/ano selecionado no topo da página de contas
-- [x] Vincular transações exibidas ao mês/ano selecionado no topo da página de cartões
+- [x] Vincular transações exibidas ao mês/ano selecionado no topo da página de contas (filtra por date - data da transação)
+- [x] Vincular transações exibidas ao mês/ano selecionado no topo da página de cartões (filtra por dueDate - data de vencimento)
 - [x] Manter filtro de data customizável como adicional (já implementado)
 
 ## Correções de TypeScript
