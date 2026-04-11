@@ -112,15 +112,14 @@ export default function BankAccounts() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="initialBalance">Saldo Inicial</Label>
+                  <Label htmlFor="initialBalance">Saldo Inicial (Opcional)</Label>
                   <Input
                     id="initialBalance"
                     type="number"
                     step="0.01"
                     placeholder="0.00"
                     value={formData.initialBalance}
-                    onChange={(e) => setFormData({ ...formData, initialBalance: e.target.value })}
-                    required
+                    onChange={(e) => setFormData({ ...formData, initialBalance: e.target.value || "0.00" })}
                   />
                 </div>
                 <Button type="submit" className="w-full">
