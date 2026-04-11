@@ -113,6 +113,15 @@ export default function BankAccountDetail() {
   
   // Apply filters
   let filteredTransactions = transactions;
+  
+  // Filter by selected month/year
+  const monthStart = new Date(selectedYear, selectedMonth - 1, 1);
+  const monthEnd = new Date(selectedYear, selectedMonth, 0, 23, 59, 59);
+  filteredTransactions = filteredTransactions.filter((t: any) => {
+    const transactionDate = new Date(t.date);
+    return transactionDate >= monthStart && transactionDate <= monthEnd;
+  });
+  
   if (filterCategory) {
     filteredTransactions = filteredTransactions.filter((t: any) => t.categoryId === parseInt(filterCategory));
   }
