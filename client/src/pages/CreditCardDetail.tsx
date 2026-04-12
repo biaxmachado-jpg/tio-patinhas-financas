@@ -72,11 +72,8 @@ export default function CreditCardDetail() {
 
   // Filter transactions based on selected filter and date range
   const filteredTransactions = transactionsQuery.data?.filter((t: any) => {
-    // Filter by selected month/year
-    const monthStart = new Date(selectedYear, selectedMonth - 1, 1);
-    const monthEnd = new Date(selectedYear, selectedMonth, 0, 23, 59, 59);
-    const transactionDate = new Date(t.date);
-    if (transactionDate < monthStart || transactionDate > monthEnd) return false;
+    // Note: Backend already filters by month/year using dueDate, so we don't filter again here
+    const transactionDate = new Date(t.dueDate || t.date);
     
     // Filter by installment type
     if (transactionFilter === 'vista' && t.installments !== 1) return false;
@@ -87,7 +84,8 @@ export default function CreditCardDetail() {
       const startDate = new Date(filterStartDate);
       const endDate = new Date(filterEndDate);
       endDate.setHours(23, 59, 59, 999);
-      if (transactionDate < startDate || transactionDate > endDate) return false;
+      const txDate = new Date(t.dueDate || t.date);
+      if (txDate < startDate || txDate > endDate) return false;
     }
     
     return true;

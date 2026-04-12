@@ -412,20 +412,20 @@ export async function getCreditCardTransactionsByMonth(userId: number, cardId: n
   const db = await getDb();
   if (!db) return [];
   
-  const startDate = new Date(year, month - 1, 1);
-  const endDate = new Date(year, month, 0, 23, 59, 59);
-  
-  // Filter by dueDate (when the charge is due) instead of date (when it was purchased)
-  // This ensures the invoice shows charges that are due in this month
-  return db.select()
+  // Filter by dueDate (when the charge is due) to show all transactions in the invoice for that month
+  // Use YEAR() and MONTH() functions for timezone-safe date comparison
+  const result = await db.select()
     .from(creditCardTransactions)
-    .where(and(
-      eq(creditCardTransactions.userId, userId),
-      eq(creditCardTransactions.cardId, cardId),
-      gte(creditCardTransactions.dueDate, startDate),
-      lte(creditCardTransactions.dueDate, endDate)
-    ))
+    .where(
+      and(
+        eq(creditCardTransactions.userId, userId),
+        eq(creditCardTransactions.cardId, cardId)
+      )
+    )
+    .where(sql`YEAR(${creditCardTransactions.dueDate}) = ${year} AND MONTH(${creditCardTransactions.dueDate}) = ${month}`)
     .orderBy(desc(creditCardTransactions.dueDate));
+  
+  return result;
 }
 
 export async function getCreditCardUtilization(userId: number, cardId: number, month: number, year: number) {
