@@ -628,3 +628,16 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [ ] Ajustar aba Cartões de Crédito com formatação correta
 - [ ] Ajustar Dashboard com formatação correta
 - [ ] Testar formatação em todo o projeto
+
+
+## Funcionalidade: Adicionar Coluna de Conta/Cartão nas Tabelas
+
+- [x] Adicionar coluna "Conta/Cartão" na tabela de Receitas
+  - [x] Mostrar nome da conta bancária ou cartão
+  - [x] Posicionar entre "Origem" e "Valor"
+  - [x] Testar com diferentes contas e cartões
+
+- [x] Adicionar coluna "Conta/Cartão" na tabela de Despesas
+  - [x] Mostrar nome da conta bancária ou cartão
+  - [x] Posicionar entre "Origem" e "Valor"
+  - [x] Testar com diferentes contas e cartões

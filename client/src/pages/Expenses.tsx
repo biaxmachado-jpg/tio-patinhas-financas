@@ -14,6 +14,8 @@ export default function Expenses() {
   const transactionsQuery = trpc.transactions.list.useQuery({});
   const creditCardTransactionsQuery = trpc.creditCardTransactions.list.useQuery({});
   const categoriesQuery = trpc.categories.list.useQuery();
+  const bankAccountsQuery = trpc.bankAccounts.list.useQuery();
+  const creditCardsQuery = trpc.creditCards.list.useQuery();
 
   // Combinar e filtrar despesas
   const expenses = useMemo(() => {
@@ -41,6 +43,7 @@ export default function Expenses() {
             categoryId: tx.categoryId,
             amount: Math.abs(amount),
             source: "Conta Bancária",
+            bankAccountId: tx.bankAccountId,
           });
         }
       });
@@ -67,6 +70,7 @@ export default function Expenses() {
             categoryId: tx.categoryId,
             amount: amount,
             source: "Cartão de Crédito",
+            creditCardId: tx.creditCardId,
           });
         }
       });
@@ -244,12 +248,21 @@ export default function Expenses() {
                   <th className="text-left py-2 px-2">Descrição</th>
                   <th className="text-left py-2 px-2">Categoria</th>
                   <th className="text-left py-2 px-2">Origem</th>
+                  <th className="text-left py-2 px-2">Conta/Cartão</th>
                   <th className="text-right py-2 px-2">Valor</th>
                 </tr>
               </thead>
               <tbody>
                 {expenses.map((exp) => {
                   const category = categoriesQuery.data?.find((c: any) => c.id === exp.categoryId);
+                  let accountName = "";
+                  if (exp.source === "Conta Bancária") {
+                    const account = bankAccountsQuery.data?.find((a: any) => a.id === exp.bankAccountId);
+                    accountName = account?.name || "Conta desconhecida";
+                  } else if (exp.source === "Cartão de Crédito") {
+                    const card = creditCardsQuery.data?.find((c: any) => c.id === exp.creditCardId);
+                    accountName = card?.name || "Cartão desconhecido";
+                  }
                   return (
                     <tr key={exp.id} className="border-b hover:bg-muted/50">
                       <td className="py-2 px-2">{new Date(exp.date).toLocaleDateString("pt-BR")}</td>
@@ -263,6 +276,7 @@ export default function Expenses() {
                         </span>
                       </td>
                       <td className="py-2 px-2 text-xs text-muted-foreground">{exp.source}</td>
+                      <td className="py-2 px-2 text-xs text-muted-foreground">{accountName}</td>
                       <td className="py-2 px-2 text-right font-semibold text-red-600">
                         -{formatBRL(exp.amount)}
                       </td>
