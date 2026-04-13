@@ -68,6 +68,16 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .query(({ ctx, input }) => db.getBankAccountById(input.id, ctx.user.id)),
     
+    getInitialBalance: protectedProcedure
+      .input(z.object({
+        accountId: z.number(),
+        month: z.number().min(1).max(12),
+        year: z.number(),
+      }))
+      .query(({ ctx, input }) => 
+        db.getInitialBalanceForMonth(ctx.user.id, input.accountId, input.month, input.year)
+      ),
+    
     create: protectedProcedure
       .input(z.object({
         name: z.string().min(1),
