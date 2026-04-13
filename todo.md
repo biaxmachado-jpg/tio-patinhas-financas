@@ -613,3 +613,18 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
   - [x] Implementar cores das categorias nos gráficos
   - [x] Layout responsivo para celular
   - [x] Dados visíveis nos gráficos
+
+
+## Funcionalidade: Formatação Brasileira de Moeda (R$ 1.000,00)
+
+- [x] Criar função utilitária de formatação brasileira
+  - [x] Vírgula (,) como separador decimal
+  - [x] Ponto (.) como separador de milhares
+  - [x] Espaço entre R$ e o valor
+- [x] Ajustar aba Receitas com formatação correta
+- [x] Ajustar aba Despesas com formatação correta
+- [ ] Ajustar aba Visão Geral com formatação correta
+- [ ] Ajustar aba Contas Bancárias com formatação correta
+- [ ] Ajustar aba Cartões de Crédito com formatação correta
+- [ ] Ajustar Dashboard com formatação correta
+- [ ] Testar formatação em todo o projeto
