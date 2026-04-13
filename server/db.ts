@@ -307,6 +307,113 @@ export async function deleteCategorizationRule(id: number, userId: number) {
   return db.delete(categorizationRules).where(and(eq(categorizationRules.id, id), eq(categorizationRules.userId, userId)));
 }
 
+/**
+ * Apply categorization rules to all transactions in a bank account
+ * Returns the number of transactions that were categorized
+ */
+export async function applyCategorizationRulesToAccount(userId: number, accountId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // Get all enabled rules for the user, ordered by priority (highest first)
+  const rules = await db
+    .select()
+    .from(categorizationRules)
+    .where(and(
+      eq(categorizationRules.userId, userId),
+      eq(categorizationRules.enabled, true)
+    ))
+    .orderBy(desc(categorizationRules.priority));
+  
+  if (rules.length === 0) {
+    return 0; // No rules to apply
+  }
+  
+  // Get all transactions for the account
+  const accountTransactions = await db
+    .select()
+    .from(transactions)
+    .where(and(
+      eq(transactions.userId, userId),
+      eq(transactions.accountId, accountId)
+    ));
+  
+  let categorizedCount = 0;
+  
+  // For each transaction, try to match against rules
+  for (const transaction of accountTransactions) {
+    // Skip if already has a category (don't override existing categorization)
+    // Uncomment the line below if you want to skip already categorized transactions
+    // if (transaction.categoryId) continue;
+    
+    // Try to match against rules (in priority order)
+    for (const rule of rules) {
+      if (matchesRule(transaction.description, rule)) {
+        // Update the transaction with the matched category
+        await db
+          .update(transactions)
+          .set({ categoryId: rule.categoryId })
+          .where(eq(transactions.id, transaction.id));
+        
+        categorizedCount++;
+        break; // Stop after first match (highest priority)
+      }
+    }
+  }
+  
+  return categorizedCount;
+}
+
+/**
+ * Check if a transaction description matches a categorization rule
+ */
+function matchesRule(description: string, rule: CategorizationRule): boolean {
+  const keywords = parseKeywords(rule.keywords);
+  const testDescription = rule.caseSensitive ? description : description.toLowerCase();
+  
+  for (const keyword of keywords) {
+    const testKeyword = rule.caseSensitive ? keyword : keyword.toLowerCase();
+    
+    switch (rule.matchType) {
+      case "contains":
+        if (testDescription.includes(testKeyword)) return true;
+        break;
+      case "exact":
+        if (testDescription === testKeyword) return true;
+        break;
+      case "startsWith":
+        if (testDescription.startsWith(testKeyword)) return true;
+        break;
+      case "endsWith":
+        if (testDescription.endsWith(testKeyword)) return true;
+        break;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Parse keywords from JSON string or array
+ */
+function parseKeywords(keywordsData: string | string[]): string[] {
+  if (Array.isArray(keywordsData)) {
+    return keywordsData;
+  }
+  
+  try {
+    const parsed = JSON.parse(keywordsData);
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+  } catch {
+    // If JSON parsing fails, treat as single keyword
+  }
+  
+  // Fallback: treat as single keyword string
+  return [keywordsData];
+}
+
 // ============= CREDIT CARDS =============
 
 export async function getCreditCards(userId: number) {

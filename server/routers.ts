@@ -144,6 +144,10 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(({ ctx, input }) => db.deleteTransaction(input.id, ctx.user.id)),
+    
+    applyRules: protectedProcedure
+      .input(z.object({ accountId: z.number() }))
+      .mutation(({ ctx, input }) => db.applyCategorizationRulesToAccount(ctx.user.id, input.accountId)),
   }),
 
   // ============= BUDGETS =============

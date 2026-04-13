@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Upload, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, FileUp, Filter, X, Edit2, Check, Plus } from "lucide-react";
+import { Upload, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, FileUp, Filter, X, Edit2, Check, Plus, Wand2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -49,6 +49,7 @@ export default function BankAccountDetail() {
   });
   const [incomeFilterStartDate, setIncomeFilterStartDate] = useState<string>("");
   const [incomeFilterEndDate, setIncomeFilterEndDate] = useState<string>("");
+  const [showApplyRulesConfirmation, setShowApplyRulesConfirmation] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // All tRPC queries
@@ -92,6 +93,16 @@ export default function BankAccountDetail() {
     },
     onError: () => {
       toast.error("Erro ao deletar transação");
+    },
+  });
+
+  const applyRulesMutation = trpc.transactions.applyRules.useMutation({
+    onSuccess: (count) => {
+      toast.success(`${count} transação(ões) categorizada(s) com sucesso`);
+      transactionsQuery.refetch();
+    },
+    onError: () => {
+      toast.error("Erro ao aplicar regras de categorização");
     },
   });
 
@@ -325,6 +336,16 @@ export default function BankAccountDetail() {
               className="text-white border-white hover:bg-white/20"
             >
               Reconciliar
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowApplyRulesConfirmation(true)}
+              className="text-white border-white hover:bg-white/20"
+              disabled={applyRulesMutation.isPending}
+            >
+              <Wand2 className="w-4 h-4 mr-2" />
+              {applyRulesMutation.isPending ? "Aplicando..." : "Aplicar Regras"}
             </Button>
             <Button
               variant="outline"
@@ -785,6 +806,105 @@ export default function BankAccountDetail() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Transaction Dialog */}
+      <Dialog open={showCategoryDialog && selectedTransaction !== null} onOpenChange={(open) => !open && setShowCategoryDialog(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Transação</DialogTitle>
+          </DialogHeader>
+          {selectedTransaction && (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Descrição</label>
+                <Input
+                  value={editingField === 'description' ? editingValue : selectedTransaction.description}
+                  onChange={(e) => {
+                    setEditingField('description');
+                    setEditingValue(e.target.value);
+                  }}
+                  placeholder="Descrição da transação"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Valor</label>
+                <Input
+                  value={editingField === 'amount' ? editingValue : formatBRL(selectedTransaction.amount.toString())}
+                  onChange={(e) => {
+                    setEditingField('amount');
+                    setEditingValue(e.target.value);
+                  }}
+                  placeholder="Valor"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Categoria</label>
+                <Select
+                  value={editingField === 'category' ? editingValue : selectedTransaction.categoryId.toString()}
+                  onValueChange={(value) => {
+                    setEditingField('category');
+                    setEditingValue(value);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categoriesQuery.data?.map((c: any) => (
+                      <SelectItem key={c.id} value={c.id.toString()}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    if (editingField && editingValue) {
+                      handleEditTransactionField(selectedTransaction, editingField, editingValue);
+                    }
+                  }}
+                  className="flex-1"
+                >
+                  Salvar
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowCategoryDialog(false);
+                    setSelectedTransaction(null);
+                    setEditingField(null);
+                    setEditingValue("");
+                  }}
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Apply Categorization Rules Confirmation Dialog */}
+      <AlertDialog open={showApplyRulesConfirmation} onOpenChange={setShowApplyRulesConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aplicar Regras de Categorização</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja aplicar as regras de categorização automática a todas as transações desta conta? As transações serão categorizadas com base nas palavras-chave das regras.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogAction onClick={() => {
+            applyRulesMutation.mutate({ accountId: parseInt(accountId || "0") });
+            setShowApplyRulesConfirmation(false);
+          }}>
+            Aplicar
+          </AlertDialogAction>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
