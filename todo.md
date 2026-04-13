@@ -267,3 +267,59 @@
 - [x] Testar preenchimento automático em diferentes meses
 - [x] Validar que saldo final é recalculado corretamente após edição manual
 - [x] Teste manual: Bradesco Abril/2026 com saldo inicial 1000,00 = 1000,00 + 5.526,97 - 5.934,68 = 592,29 ✅
+
+
+## Novas Funcionalidades - Sprint 2
+
+### 1. Página Importar OFX
+- [ ] Criar página ImportarOFX.tsx
+- [ ] Implementar seletor de conta bancária
+- [ ] Implementar seletor de categoria padrão
+- [ ] Implementar checkbox "Pular Transações Duplicadas"
+- [ ] Implementar upload de arquivo OFX
+- [ ] Implementar preview de transações
+- [ ] Implementar botão "Visualizar Transações"
+- [ ] Adicionar rota /importar-ofx
+- [ ] Adicionar link no menu lateral
+
+### 2. Página Despesas
+- [ ] Criar página Expenses.tsx
+- [ ] Implementar filtro por mês/ano
+- [ ] Buscar todas as despesas de contas bancárias
+- [ ] Buscar todas as despesas de cartões de crédito
+- [ ] Combinar e exibir despesas mensalizadas
+- [ ] Implementar tabela com data, descrição, categoria, valor
+- [ ] Implementar gráfico de despesas por categoria
+- [ ] Adicionar rota /despesas
+- [ ] Adicionar link no menu lateral
+
+### 3. Página Receitas
+- [ ] Criar página Income.tsx
+- [ ] Implementar filtro por mês/ano
+- [ ] Buscar todas as receitas de contas bancárias
+- [ ] Buscar todas as receitas de cartões de crédito
+- [ ] Combinar e exibir receitas mensalizadas
+- [ ] Implementar tabela com data, descrição, categoria, valor
+- [ ] Implementar gráfico de receitas por categoria
+- [ ] Adicionar rota /receitas
+- [ ] Adicionar link no menu lateral
+
+
+## Novas Funcionalidades - Série 2
+
+- [x] Criar página "Importar OFX" com upload de arquivo
+  - Interface com seleção de conta, categoria padrão, checkbox de duplicatas
+  - Botão para selecionar arquivo OFX
+  - Botão "Visualizar Transações" e "Importar"
+- [x] Criar página "Despesas" com filtro por mês
+  - Gráfico de pizza com despesas por categoria
+  - Gráfico de barras com top 10 categorias
+  - Tabela com detalhes de todas as despesas
+  - Filtro por mês e ano com navegação
+  - Teste: Abril/2026 = R$ 20.535,51 ✅
+- [x] Criar página "Receitas" com filtro por mês
+  - Gráfico de pizza com receitas por categoria
+  - Gráfico de barras com top 10 categorias
+  - Tabela com detalhes de todas as receitas
+  - Filtro por mês e ano com navegação
+  - Teste: Abril/2026 = R$ 26.350,61 ✅
