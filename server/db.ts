@@ -624,12 +624,18 @@ export async function upsertMonthlyBalance(userId: number, accountId: number, mo
   if (!db) return null;
 
   try {
+    const balance = parseFloat(initialBalance);
+    if (isNaN(balance)) {
+      console.error(`[Database] Invalid balance value: ${initialBalance}`);
+      return null;
+    }
+    
     const existing = await getMonthlyBalance(userId, accountId, month, year);
     
     if (existing) {
       // Update existing
       await db.update(monthlyBalances)
-        .set({ initialBalance: sql`${parseFloat(initialBalance)}` })
+        .set({ initialBalance: balance.toString() })
         .where(eq(monthlyBalances.id, existing.id));
       
       return getMonthlyBalance(userId, accountId, month, year);
@@ -640,7 +646,7 @@ export async function upsertMonthlyBalance(userId: number, accountId: number, mo
         accountId,
         month,
         year,
-        initialBalance: sql`${parseFloat(initialBalance)}`  as any,
+        initialBalance: balance.toString(),
       });
 
       return getMonthlyBalance(userId, accountId, month, year);
@@ -659,8 +665,11 @@ export async function getInitialBalanceForMonth(userId: number, accountId: numbe
     // First, check if there's a custom monthly balance
     const monthlyBalance = await getMonthlyBalance(userId, accountId, month, year);
     if (monthlyBalance) {
-      return parseFloat(monthlyBalance.initialBalance.toString());
+      const balance = parseFloat(monthlyBalance.initialBalance.toString());
+      console.log(`[getInitialBalanceForMonth] Custom balance for ${month}/${year}: ${balance}`);
+      return balance;
     }
+    console.log(`[getInitialBalanceForMonth] No custom balance for ${month}/${year}`);
 
     // If no custom balance, use the account's initial balance (for the first month)
     const account = await getBankAccountById(accountId, userId);
