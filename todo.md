@@ -581,3 +581,16 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Investigar por que os dados estão acumulados
 - [x] Corrigir a query para filtrar apenas transações do mês corrente
 - [x] Testar em diferentes meses
+
+
+## BUG: Abas "Receitas" e "Despesas" Lendo Dados Incorretos
+
+- [x] Investigar como as abas Receitas e Despesas estão lendo os dados
+- [x] Verificar se estão lendo categorias e transações erradas
+- [x] Corrigir as queries para ler apenas dados classificados corretamente
+  - [x] Adicionar filtro de categoryId válido (não null/undefined)
+  - [x] Garantir que apenas transações com categoria existente sejam mostradas
+  - [x] Corrigir Income.tsx para filtrar corretamente
+  - [x] Corrigir Expenses.tsx para filtrar corretamente
+- [x] Garantir que as abas leiam apenas o que foi salvo nas abas "Contas" e "Cartões"
+- [x] Testar a leitura correta dos dados
