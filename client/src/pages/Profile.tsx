@@ -2,9 +2,74 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mail, User, LogOut, Save, X } from "lucide-react";
+import { Mail, User, LogOut, Save, X, CreditCard, Wallet } from "lucide-react";
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+
+interface BankAccount {
+  id: number;
+  name: string;
+  bank: string;
+}
+
+interface CreditCard {
+  id: number;
+  name: string;
+  lastFourDigits: string | null;
+}
+
+function MinhasContas() {
+  const { data: bankAccounts, isLoading: bankLoading } = trpc.bankAccounts.list.useQuery();
+  const { data: creditCards, isLoading: cardsLoading } = trpc.creditCards.list.useQuery();
+
+  if (bankLoading || cardsLoading) {
+    return <p className="text-gray-500">Carregando contas...</p>;
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Contas Bancárias */}
+      <div>
+        <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+          <Wallet className="w-5 h-5" />
+          Contas Bancárias
+        </h3>
+        {bankAccounts && bankAccounts.length > 0 ? (
+          <div className="space-y-2">
+            {bankAccounts.map((account: BankAccount) => (
+              <div key={account.id} className="p-3 border rounded-lg hover:bg-muted transition-colors">
+                <p className="font-medium text-foreground">{account.name}</p>
+                <p className="text-sm text-gray-500">{account.bank}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500">Nenhuma conta bancária cadastrada</p>
+        )}
+      </div>
+
+      {/* Cartões de Crédito */}
+      <div>
+        <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+          <CreditCard className="w-5 h-5" />
+          Cartões de Crédito
+        </h3>
+        {creditCards && creditCards.length > 0 ? (
+          <div className="space-y-2">
+            {creditCards.map((card: CreditCard) => (
+              <div key={card.id} className="p-3 border rounded-lg hover:bg-muted transition-colors">
+                <p className="font-medium text-foreground">{card.name}</p>
+                <p className="text-sm text-gray-500">Últimos dígitos: {card.lastFourDigits || 'N/A'}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500">Nenhum cartão de crédito cadastrado</p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function Profile() {
   const { user, logout, refresh } = useAuth();
@@ -147,6 +212,17 @@ export default function Profile() {
               </Button>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Minhas Contas */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Minhas Contas</CardTitle>
+          <CardDescription>Contas bancárias e cartões de crédito</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <MinhasContas />
         </CardContent>
       </Card>
 
