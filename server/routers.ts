@@ -21,6 +21,7 @@ export const appRouter = router({
       .input(z.object({
         name: z.string().min(1).optional(),
         email: z.string().email().optional(),
+        profilePhoto: z.string().optional(), // Base64 encoded image
       }))
       .mutation(({ ctx, input }) => db.updateUserProfile(ctx.user.id, input)),
   }),

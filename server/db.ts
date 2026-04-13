@@ -454,7 +454,7 @@ export async function getCreditCardUtilization(userId: number, cardId: number, m
 }
 
 
-export async function updateUserProfile(userId: number, data: { name?: string; email?: string }) {
+export async function updateUserProfile(userId: number, data: { name?: string; email?: string; profilePhoto?: string }) {
   const db = await getDb();
   if (!db) {
     throw new Error("Database not available");
@@ -465,6 +465,7 @@ export async function updateUserProfile(userId: number, data: { name?: string; e
       .set({
         ...(data.name && { name: data.name }),
         ...(data.email && { email: data.email }),
+        ...(data.profilePhoto && { profilePhoto: data.profilePhoto }),
       })
       .where(eq(users.id, userId));
 

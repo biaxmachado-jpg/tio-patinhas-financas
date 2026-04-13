@@ -431,6 +431,7 @@ export default function Profile() {
       await updateProfileMutation.mutateAsync({
         name: formData.name,
         email: formData.email,
+        ...(profilePhoto && { profilePhoto }),
       });
     } catch (error) {
       console.error("Erro ao atualizar perfil:", error);
