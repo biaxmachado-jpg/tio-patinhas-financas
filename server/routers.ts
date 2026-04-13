@@ -106,6 +106,16 @@ export const appRouter = router({
       .mutation(({ ctx, input }) => 
         db.upsertMonthlyBalance(ctx.user.id, input.accountId, input.month, input.year, input.initialBalance)
       ),
+    
+    resetMonthlyBalance: protectedProcedure
+      .input(z.object({
+        accountId: z.number(),
+        month: z.number().min(1).max(12),
+        year: z.number(),
+      }))
+      .mutation(({ ctx, input }) => 
+        db.deleteMonthlyBalance(ctx.user.id, input.accountId, input.month, input.year)
+      ),
   }),
 
   // ============= TRANSACTIONS =============

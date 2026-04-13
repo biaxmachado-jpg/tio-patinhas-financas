@@ -557,3 +557,11 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
   - [x] Implementar mutation tRPC updateMonthlyBalance
   - [x] Atualizar frontend para usar a nova mutation
 - [x] Testar a correção em múltiplos meses
+
+
+## Funcionalidade: Botão Reset para Saldo Inicial
+
+- [x] Adicionar função de delete no backend para remover saldo customizado
+- [x] Criar mutation tRPC para resetar saldo mensal
+- [x] Adicionar botão Reset na UI com confirmação
+- [x] Testar a funcionalidade de reset
