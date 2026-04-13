@@ -106,7 +106,9 @@
 - [x] Implementar acessibilidade (ARIA labels, keyboard navigation)
 
 ### Testes & Validacao
-- [x] Escrever testes unitarios para procedures tRPC (28 testes passando)
+- [x] Escrever testes unitarios para procedures tRPC (32 testes passando)
+- [x] Escrever testes para updateProfile (4 testes passando)
+- [ ] Adicionar teste de integração frontend/backend para salvar nome/email no perfil
 - [ ] Escrever testes para parsers de PDF e OFX (opcional)
 - [ ] Escrever testes para motor de categorizacao automatica (opcional)
 - [ ] Testar fluxo completo de importacao de extratos (opcional)
@@ -221,6 +223,8 @@
 
 ## Melhorias na Página de Perfil
 
-- [ ] Tornar nome, email e ID editáveis
-- [ ] Criar procedure tRPC para atualizar dados do usuário
-- [ ] Adicionar seção "Minhas Contas" com listagem de contas bancárias e cartões de crédito
+- [x] Tornar nome e email editáveis (ID permanece somente leitura)
+- [x] Criar procedure tRPC para atualizar dados do usuário
+- [x] Adicionar seção "Minhas Contas" com listagem de contas bancárias e cartões de crédito
+- [x] Escrever testes para updateProfile (4 testes passando)
+- [ ] Melhorar tratamento de erro quando nenhum campo é fornecido (retornar erro de validação claro em vez de erro interno)
