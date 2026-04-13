@@ -63,6 +63,23 @@ export type BankAccount = typeof bankAccounts.$inferSelect;
 export type InsertBankAccount = typeof bankAccounts.$inferInsert;
 
 /**
+ * Monthly balances table for storing initial balance per month/year
+ */
+export const monthlyBalances = mysqlTable("monthlyBalances", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  accountId: int("accountId").notNull(),
+  month: int("month").notNull(), // 1-12
+  year: int("year").notNull(),
+  initialBalance: decimal("initialBalance", { precision: 12, scale: 2 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type MonthlyBalance = typeof monthlyBalances.$inferSelect;
+export type InsertMonthlyBalance = typeof monthlyBalances.$inferInsert;
+
+/**
  * Transactions table (expenses and income)
  */
 export const transactions = mysqlTable("transactions", {

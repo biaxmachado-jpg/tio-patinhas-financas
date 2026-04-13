@@ -106,6 +106,17 @@ export default function BankAccountDetail() {
     },
   });
 
+  const updateMonthlyBalanceMutation = trpc.bankAccounts.updateMonthlyBalance.useMutation({
+    onSuccess: () => {
+      toast.success("Saldo inicial atualizado com sucesso");
+      setEditingBalances(false);
+      transactionsQuery.refetch();
+    },
+    onError: () => {
+      toast.error("Erro ao atualizar saldo inicial");
+    },
+  });
+
   // All useEffect hooks must come after all useState and useRef
   // Calculate previous month's final balance
   useEffect(() => {
@@ -456,11 +467,12 @@ export default function BankAccountDetail() {
                 size="sm"
                 onClick={() => {
                   const numericValue = convertBRLToNumber(initialBalanceValue).toFixed(2);
-                  updateAccountMutation.mutateAsync({
-                    id: parseInt(accountId || "0"),
+                  updateMonthlyBalanceMutation.mutateAsync({
+                    accountId: parseInt(accountId || "0"),
+                    month: selectedMonth,
+                    year: selectedYear,
                     initialBalance: numericValue,
                   });
-                  setEditingBalances(false);
                 }}
               >
                 <Check className="w-4 h-4 mr-2" />

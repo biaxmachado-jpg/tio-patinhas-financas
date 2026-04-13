@@ -10,6 +10,7 @@ import {
   categorizationRules,
   creditCards,
   creditCardTransactions,
+  monthlyBalances,
   type Category,
   type BankAccount,
   type Transaction,
@@ -17,6 +18,7 @@ import {
   type CategorizationRule,
   type CreditCard,
   type CreditCardTransaction,
+  type MonthlyBalance,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -580,5 +582,110 @@ export async function updateUserProfile(userId: number, data: { name?: string; e
   } catch (error) {
     console.error("[Database] Error updating user profile:", error);
     throw error;
+  }
+}
+
+
+// Monthly Balances functions
+export async function getMonthlyBalance(userId: number, accountId: number, month: number, year: number): Promise<MonthlyBalance | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    const result = await db.select()
+      .from(monthlyBalances)
+      .where(
+        and(
+          eq(monthlyBalances.userId, userId),
+          eq(monthlyBalances.accountId, accountId),
+          eq(monthlyBalances.month, month),
+          eq(monthlyBalances.year, year)
+        )
+      )
+      .limit(1);
+
+    return result[0] || null;
+  } catch (error) {
+    console.error("[Database] Error getting monthly balance:", error);
+    return null;
+  }
+}
+
+export async function upsertMonthlyBalance(userId: number, accountId: number, month: number, year: number, initialBalance: string): Promise<MonthlyBalance | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    const existing = await getMonthlyBalance(userId, accountId, month, year);
+    
+    if (existing) {
+      // Update existing
+      await db.update(monthlyBalances)
+        .set({ initialBalance: sql`${parseFloat(initialBalance)}` })
+        .where(eq(monthlyBalances.id, existing.id));
+      
+      return getMonthlyBalance(userId, accountId, month, year);
+    } else {
+      // Insert new
+      await db.insert(monthlyBalances).values({
+        userId,
+        accountId,
+        month,
+        year,
+        initialBalance: sql`${parseFloat(initialBalance)}`  as any,
+      });
+
+      return getMonthlyBalance(userId, accountId, month, year);
+    }
+  } catch (error) {
+    console.error("[Database] Error upserting monthly balance:", error);
+    return null;
+  }
+}
+
+export async function getInitialBalanceForMonth(userId: number, accountId: number, month: number, year: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+
+  try {
+    // First, check if there's a custom monthly balance
+    const monthlyBalance = await getMonthlyBalance(userId, accountId, month, year);
+    if (monthlyBalance) {
+      return parseFloat(monthlyBalance.initialBalance.toString());
+    }
+
+    // If no custom balance, use the account's initial balance (for the first month)
+    const account = await getBankAccountById(accountId, userId);
+    if (!account) return 0;
+
+    // For months after the first, calculate from previous month's final balance
+    if (month === 1) {
+      return parseFloat(account.initialBalance.toString());
+    }
+
+    // Get previous month's final balance
+    const previousMonth = month === 1 ? 12 : month - 1;
+    const previousYear = month === 1 ? year - 1 : year;
+
+    const previousTransactions = await getTransactions(userId, {
+      accountId,
+      startDate: new Date(previousYear, previousMonth - 1, 1),
+      endDate: new Date(previousYear, previousMonth, 0, 23, 59, 59),
+    }) || [];
+    const previousAccount = await getBankAccountById(accountId, userId);
+    if (!previousAccount) return 0;
+
+    const previousInitialBalance = await getInitialBalanceForMonth(userId, accountId, previousMonth, previousYear);
+    const previousIncome = previousTransactions
+      .filter((t: Transaction) => t.type === 'income')
+      .reduce((sum: number, t: Transaction) => sum + parseFloat(t.amount.toString()), 0);
+    const previousExpenses = previousTransactions
+      .filter((t: Transaction) => t.type === 'expense')
+      .reduce((sum: number, t: Transaction) => sum + parseFloat(t.amount.toString()), 0);
+
+    return previousInitialBalance + previousIncome - previousExpenses;
+  } catch (error) {
+    console.error("[Database] Error getting initial balance for month:", error);
+    return 0;
   }
 }
