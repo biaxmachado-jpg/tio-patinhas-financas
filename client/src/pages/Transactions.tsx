@@ -1,5 +1,6 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
+import { formatBRL } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -231,10 +232,7 @@ export default function Transactions() {
                       </td>
                       <td className="px-6 py-3 text-sm text-muted-foreground">{account?.name}</td>
                       <td className={`px-6 py-3 text-sm font-semibold text-right ${transaction.type === "income" ? "text-green-600" : "text-red-600"}`}>
-                        {transaction.type === "income" ? "+" : "-"} R${" "}
-                        {parseFloat(transaction.amount).toLocaleString("pt-BR", {
-                          minimumFractionDigits: 2,
-                        })}
+                        {transaction.type === "income" ? "+" : "-"} {formatBRL(parseFloat(transaction.amount))}
                       </td>
                       <td className="px-6 py-3 text-sm text-center">
                         <div className="flex gap-2 justify-center">

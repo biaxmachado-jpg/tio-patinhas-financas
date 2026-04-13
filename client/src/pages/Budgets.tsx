@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Edit2, Copy } from "lucide-react";
 import { useState } from "react";
+import { formatBRL } from "@/lib/currency";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
@@ -152,8 +153,7 @@ export default function Budgets() {
                   <span className="font-medium">{cat.name}</span>
                 </div>
                 <span className="text-sm font-semibold">
-                  {spentAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} /{" "}
-                  {budgetAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  {formatBRL(spentAmount)} / {formatBRL(budgetAmount)}
                 </span>
               </div>
               <div className="w-full bg-background rounded-full h-2 overflow-hidden">

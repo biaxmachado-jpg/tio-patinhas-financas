@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { trpc } from "@/lib/trpc";
+import { formatBRL } from "@/lib/currency";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -202,7 +203,7 @@ export default function ImportarOFX() {
                       </span>
                     </td>
                     <td className={`py-2 px-2 text-right font-semibold ${t.type === "income" ? "text-green-600" : "text-red-600"}`}>
-                      {t.type === "income" ? "+" : "-"}R$ {t.amount}
+                      {t.type === "income" ? "+" : "-"} {formatBRL(parseFloat(t.amount))}
                     </td>
                   </tr>
                 ))}

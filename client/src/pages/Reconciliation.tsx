@@ -1,5 +1,6 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
+import { formatBRL } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -69,10 +70,7 @@ export default function Reconciliation() {
         </td>
         <td className="px-6 py-3 text-sm text-muted-foreground">{account?.name}</td>
         <td className={`px-6 py-3 text-sm font-semibold text-right ${transaction.type === "income" ? "text-green-600" : "text-red-600"}`}>
-          {transaction.type === "income" ? "+" : "-"} R${" "}
-          {parseFloat(transaction.amount).toLocaleString("pt-BR", {
-            minimumFractionDigits: 2,
-          })}
+          {transaction.type === "income" ? "+" : "-"} {formatBRL(parseFloat(transaction.amount))}
         </td>
         {isReconciled && (
           <td className="px-6 py-3 text-sm text-muted-foreground">
