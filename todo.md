@@ -108,6 +108,7 @@
 ### Testes & Validacao
 - [x] Escrever testes unitarios para procedures tRPC (32 testes passando)
 - [x] Escrever testes para updateProfile (4 testes passando)
+- [x] Escrever testes para cálculos de saldo bancário (7 testes passando)
 - [ ] Adicionar teste de integração frontend/backend para salvar nome/email no perfil
 - [ ] Escrever testes para parsers de PDF e OFX (opcional)
 - [ ] Escrever testes para motor de categorizacao automatica (opcional)
@@ -248,3 +249,11 @@
 - budgets: 15
 - transactions: 0 (removidas por pertencerem a outro usuário)
 - categorizationrules: 0 (removidas por pertencerem a outro usuário)
+
+## Ajustes de Cálculos em Contas Bancárias
+
+- [x] Implementar cálculo automático de Saldo Final = Saldo Inicial + Entradas - Saídas
+- [x] Saldo Inicial é editável manualmente (padrão: saldo final do mês anterior)
+- [x] Saldo Final é calculado automaticamente e mostrado como "(Calculado)"
+- [x] Testes validam corretamente a fórmula de cálculo
+- [x] Verificado manualmente: Bradesco Abril/2026 = 0,00 + 5.526,97 - 5.934,68 = -407,71 ✅
