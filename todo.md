@@ -228,3 +228,23 @@
 - [x] Adicionar seção "Minhas Contas" com listagem de contas bancárias e cartões de crédito
 - [x] Escrever testes para updateProfile (4 testes passando)
 - [ ] Melhorar tratamento de erro quando nenhum campo é fornecido (retornar erro de validação claro em vez de erro interno)
+
+
+## Limpeza do Banco de Dados
+
+- [x] Remover todas as transações de outros usuários (removidas 162 transações de userId=270515)
+- [x] Remover todos os cartões de crédito de outros usuários (removidos 3 cartões de userId=270515)
+- [x] Remover todas as contas bancárias de outros usuários (removidas 3 contas de userId=270515)
+- [x] Remover todas as categorias de outros usuários (removidas 28 categorias de userId=270515 e 14 de userId=2070022)
+- [x] Remover todos os orçamentos de outros usuários (removidos 5 orçamentos de userId=270515)
+- [x] Remover todas as regras de categorização de outros usuários (removidas 20 regras de userId=270515)
+- [x] Verificar integridade dos dados restantes (todos com userId=1)
+
+**Dados finais (apenas userId=1):**
+- creditcardtransactions: 258
+- creditcards: 2
+- bankaccounts: 3
+- categories: 17
+- budgets: 15
+- transactions: 0 (removidas por pertencerem a outro usuário)
+- categorizationrules: 0 (removidas por pertencerem a outro usuário)
