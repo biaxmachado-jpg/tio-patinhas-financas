@@ -431,3 +431,17 @@
   - [x] Dialog para cartões de crédito com mensagem apropriada
   - [x] Botões "Cancelar" e "Excluir" (em vermelho)
   - [x] Fechar dialog ao clicar em "Cancelar"
+
+## Funcionalidade: Persistência de Foto de Perfil
+
+- [x] Adicionar campo profilePhoto à tabela users no schema
+  - [x] Executar migração Drizzle para adicionar coluna
+  - [x] Migração aplicada com sucesso: `ALTER TABLE users ADD profilePhoto text;`
+- [x] Implementar mutation tRPC para salvar foto de perfil
+  - [x] Adicionar campo profilePhoto à mutation updateProfile em server/routers.ts
+  - [x] Adicionar suporte a profilePhoto na função updateUserProfile em server/db.ts
+- [x] Atualizar frontend para enviar foto ao backend
+  - [x] Adicionar profilePhoto ao handleSave em Profile.tsx
+  - [x] Avatar clicável para upload de arquivo funcionando
+  - [x] Converter imagem para base64 antes de enviar
+  - Teste confirmou: Avatar é clicável e abre seletor de arquivo ✅
