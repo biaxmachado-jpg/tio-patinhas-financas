@@ -594,3 +594,22 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
   - [x] Corrigir Expenses.tsx para filtrar corretamente
 - [x] Garantir que as abas leiam apenas o que foi salvo nas abas "Contas" e "Cartões"
 - [x] Testar a leitura correta dos dados
+
+
+## Funcionalidade: Corrigir Lógica de Leitura de Receitas e Despesas
+
+- [x] Corrigir aba RECEITAS:
+  - [x] Ler TRANSACTIONS com type="income" (valores positivos)
+  - [x] Ler CREDITCARDTRANSACTIONS com valores negativos (estornos)
+  - [x] Trazer categoria corretamente do categoryId
+  - [x] Implementar cores das categorias nos gráficos
+  - [x] Layout responsivo para celular
+  - [x] Dados visíveis nos gráficos
+
+- [x] Corrigir aba DESPESAS:
+  - [x] Ler TRANSACTIONS com type="expense" (valores negativos)
+  - [x] Ler CREDITCARDTRANSACTIONS com valores positivos (gastos)
+  - [x] Trazer categoria corretamente do categoryId
+  - [x] Implementar cores das categorias nos gráficos
+  - [x] Layout responsivo para celular
+  - [x] Dados visíveis nos gráficos
