@@ -58,6 +58,11 @@ export default function BankAccountDetail() {
   const transactionsQuery = trpc.transactions.list.useQuery({
     accountId: parseInt(accountId || "0"),
   });
+  const monthlyBalanceQuery = trpc.bankAccounts.getMonthlyBalance.useQuery({
+    accountId: parseInt(accountId || "0"),
+    month: selectedMonth,
+    year: selectedYear,
+  });
   
   // All mutations
   const updateAccountMutation = trpc.bankAccounts.update.useMutation({
@@ -517,19 +522,31 @@ export default function BankAccountDetail() {
             <div className="p-4 bg-card border border-border rounded-lg">
               <p className="text-sm font-medium text-foreground mb-1">Saldo Inicial</p>
               <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {selectedMonth === 1 && selectedYear === new Date().getFullYear()
-                  ? formatBRL(account.initialBalance || "0")
-                  : formatBRL(previousMonthFinalBalance.toString())}
+                {monthlyBalanceQuery.data !== undefined && monthlyBalanceQuery.data !== null
+                  ? formatBRL(monthlyBalanceQuery.data.toString())
+                  : (selectedMonth === 1 && selectedYear === new Date().getFullYear()
+                    ? formatBRL(account.initialBalance || "0")
+                    : formatBRL(previousMonthFinalBalance.toString()))}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                {selectedMonth === 1 && selectedYear === new Date().getFullYear()
-                  ? "Saldo inicial da conta"
-                  : "Saldo final do mês anterior"}
+                {monthlyBalanceQuery.data !== undefined && monthlyBalanceQuery.data !== null
+                  ? "Saldo inicial customizado"
+                  : (selectedMonth === 1 && selectedYear === new Date().getFullYear()
+                    ? "Saldo inicial da conta"
+                    : "Saldo final do mês anterior")}
               </p>
             </div>
             <div className="p-4 bg-card border border-border rounded-lg">
               <p className="text-sm font-medium text-foreground mb-1">Saldo Final (Calculado)</p>
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{formatBRL(convertBRLToNumber(account.initialBalance || "0") + totalIncome - totalExpenses)}</p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {formatBRL(
+                  (
+                    monthlyBalanceQuery.data !== undefined && monthlyBalanceQuery.data !== null
+                      ? monthlyBalanceQuery.data
+                      : convertBRLToNumber(account.initialBalance || "0")
+                  ) + totalIncome - totalExpenses
+                )}
+              </p>
             </div>
           </div>
         )}
