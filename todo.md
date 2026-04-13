@@ -217,3 +217,10 @@
 ## Bugs Reportados
 
 - [x] Rota /perfil retorna erro 404 - CORRIGIDO: Página de perfil criada com informações do usuário e botão de logout
+
+
+## Melhorias na Página de Perfil
+
+- [ ] Tornar nome, email e ID editáveis
+- [ ] Criar procedure tRPC para atualizar dados do usuário
+- [ ] Adicionar seção "Minhas Contas" com listagem de contas bancárias e cartões de crédito

@@ -16,6 +16,13 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
+    
+    updateProfile: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1).optional(),
+        email: z.string().email().optional(),
+      }))
+      .mutation(({ ctx, input }) => db.updateUserProfile(ctx.user.id, input)),
   }),
 
   // ============= CATEGORIES =============
