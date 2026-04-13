@@ -624,9 +624,9 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Ajustar aba Receitas com formatação correta
 - [x] Ajustar aba Despesas com formatação correta
 - [x] Ajustar Dashboard com formatação correta
-- [ ] Ajustar aba Visão Geral com formatação correta
-- [ ] Ajustar aba Contas Bancárias com formatação correta
-- [ ] Ajustar aba Cartões de Crédito com formatação correta
+- [x] Ajustar aba Visão Geral com formatação correta (já estava implementada)
+- [x] Ajustar aba Contas Bancárias com formatação correta
+- [x] Ajustar aba Cartões de Crédito com formatação correta (já estava implementada)
 - [x] Testar formatação em todo o projeto
 
 

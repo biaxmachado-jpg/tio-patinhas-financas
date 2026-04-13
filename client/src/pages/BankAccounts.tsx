@@ -1,5 +1,6 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
+import { formatBRL } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -175,9 +176,7 @@ export default function BankAccounts() {
               <div className="pt-4 border-t border-border">
                 <p className="text-sm text-muted-foreground">Saldo</p>
                 <p className="text-2xl font-bold text-foreground">
-                  R$ {parseFloat(account.balance).toLocaleString("pt-BR", {
-                    minimumFractionDigits: 2,
-                  })}
+                  {formatBRL(parseFloat(account.balance))}
                 </p>
               </div>
             </div>
