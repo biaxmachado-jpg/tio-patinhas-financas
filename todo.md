@@ -520,3 +520,29 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
   - Cálculo esperado: 29.034,60 + 20.617,71 - 14.600,83 = 35.051,48
   - Diferença: R$ 3.584,30 (pode ser uma transação extra sendo incluída)
   - Problema persiste mesmo após corrigir convertBRLToNumber
+
+
+
+
+## Funcionalidade: Botão "Aplicar Regras" de Categorização Automática
+
+- [x] Implementar mutation tRPC para aplicar regras de categorização a transações de uma conta
+  - [x] Buscar todas as transações da conta
+  - [x] Aplicar regras de categorização automática a cada transação
+  - [x] Atualizar categoria das transações que correspondem às regras
+  - [x] Retornar número de transações atualizadas
+- [x] Adicionar botão "Aplicar Regras" na página BankAccountDetail.tsx
+  - [x] Posicionar botão próximo aos botões "Importar" e "Reconciliar"
+  - [x] Adicionar confirmação antes de aplicar as regras
+  - [x] Mostrar loading durante a aplicação
+  - [x] Mostrar mensagem de sucesso com número de transações atualizadas
+- [x] Testar a funcionalidade com transações existentes
+- [x] Escrever testes para validar a funcionalidade (5 testes passando)
+
+## BUG: Edição Manual de Transações Não Funciona
+
+- [x] Investigar por que o modo de edição de transações não está funcionando
+  - [x] Verificar se o botão "Editar Transações" está ativando o modo de edição
+  - [x] Verificar se os botões "Editar" e "Deletar" aparecem quando em modo de edição
+  - [x] Verificar se os popups de edição abrem corretamente
+  - [x] Corrigir qualquer problema encontrado - Dialog de edição foi adicionado
