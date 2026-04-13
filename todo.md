@@ -495,3 +495,28 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 
 ### Melhorias Gerais (Opcional)
 - [ ] Melhorar tratamento de erro quando nenhum campo é fornecido (retornar erro de validação claro)
+
+
+## Bug Fix: Cálculo de Saldo Final Incorreto
+
+- [ ] Corrigir cálculo do saldo final da conta bancária
+  - Problema: Saldo final retorna R$ 3.242.446,19 em vez de R$ 13.175,09
+  - Cálculo esperado: 32.618,90 + 27.357,18 - 46.800,99 = 13.175,09
+  - Erro ocorre tanto na pré-visualização quanto após salvar
+  - Localizar e corrigir o código de cálculo em BankAccountDetail.tsx
+
+
+## Bug Fix: Header Transparente da Página de Contas Bancárias
+
+- [x] Adicionar fundo ao header da página BankAccountDetail.tsx
+  - Problema: Header estava com opacidade muito baixa, dificultando a leitura
+  - Solução: Adicionar backgroundColor sólido usando primaryColorHex
+  - Adicionar text-shadow para melhor legibilidade
+  - Resultado: Header agora está visível com fundo cinza-azulado e texto branco legível
+
+## Bug Fix: Saldo Final Calculado Incorretamente
+
+- [ ] Investigar por que saldo final está R$ 38.635,78 em vez de R$ 35.051,48
+  - Cálculo esperado: 29.034,60 + 20.617,71 - 14.600,83 = 35.051,48
+  - Diferença: R$ 3.584,30 (pode ser uma transação extra sendo incluída)
+  - Problema persiste mesmo após corrigir convertBRLToNumber

@@ -133,6 +133,8 @@ export default function BankAccountDetail() {
   // Computed values
   const account = accountsQuery.data?.find((a: any) => a.id === parseInt(accountId || "0"));
   const theme = account ? getBankTheme(account.bank) : getBankTheme("");
+  
+
 
   if (!account) {
     return (
@@ -301,11 +303,11 @@ export default function BankAccountDetail() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className={`bg-gradient-to-r ${theme.primaryColor} text-white p-6 rounded-lg shadow-lg`}>
+      <div className={`bg-gradient-to-r ${theme.primaryColor} text-white p-6 rounded-lg shadow-xl opacity-100`} style={{backgroundColor: theme.primaryColorHex}}>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-3xl font-bold">{account.name}</h1>
-            <p className="text-white/80">Conta: {account.accountNumber || "N/A"}</p>
+            <h1 className="text-3xl font-bold drop-shadow-lg" style={{textShadow: '2px 2px 4px rgba(0,0,0,0.5)'}}>{account.name}</h1>
+            <p className="text-white/95 drop-shadow" style={{textShadow: '1px 1px 2px rgba(0,0,0,0.5)'}}>Conta: {account.accountNumber || "N/A"}</p>
           </div>
           <div className="flex gap-2">
             <Button
@@ -397,7 +399,8 @@ export default function BankAccountDetail() {
                 const defaultInitialBalance = selectedMonth === 1 && selectedYear === new Date().getFullYear() 
                   ? account.initialBalance 
                   : previousMonthFinalBalance.toString();
-                setInitialBalanceValue(formatBRL(defaultInitialBalance || "0").replace('R$', '').trim());
+                const formattedValue = formatBRL(defaultInitialBalance || "0").replace('R$', '').trim();
+                setInitialBalanceValue(formattedValue);
               }}
             >
               <Edit2 className="w-4 h-4 mr-2" />
@@ -468,7 +471,7 @@ export default function BankAccountDetail() {
             </div>
             <div className="p-4 bg-card border border-border rounded-lg">
               <p className="text-sm font-medium text-foreground mb-1">Saldo Final (Calculado)</p>
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{formatBRL((convertBRLToNumber(account.initialBalance || "0") + totalIncome - totalExpenses).toString())}</p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{formatBRL(convertBRLToNumber(account.initialBalance || "0") + totalIncome - totalExpenses)}</p>
             </div>
           </div>
         )}
