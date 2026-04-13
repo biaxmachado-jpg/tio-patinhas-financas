@@ -2,8 +2,8 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mail, User, LogOut, Save, X, CreditCard, Wallet } from "lucide-react";
-import { useState } from "react";
+import { Mail, User, LogOut, Save, X, CreditCard, Wallet, Edit2, Trash2, Upload } from "lucide-react";
+import { useState, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 
 interface BankAccount {
@@ -12,7 +12,7 @@ interface BankAccount {
   bank: string;
 }
 
-interface CreditCard {
+interface CreditCardType {
   id: number;
   name: string;
   lastFourDigits: string | null;
@@ -37,9 +37,30 @@ function MinhasContas() {
         {bankAccounts && bankAccounts.length > 0 ? (
           <div className="space-y-2">
             {bankAccounts.map((account: BankAccount) => (
-              <div key={account.id} className="p-3 border rounded-lg hover:bg-muted transition-colors">
-                <p className="font-medium text-foreground">{account.name}</p>
-                <p className="text-sm text-gray-500">{account.bank}</p>
+              <div key={account.id} className="p-3 border rounded-lg hover:bg-muted transition-colors flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-foreground">{account.name}</p>
+                  <p className="text-sm text-gray-500">{account.bank}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.location.href = `/contas/${account.id}`}
+                    className="flex items-center gap-1"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    Editar
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Excluir
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -56,10 +77,31 @@ function MinhasContas() {
         </h3>
         {creditCards && creditCards.length > 0 ? (
           <div className="space-y-2">
-            {creditCards.map((card: CreditCard) => (
-              <div key={card.id} className="p-3 border rounded-lg hover:bg-muted transition-colors">
-                <p className="font-medium text-foreground">{card.name}</p>
-                <p className="text-sm text-gray-500">Últimos dígitos: {card.lastFourDigits || 'N/A'}</p>
+            {creditCards.map((card: CreditCardType) => (
+              <div key={card.id} className="p-3 border rounded-lg hover:bg-muted transition-colors flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-foreground">{card.name}</p>
+                  <p className="text-sm text-gray-500">Últimos dígitos: {card.lastFourDigits || 'N/A'}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.location.href = `/cartoes/${card.id}`}
+                    className="flex items-center gap-1"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    Editar
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Excluir
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -74,6 +116,8 @@ function MinhasContas() {
 export default function Profile() {
   const { user, logout, refresh } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
@@ -85,6 +129,17 @@ export default function Profile() {
       refresh();
     },
   });
+
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setProfilePhoto(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSave = async () => {
     try {
@@ -136,11 +191,28 @@ export default function Profile() {
           <CardDescription>Detalhes da sua conta de usuário</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* ID do Usuário (não editável) */}
+          {/* Foto de Perfil (clicável) */}
           <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center">
-              <User className="w-6 h-6 text-white" />
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity relative group"
+            >
+              {profilePhoto ? (
+                <img src={profilePhoto} alt="Perfil" className="w-16 h-16 rounded-full object-cover" />
+              ) : (
+                <User className="w-8 h-8 text-white" />
+              )}
+              <div className="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-30 flex items-center justify-center transition-all">
+                <Upload className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
             </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoUpload}
+              className="hidden"
+            />
             <div>
               <p className="text-sm text-gray-500">ID do Usuário</p>
               <p className="text-lg font-semibold text-foreground">{user.id}</p>
