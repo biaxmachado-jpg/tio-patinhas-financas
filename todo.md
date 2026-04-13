@@ -165,7 +165,9 @@
 - [x] Validar que Total = À Vista + Parcelado
 - [x] CORRIGIDO: Fatura agora filtra por dueDate (data de vencimento) em vez de date (data de compra)
   * A fatura do mês mostra as compras do mês anterior até o dia de fechamento + parceladas vencendo neste mês
-  * Procedure getCreditCardTransactionsByMonth atualizada para usar dueDate
+  * Procedure getCreditCardTransactionsByMonth atualizada para usar YEAR() e MONTH() para comparação segura de datas
+- [x] Atualizar userId das transações de cartão para o usuário correto (userId=1)
+- [x] Remover filtro duplicado de mês/ano no frontend (CreditCardDetail.tsx)
 
 ## Filtro de Transações por Período
 
@@ -186,12 +188,13 @@
 - [x] Dashboard com resumo financeiro (saldo, receitas, despesas, gráficos)
 - [x] Página de Categorias com gerenciamento de categorias e regras de categorização
 - [x] Página de Contas Bancárias com listagem e detalhes (com filtro de período)
-- [x] Página de Cartões de Crédito com listagem e detalhes (com filtro de período)
+- [x] Página de Cartões de Crédito com listagem e detalhes (com filtro de período e fatura correta)
 - [x] Página de Transações com listagem e filtros
 - [x] Página de Orçamentos com gerenciamento de orçamentos mensais
 - [x] Menu lateral com navegação em português
 - [x] Autenticação com Google OAuth
 - [x] Design elegante e sofisticado com Tailwind CSS + OKLCH colors
+- [x] Fatura de cartão de crédito mostrando corretamente todas as transações com dueDate no mês selecionado
 
 ### Dados Migrados e Validados
 - [x] 2 usuários migrados (Bia como proprietária)

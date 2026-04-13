@@ -419,10 +419,10 @@ export async function getCreditCardTransactionsByMonth(userId: number, cardId: n
     .where(
       and(
         eq(creditCardTransactions.userId, userId),
-        eq(creditCardTransactions.cardId, cardId)
+        eq(creditCardTransactions.cardId, cardId),
+        sql`YEAR(${creditCardTransactions.dueDate}) = ${year} AND MONTH(${creditCardTransactions.dueDate}) = ${month}`
       )
     )
-    .where(sql`YEAR(${creditCardTransactions.dueDate}) = ${year} AND MONTH(${creditCardTransactions.dueDate}) = ${month}`)
     .orderBy(desc(creditCardTransactions.dueDate));
   
   return result;
