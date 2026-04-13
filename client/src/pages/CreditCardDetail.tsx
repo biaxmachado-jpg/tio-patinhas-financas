@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc";
-import { getCardBrandTheme } from "@shared/credit-card-colors";
+// import { getCardBrandTheme } from "@shared/credit-card-colors";
 import { formatBRL, convertBRLToNumber } from "@shared/const";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -65,7 +65,7 @@ export default function CreditCardDetail() {
   const deleteCreditCardTransactionMutation = trpc.creditCardTransactions.delete.useMutation();
 
   const card = cardsQuery.data?.find((c: any) => c.id === parseInt(cardId || "0"));
-  const theme = card ? getCardBrandTheme(card.brand) : null;
+  const theme = card ? { color: "#ef4444" } : null; // Default red color for card header
 
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
@@ -96,16 +96,16 @@ export default function CreditCardDetail() {
   const refundTransactions = filteredTransactions.filter((t: any) => parseFloat(t.amount) < 0);
 
   // Calculate totals based on filtered transactions
-  const totalInvoice = filteredTransactions.reduce((sum, t) => {
+  const totalInvoice = filteredTransactions.reduce((sum: number, t: any) => {
     const amount = parseFloat(t.amount.toString());
     return sum + amount;
   }, 0);
-  const totalInstallments = filteredTransactions.filter((t) => t.installments > 1).reduce((sum, t) => {
+  const totalInstallments = filteredTransactions.filter((t: any) => t.installments > 1).reduce((sum: number, t: any) => {
     const amount = parseFloat(t.amount.toString());
     return sum + amount;
   }, 0);
   
-  const totalVista = filteredTransactions.filter((t) => t.installments === 1).reduce((sum, t) => {
+  const totalVista = filteredTransactions.filter((t: any) => t.installments === 1).reduce((sum: number, t: any) => {
     const amount = parseFloat(t.amount.toString());
     return sum + amount;
   }, 0);
@@ -298,11 +298,11 @@ export default function CreditCardDetail() {
     <div className="space-y-6">
       {/* Header */}
       <div className="rounded-xl p-8 text-white" style={{
-        background: `linear-gradient(to bottom right, ${theme.color}, ${theme.color}dd)`
+        background: theme ? `linear-gradient(to bottom right, ${theme.color}, ${theme.color}dd)` : "linear-gradient(to bottom right, #ef4444, #dc262699)"
       }}>
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold">{card.name}</h1>
+            <h1 className="text-3xl font-bold">{card?.name}</h1>
             <p className="text-white/80 mt-1">Movimentações do cartão</p>
             <div className="mt-4 space-y-1 text-sm text-white/80">
               {card.lastFourDigits && (
