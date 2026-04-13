@@ -167,7 +167,7 @@ export async function createBankAccount(userId: number, data: { name: string; ba
   return result;
 }
 
-export async function updateBankAccount(id: number, userId: number, data: Partial<{ name: string; bank: string; accountNumber: string; balance: string; finalBalance: string }>) {
+export async function updateBankAccount(id: number, userId: number, data: Partial<{ name: string; bank: string; accountNumber: string; balance: string; initialBalance: string; finalBalance: string }>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   return db.update(bankAccounts).set(data).where(and(eq(bankAccounts.id, id), eq(bankAccounts.userId, userId)));

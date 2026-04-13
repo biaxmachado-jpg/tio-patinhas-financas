@@ -392,3 +392,22 @@
   - [x] Se não editar, usar valor anterior ✅
 - [x] Testar funcionalidades de edição e aplicação de valores ✅
   - Teste: Preenchido 1000 para Reembolso Bradesco e aplicado aos próximos 12 meses com sucesso
+
+
+## Bug Fix: Erro ao Criar Regra de Categoria
+
+- [x] Corrigir erro "TypeError: g.keywords.join is not a function"
+  - Erro ocorre ao tentar criar nova regra de categoria
+  - Problema estava em código que tentava fazer .join() em objeto que não é array
+  - Localizado e corrigido em Categories.tsx: tratamento de keywords como string ou array
+  - Teste confirmou: nova regra "Teste" criada com sucesso na categoria "Reembolso Bradesco"
+
+## Bug Fix: Saldo Inicial não salva na conta bancária
+
+- [x] Corrigir erro ao salvar saldo inicial da conta bancária
+  - Problema: valor era convertido para número mas enviado como string sem casas decimais
+  - Solução: usar .toFixed(2) em vez de .toString() para garantir formato SQL correto (ex: 5000.00)
+  - Localizado e corrigido em BankAccountDetail.tsx (linha 434)
+  - Adicionado campo initialBalance à mutation bankAccounts.update em server/routers.ts
+  - Adicionado campo initialBalance à função updateBankAccount em server/db.ts
+  - Teste confirmou: saldo inicial R$ 5.000,00 salvo com sucesso

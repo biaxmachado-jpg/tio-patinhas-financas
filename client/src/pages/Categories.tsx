@@ -458,7 +458,7 @@ function CategoryCard({
               <div key={rule.id} className="flex items-center justify-between bg-muted p-3 rounded-lg">
                 <div className="flex-1">
                   <p className="text-sm font-medium">
-                    {rule.keywords.join(", ")}
+                    {typeof rule.keywords === "string" ? rule.keywords : rule.keywords.join(", ")}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {rule.matchType === "contains" && "Contém"}

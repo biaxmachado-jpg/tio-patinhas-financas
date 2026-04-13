@@ -431,10 +431,10 @@ export default function BankAccountDetail() {
                 variant="default"
                 size="sm"
                 onClick={() => {
-                  const numericValue = convertBRLToNumber(initialBalanceValue).toString();
+                  const numericValue = convertBRLToNumber(initialBalanceValue).toFixed(2);
                   updateAccountMutation.mutateAsync({
                     id: parseInt(accountId || "0"),
-                    balance: numericValue,
+                    initialBalance: numericValue,
                   });
                   setEditingBalances(false);
                 }}
