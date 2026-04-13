@@ -272,37 +272,37 @@
 ## Novas Funcionalidades - Sprint 2
 
 ### 1. Página Importar OFX
-- [ ] Criar página ImportarOFX.tsx
-- [ ] Implementar seletor de conta bancária
-- [ ] Implementar seletor de categoria padrão
-- [ ] Implementar checkbox "Pular Transações Duplicadas"
-- [ ] Implementar upload de arquivo OFX
-- [ ] Implementar preview de transações
-- [ ] Implementar botão "Visualizar Transações"
-- [ ] Adicionar rota /importar-ofx
-- [ ] Adicionar link no menu lateral
+- [x] Criar página ImportarOFX.tsx
+- [x] Implementar seletor de conta bancária
+- [x] Implementar seletor de categoria padrão
+- [x] Implementar checkbox "Pular Transações Duplicadas"
+- [x] Implementar upload de arquivo OFX
+- [x] Implementar preview de transações
+- [x] Implementar botão "Visualizar Transações"
+- [x] Adicionar rota /importar-ofx
+- [x] Adicionar link no menu lateral
 
 ### 2. Página Despesas
-- [ ] Criar página Expenses.tsx
-- [ ] Implementar filtro por mês/ano
-- [ ] Buscar todas as despesas de contas bancárias
-- [ ] Buscar todas as despesas de cartões de crédito
-- [ ] Combinar e exibir despesas mensalizadas
-- [ ] Implementar tabela com data, descrição, categoria, valor
-- [ ] Implementar gráfico de despesas por categoria
-- [ ] Adicionar rota /despesas
-- [ ] Adicionar link no menu lateral
+- [x] Criar página Expenses.tsx
+- [x] Implementar filtro por mês/ano
+- [x] Buscar todas as despesas de contas bancárias
+- [x] Buscar todas as despesas de cartões de crédito
+- [x] Combinar e exibir despesas mensalizadas
+- [x] Implementar tabela com data, descrição, categoria, valor
+- [x] Implementar gráfico de despesas por categoria
+- [x] Adicionar rota /despesas
+- [x] Adicionar link no menu lateral
 
 ### 3. Página Receitas
-- [ ] Criar página Income.tsx
-- [ ] Implementar filtro por mês/ano
-- [ ] Buscar todas as receitas de contas bancárias
-- [ ] Buscar todas as receitas de cartões de crédito
-- [ ] Combinar e exibir receitas mensalizadas
-- [ ] Implementar tabela com data, descrição, categoria, valor
-- [ ] Implementar gráfico de receitas por categoria
-- [ ] Adicionar rota /receitas
-- [ ] Adicionar link no menu lateral
+- [x] Criar página Income.tsx
+- [x] Implementar filtro por mês/ano
+- [x] Buscar todas as receitas de contas bancárias
+- [x] Buscar todas as receitas de cartões de crédito
+- [x] Combinar e exibir receitas mensalizadas
+- [x] Implementar tabela com data, descrição, categoria, valor
+- [x] Implementar gráfico de receitas por categoria
+- [x] Adicionar rota /receitas
+- [x] Adicionar link no menu lateral
 
 
 ## Novas Funcionalidades - Série 2
@@ -352,10 +352,10 @@
   - Campos: nome, bandeira, 4 últimos dígitos, vencimento, limite ✅
   - Botões: Salvar, Cancelar ✅
   - Integração com mutation tRPC (placeholder)
-- [ ] Implementar mutation updateBankAccount no backend
-- [ ] Implementar mutation updateCreditCard no backend
+- [x] Implementar mutation updateBankAccount no backend
+- [x] Implementar mutation updateCreditCard no backend
 - [x] Testar popups de edição (UI funcionando corretamente) ✅
-- [ ] Testar persistência de dados (após implementar mutations)
+- [x] Testar persistência de dados (após implementar mutations) ✅
 
 
 ## Modo de Edição de Transações em Contas Bancárias
