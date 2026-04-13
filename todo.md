@@ -356,3 +356,20 @@
 - [ ] Implementar mutation updateCreditCard no backend
 - [x] Testar popups de edição (UI funcionando corretamente) ✅
 - [ ] Testar persistência de dados (após implementar mutations)
+
+
+## Modo de Edição de Transações em Contas Bancárias
+
+- [x] Remover botões "Editar" e "Deletar" da tabela de transações (modo visualização) ✅
+- [x] Criar botão "Editar Transações" ao lado de "Filtros Avançados" ✅
+- [x] Implementar toggle entre modo visualização e modo edição ✅
+- [x] Em modo edição, permitir:
+  - [x] Editar nome da transação (popup existente)
+  - [x] Editar valor (popup existente)
+  - [x] Editar categoria (popup existente)
+  - [x] Editar data (popup existente)
+  - [ ] Editar tipo (Entrada/Saída) - requer mudança no backend
+  - [x] Deletar transação (botão ativo em modo edição)
+- [x] Adicionar popups/inline editing para edição de transações (popups já existentes)
+- [x] Implementar mutations tRPC para atualizar transações (já existentes)
+- [x] Testar modo edição e acessibilidade de botões ✅
