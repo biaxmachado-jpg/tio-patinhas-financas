@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { getBankTheme } from "@shared/bank-colors";
@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export default function BankAccountDetail() {
+  // All useState hooks must come first
   const { accountId } = useParams<{ accountId: string }>();
   const [, navigate] = useLocation();
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
@@ -22,7 +23,6 @@ export default function BankAccountDetail() {
   const [useCustomDateRange, setUseCustomDateRange] = useState(false);
   const [filterStartDate, setFilterStartDate] = useState<string>("");
   const [filterEndDate, setFilterEndDate] = useState<string>("");
-
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
@@ -37,6 +37,7 @@ export default function BankAccountDetail() {
   const [deleteConfirmationId, setDeleteConfirmationId] = useState<number | null>(null);
   const [editingBalances, setEditingBalances] = useState(false);
   const [initialBalanceValue, setInitialBalanceValue] = useState<string>("");
+  const [previousMonthFinalBalance, setPreviousMonthFinalBalance] = useState<number>(0);
   const [showNewTransactionDialog, setShowNewTransactionDialog] = useState(false);
   const [newTransactionType, setNewTransactionType] = useState<'income' | 'expense'>('income');
   const [newTransactionData, setNewTransactionData] = useState({
@@ -50,11 +51,14 @@ export default function BankAccountDetail() {
   const [incomeFilterEndDate, setIncomeFilterEndDate] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // All tRPC queries
   const accountsQuery = trpc.bankAccounts.list.useQuery();
   const categoriesQuery = trpc.categories.list.useQuery();
   const transactionsQuery = trpc.transactions.list.useQuery({
     accountId: parseInt(accountId || "0"),
   });
+  
+  // All mutations
   const updateAccountMutation = trpc.bankAccounts.update.useMutation({
     onSuccess: () => {
       toast.success("Saldos atualizados com sucesso");
@@ -91,8 +95,42 @@ export default function BankAccountDetail() {
     },
   });
 
-  // Reclassify mutation removed - not available in this version
+  // All useEffect hooks must come after all useState and useRef
+  // Calculate previous month's final balance
+  useEffect(() => {
+    if (!transactionsQuery.data) return;
+    
+    const transactions = transactionsQuery.data || [];
+    let prevMonth = selectedMonth - 1;
+    let prevYear = selectedYear;
+    if (prevMonth === 0) {
+      prevMonth = 12;
+      prevYear -= 1;
+    }
+    
+    const prevMonthStart = new Date(prevYear, prevMonth - 1, 1);
+    const prevMonthEnd = new Date(prevYear, prevMonth, 0, 23, 59, 59);
+    
+    const prevMonthTransactions = transactions.filter((t: any) => {
+      const transactionDate = new Date(t.date);
+      return transactionDate >= prevMonthStart && transactionDate <= prevMonthEnd;
+    });
+    
+    const prevIncome = prevMonthTransactions.filter((t) => t.type === "income");
+    const prevExpenses = prevMonthTransactions.filter((t) => t.type === "expense");
+    const prevTotalIncome = prevIncome.reduce((sum: number, t: any) => sum + parseFloat(t.amount.toString()), 0);
+    const prevTotalExpenses = prevExpenses.reduce((sum: number, t: any) => sum + parseFloat(t.amount.toString()), 0);
+    
+    // Get the account to calculate previous month's final balance
+    const account = accountsQuery.data?.find((a: any) => a.id === parseInt(accountId || "0"));
+    if (!account) return;
+    
+    const prevInitialBalance = parseFloat(account.initialBalance || "0");
+    const prevFinalBalance = prevInitialBalance + prevTotalIncome - prevTotalExpenses;
+    setPreviousMonthFinalBalance(prevFinalBalance);
+  }, [selectedMonth, selectedYear, transactionsQuery.data, accountsQuery.data, accountId]);
 
+  // Computed values
   const account = accountsQuery.data?.find((a: any) => a.id === parseInt(accountId || "0"));
   const theme = account ? getBankTheme(account.bank) : getBankTheme("");
 
@@ -175,7 +213,6 @@ export default function BankAccountDetail() {
   const monthName = format(new Date(selectedYear, selectedMonth - 1), "MMMM", { locale: ptBR });
 
   const handleImportClick = () => {
-    // Navegar direto para a página de importação de PDF
     navigate(`/contas/${accountId}/importar-pdf`);
   };
 
@@ -222,45 +259,84 @@ export default function BankAccountDetail() {
     }
   };
 
+  const handleCreateNewTransaction = async () => {
+    if (!newTransactionData.description || !newTransactionData.categoryId || !newTransactionData.amount) {
+      toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
 
+    try {
+      const createMutation = trpc.transactions.create.useMutation({
+        onSuccess: () => {
+          toast.success("Transação criada com sucesso");
+          setShowNewTransactionDialog(false);
+          setNewTransactionData({
+            description: '',
+            categoryId: '',
+            amount: '',
+            date: format(new Date(), 'yyyy-MM-dd'),
+            notes: '',
+          });
+          transactionsQuery.refetch();
+        },
+        onError: () => {
+          toast.error("Erro ao criar transação");
+        },
+      });
+
+      await createMutation.mutateAsync({
+        accountId: parseInt(accountId || "0"),
+        categoryId: parseInt(newTransactionData.categoryId),
+        type: newTransactionType,
+        description: newTransactionData.description,
+        amount: convertBRLToNumber(newTransactionData.amount).toString(),
+        date: new Date(newTransactionData.date),
+        notes: newTransactionData.notes,
+      });
+    } catch (error) {
+      console.error("Erro ao criar transação:", error);
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {/* Bank Header */}
-      <div className="rounded-lg p-6 text-white" style={{
-        background: `linear-gradient(to right, ${theme.primaryColorHex}, ${theme.primaryColorHex}dd)`
-      }}>
+      {/* Header */}
+      <div className={`bg-gradient-to-r ${theme.primaryColor} text-white p-6 rounded-lg shadow-lg`}>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-3xl font-bold">{account.bank}</h1>
-            <p className="text-white/80 mt-1">Movimentações da conta</p>
+            <h1 className="text-3xl font-bold">{account.name}</h1>
+            <p className="text-white/80">Conta: {account.accountNumber || "N/A"}</p>
           </div>
           <div className="flex gap-2">
-            <Button 
-              className="gap-2 bg-white text-gray-900 hover:bg-gray-100"
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleImportClick}
+              className="text-white border-white hover:bg-white/20"
             >
-              <Upload className="w-4 h-4" />
+              <FileUp className="w-4 h-4 mr-2" />
               Importar
             </Button>
             <Button
-              className="gap-2 bg-white text-gray-900 hover:bg-gray-100"
-              onClick={() => navigate(`/contas/${accountId}/reconciliacao`)}
+              variant="outline"
+              size="sm"
+              className="text-white border-white hover:bg-white/20"
             >
               Reconciliar
             </Button>
-
             <Button
-              className="gap-2 bg-white text-gray-900 hover:bg-gray-100"
+              variant="outline"
+              size="sm"
               onClick={() => setShowNewTransactionDialog(true)}
+              className="text-white border-white hover:bg-white/20"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4 mr-2" />
               Nova Transação
             </Button>
           </div>
         </div>
 
-        {/* Month Navigation */}
+        {/* Month/Year Navigation */}
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"
@@ -278,14 +354,13 @@ export default function BankAccountDetail() {
               <SelectContent>
                 {months.map((m) => (
                   <SelectItem key={m} value={m.toString()}>
-                    {format(new Date(selectedYear, m - 1), "MMMM", { locale: ptBR })}
+                    {format(new Date(2024, m - 1), "MMMM", { locale: ptBR })}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-
             <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
-              <SelectTrigger className="w-24 bg-white/20 border-white/30 text-white">
+              <SelectTrigger className="w-32 bg-white/20 border-white/30 text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -318,7 +393,11 @@ export default function BankAccountDetail() {
               size="sm"
               onClick={() => {
                 setEditingBalances(true);
-                setInitialBalanceValue(formatBRL(account.initialBalance || "0").replace('R$', '').trim());
+                // Use previous month's final balance as default, or account's initial balance if it's the first month
+                const defaultInitialBalance = selectedMonth === 1 && selectedYear === new Date().getFullYear() 
+                  ? account.initialBalance 
+                  : previousMonthFinalBalance.toString();
+                setInitialBalanceValue(formatBRL(defaultInitialBalance || "0").replace('R$', '').trim());
               }}
             >
               <Edit2 className="w-4 h-4 mr-2" />
@@ -376,7 +455,16 @@ export default function BankAccountDetail() {
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 bg-card border border-border rounded-lg">
               <p className="text-sm font-medium text-foreground mb-1">Saldo Inicial</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatBRL(account.initialBalance || "0")}</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {selectedMonth === 1 && selectedYear === new Date().getFullYear()
+                  ? formatBRL(account.initialBalance || "0")
+                  : formatBRL(previousMonthFinalBalance.toString())}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {selectedMonth === 1 && selectedYear === new Date().getFullYear()
+                  ? "Saldo inicial da conta"
+                  : "Saldo final do mês anterior"}
+              </p>
             </div>
             <div className="p-4 bg-card border border-border rounded-lg">
               <p className="text-sm font-medium text-foreground mb-1">Saldo Final (Calculado)</p>
@@ -386,570 +474,229 @@ export default function BankAccountDetail() {
         )}
       </Card>
 
-      {/* Edit Mode Controls */}
-      {isEditMode && (
-        <div className="flex gap-2 justify-end">
-          <Button
-            variant="default"
-            size="sm"
-            onClick={() => {
-              setIsEditMode(false);
-              setEditingField(null);
-              setEditingTransactionId(null);
-            }}
-          >
-            <Check className="w-4 h-4 mr-2" />
-            Salvar
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setIsEditMode(false);
-              setEditingField(null);
-              setEditingTransactionId(null);
-              transactionsQuery.refetch();
-            }}
-          >
-            Cancelar
-          </Button>
-        </div>
-      )}
+      {/* Entradas e Saídas */}
+      <div className="grid grid-cols-2 gap-6">
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-green-600" />
+            Entradas do Mês
+          </h3>
+          <p className="text-3xl font-bold text-green-600 mb-4">{formatBRL(totalIncome.toString())}</p>
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {income.length > 0 ? (
+              income.map((t: any) => (
+                <div key={t.id} className="flex justify-between items-center p-2 bg-muted rounded">
+                  <span className="text-sm">{t.description}</span>
+                  <span className="text-sm font-semibold text-green-600">+{formatBRL(t.amount.toString())}</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-muted-foreground text-sm">Nenhuma entrada</p>
+            )}
+          </div>
+        </Card>
 
-      {/* Advanced Filters */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <TrendingDown className="w-5 h-5 text-red-600" />
+            Saídas do Mês
+          </h3>
+          <p className="text-3xl font-bold text-red-600 mb-4">{formatBRL(totalExpenses.toString())}</p>
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {expenses.length > 0 ? (
+              expenses.map((t: any) => (
+                <div key={t.id} className="flex justify-between items-center p-2 bg-muted rounded">
+                  <span className="text-sm">{t.description}</span>
+                  <span className="text-sm font-semibold text-red-600">-{formatBRL(t.amount.toString())}</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-muted-foreground text-sm">Nenhuma saída</p>
+            )}
+          </div>
+        </Card>
+      </div>
+
+      {/* Transações */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Transações</h2>
           <div className="flex gap-2">
+            {hasActiveFilters && (
+              <Button variant="outline" size="sm" onClick={handleClearFilters}>
+                <X className="w-4 h-4 mr-2" />
+                Limpar Filtros
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
-              className="gap-2"
             >
-              <Filter className="w-4 h-4" />
+              <Filter className="w-4 h-4 mr-2" />
               Filtros Avançados
-              {hasActiveFilters && <span className="ml-2 text-xs bg-blue-500 text-white px-2 py-1 rounded">Ativo</span>}
             </Button>
-            {!isEditMode && (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => setIsEditMode(true)}
-                className="gap-2"
-              >
-                <Edit2 className="w-4 h-4" />
-                Editar
-              </Button>
-            )}
           </div>
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClearFilters}
-              className="gap-2 text-muted-foreground hover:text-foreground"
-            >
-              <X className="w-4 h-4" />
-              Limpar filtros
-            </Button>
-          )}
         </div>
 
         {showFilters && (
-          <Card className="p-4 bg-muted/50">
-            <div className="space-y-4">
-              {/* Date Range Filter */}
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={useCustomDateRange}
-                    onChange={(e) => setUseCustomDateRange(e.target.checked)}
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm font-medium">Período Personalizado</span>
-                </label>
-                {useCustomDateRange && (
-                  <div className="flex gap-2 items-end">
-                    <div className="flex flex-col">
-                      <label className="text-xs font-medium text-muted-foreground mb-1">De</label>
-                      <input
-                        type="date"
-                        value={filterStartDate}
-                        onChange={(e) => setFilterStartDate(e.target.value)}
-                        className="px-2 py-1 border border-border rounded text-sm"
-                      />
-                    </div>
-                    <span className="text-muted-foreground">até</span>
-                    <div className="flex flex-col">
-                      <label className="text-xs font-medium text-muted-foreground mb-1">Até</label>
-                      <input
-                        type="date"
-                        value={filterEndDate}
-                        onChange={(e) => setFilterEndDate(e.target.value)}
-                        className="px-2 py-1 border border-border rounded text-sm"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t border-border pt-4" />
-
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {/* Category Filter */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Categoria</label>
-                <Select value={filterCategory || "all"} onValueChange={(v) => setFilterCategory(v === "all" ? "" : v)}>
+          <div className="mb-4 p-4 bg-muted rounded space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Categoria</label>
+                <Select value={filterCategory} onValueChange={setFilterCategory}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Todas as categorias" />
+                    <SelectValue placeholder="Todas" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todas as categorias</SelectItem>
-                    {categoriesQuery.data?.map((category: any) => (
-                      <SelectItem key={category.id} value={category.id.toString()}>
-                        {category.name}
+                    <SelectItem value="">Todas</SelectItem>
+                    {categoriesQuery.data?.map((c: any) => (
+                      <SelectItem key={c.id} value={c.id.toString()}>
+                        {c.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Type Filter */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Tipo</label>
-                <Select value={filterType || "all"} onValueChange={(v) => setFilterType(v === "all" ? "" : v)}>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Tipo</label>
+                <Select value={filterType} onValueChange={setFilterType}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Todos os tipos" />
+                    <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todos os tipos</SelectItem>
+                    <SelectItem value="">Todos</SelectItem>
                     <SelectItem value="income">Entrada</SelectItem>
                     <SelectItem value="expense">Saída</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Min Value Filter */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Valor Mínimo</label>
-                <input
-                  type="number"
-                  placeholder="R$ 0,00"
-                  value={filterMinValue}
-                  onChange={(e) => setFilterMinValue(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-md text-sm"
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                type="number"
+                placeholder="Valor Mínimo"
+                value={filterMinValue}
+                onChange={(e) => setFilterMinValue(e.target.value)}
+              />
+              <Input
+                type="number"
+                placeholder="Valor Máximo"
+                value={filterMaxValue}
+                onChange={(e) => setFilterMaxValue(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="checkbox"
+                id="customRange"
+                checked={useCustomDateRange}
+                onChange={(e) => setUseCustomDateRange(e.target.checked)}
+                className="rounded"
+              />
+              <label htmlFor="customRange" className="text-sm">Usar período customizado</label>
+            </div>
+            {useCustomDateRange && (
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  type="date"
+                  value={filterStartDate}
+                  onChange={(e) => setFilterStartDate(e.target.value)}
+                />
+                <Input
+                  type="date"
+                  value={filterEndDate}
+                  onChange={(e) => setFilterEndDate(e.target.value)}
                 />
               </div>
-
-              {/* Max Value Filter */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Valor Máximo</label>
-                <input
-                  type="number"
-                  placeholder="R$ 99.999,99"
-                  value={filterMaxValue}
-                  onChange={(e) => setFilterMaxValue(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-md text-sm"
-                />
-              </div>
-            </div>
-            </div>
-          </Card>
+            )}
+          </div>
         )}
-      </div>
 
-      {/* Transactions Tables */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Income */}
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-5 h-5 text-green-600" />
-            <h2 className="text-lg font-semibold">Entradas do Mês</h2>
-          </div>
-          
-          {/* Date Filter for Income */}
-          <div className="flex gap-2 mb-4">
-            <div className="flex-1">
-              <label className="text-xs text-muted-foreground mb-1 block">Data Inicial</label>
-              <Input
-                type="date"
-                value={incomeFilterStartDate}
-                onChange={(e) => setIncomeFilterStartDate(e.target.value)}
-                className="h-8"
-              />
-            </div>
-            <div className="flex-1">
-              <label className="text-xs text-muted-foreground mb-1 block">Data Final</label>
-              <Input
-                type="date"
-                value={incomeFilterEndDate}
-                onChange={(e) => setIncomeFilterEndDate(e.target.value)}
-                className="h-8"
-              />
-            </div>
-            <div className="flex items-end">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setIncomeFilterStartDate("");
-                  setIncomeFilterEndDate("");
-                }}
-                className="h-8"
-              >
-                Limpar
-              </Button>
-            </div>
-          </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left py-2 px-2">Data</th>
+                <th className="text-left py-2 px-2">Descrição</th>
+                <th className="text-left py-2 px-2">Categoria</th>
+                <th className="text-left py-2 px-2">Tipo</th>
+                <th className="text-right py-2 px-2">Valor</th>
+                <th className="text-center py-2 px-2">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredTransactions.length > 0 ? (
+                filteredTransactions.map((t: any) => {
+                  const category = categoriesQuery.data?.find((c: any) => c.id === t.categoryId);
+                  return (
+                    <tr key={t.id} className="border-b hover:bg-muted/50">
+                      <td className="py-2 px-2">{format(new Date(t.date), "dd/MM/yyyy")}</td>
+                      <td className="py-2 px-2">{t.description}</td>
+                      <td className="py-2 px-2">
+                        <span className="inline-block px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: category?.color || "#ccc", color: "#fff" }}>
+                          {category?.name || "N/A"}
+                        </span>
+                      </td>
+                      <td className="py-2 px-2">
+                        <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${t.type === "income" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+                          {t.type === "income" ? "Entrada" : "Saída"}
+                        </span>
+                      </td>
+                      <td className={`py-2 px-2 text-right font-semibold ${t.type === "income" ? "text-green-600" : "text-red-600"}`}>
+                        {t.type === "income" ? "+" : "-"}{formatBRL(t.amount.toString())}
+                      </td>
+                      <td className="py-2 px-2 text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedTransaction(t);
+                            setShowCategoryDialog(true);
+                          }}
+                        >
+                          Editar
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteConfirmationId(t.id)}
+                        >
+                          Deletar
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={6} className="py-4 text-center text-muted-foreground">
+                    Nenhuma transação encontrada
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
-          {income.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Data</th>
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Fonte</th>
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Categoria</th>
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Tipo</th>
-                    <th className="text-right py-2 px-2 font-medium text-muted-foreground">Valor</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {income.map((t: any) => {
-                    const category = categoriesQuery.data?.find((c: any) => c.id === t.categoryId);
-                    return (
-                      <tr key={t.id} className="border-b border-border/50 hover:bg-muted/50">
-                        <td className="py-3 px-2 text-muted-foreground">
-                          {format(new Date(t.date), "dd/MM", { locale: ptBR })}
-                        </td>
-                        <td className={`py-3 px-2 text-foreground ${isEditMode ? 'cursor-pointer hover:underline' : ''}`} onClick={() => {
-                          if (!isEditMode) return;
-                          setEditingField('description');
-                          setEditingValue(t.description);
-                          setEditingTransactionId(t.id);
-                        }}>
-                          {editingField === 'description' && editingTransactionId === t.id ? (
-                            <Input
-                              type="text"
-                              value={editingValue}
-                              onChange={(e) => setEditingValue(e.target.value)}
-                              onBlur={() => handleEditTransactionField(t, 'description', editingValue)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleEditTransactionField(t, 'description', editingValue);
-                                if (e.key === 'Escape') setEditingField(null);
-                              }}
-                              autoFocus
-                              className="h-8"
-                            />
-                          ) : (
-                            t.description
-                          )}
-                        </td>
-                        <td className={`py-3 px-2 text-muted-foreground ${isEditMode ? 'cursor-pointer hover:underline' : ''}`} onClick={() => {
-                          if (!isEditMode) return;
-                          setEditingField('category');
-                          setEditingValue(t.categoryId?.toString() || '');
-                          setEditingTransactionId(t.id);
-                        }}>
-                          {editingField === 'category' && editingTransactionId === t.id ? (
-                            <Select value={editingValue} onValueChange={(value) => {
-                              handleEditTransactionField(t, 'category', value);
-                            }}>
-                              <SelectTrigger className="h-8">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {categoriesQuery.data?.filter((c: any) => c.type === t.type).map((cat: any) => (
-                                  <SelectItem key={cat.id} value={cat.id.toString()}>
-                                    {cat.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          ) : (
-                            category?.name || "-"
-                          )}
-                        </td>
-                        <td className={`py-3 px-2 text-muted-foreground ${isEditMode ? 'cursor-pointer hover:underline' : ''}`} onClick={() => {
-                          if (!isEditMode) return;
-                          const newType = t.type === 'income' ? 'expense' : 'income';
-                          handleEditTransactionField(t, 'type', newType);
-                        }}>
-                          <span className={t.type === 'income' ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                            {t.type === 'income' ? 'Entrada' : 'Saída'}
-                          </span>
-                        </td>
-                        <td className={`py-3 px-2 text-right font-semibold text-green-600 ${isEditMode ? 'cursor-pointer hover:underline' : ''}`} onClick={() => {
-                          if (!isEditMode) return;
-                          setEditingField('amount');
-                          setEditingValue(formatBRL(t.amount).replace('R$', ''));
-                          setEditingTransactionId(t.id);
-                        }}>
-                          {editingField === 'amount' && editingTransactionId === t.id ? (
-                            <Input
-                              type="text"
-                              value={editingValue}
-                              onChange={(e) => {
-                                const value = e.target.value.replace(/[^0-9.,]/g, '');
-                                setEditingValue(value);
-                              }}
-                              onBlur={() => handleEditTransactionField(t, 'amount', editingValue)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleEditTransactionField(t, 'amount', editingValue);
-                                if (e.key === 'Escape') setEditingField(null);
-                              }}
-                              autoFocus
-                              className="h-8 text-right"
-                            />
-                          ) : (
-                            `+${formatBRL(t.amount)}`
-                          )}
-                        </td>
-                        {isEditMode && (
-                          <td className="py-3 px-2 text-center">
-                            <AlertDialog open={deleteConfirmationId === t.id} onOpenChange={(open) => {
-                              if (!open) setDeleteConfirmationId(null);
-                            }}>
-                              <button onClick={() => setDeleteConfirmationId(t.id)} className="text-red-500 hover:text-red-700">
-                                <X className="w-4 h-4" />
-                              </button>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Deletar Transação?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Tem certeza que deseja deletar esta transação? Esta ação não pode ser desfeita.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <div className="flex gap-2 justify-end">
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteTransaction(t.id)} className="bg-red-600 hover:bg-red-700">
-                                    Deletar
-                                  </AlertDialogAction>
-                                </div>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </td>
-                        )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="text-center py-8 text-muted-foreground">Nenhuma entrada registrada</p>
-          )}
-          {income.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-border flex justify-end">
-              <div className="text-right">
-                <p className="text-sm font-medium text-muted-foreground mb-1">Total de Entradas</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {formatBRL(income.reduce((sum: number, t: any) => sum + parseFloat(t.amount || 0), 0).toString())}
-                </p>
-              </div>
-            </div>
-          )}
-        </Card>
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmationId !== null} onOpenChange={(open) => !open && setDeleteConfirmationId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deletar Transação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja deletar esta transação? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogAction onClick={() => handleDeleteTransaction(deleteConfirmationId!)}>
+            Deletar
+          </AlertDialogAction>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+        </AlertDialogContent>
+      </AlertDialog>
 
-        {/* Expenses */}
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingDown className="w-5 h-5 text-red-600" />
-            <h2 className="text-lg font-semibold">Saídas do Mês</h2>
-          </div>
-
-          {expenses.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Data</th>
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Pagamento</th>
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Categoria</th>
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Tipo</th>
-                    <th className="text-right py-2 px-2 font-medium text-muted-foreground">Valor</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {expenses.map((t: any) => {
-                    const category = categoriesQuery.data?.find((c: any) => c.id === t.categoryId);
-                    return (
-                      <tr key={t.id} className="border-b border-border/50 hover:bg-muted/50">
-                        <td className="py-3 px-2 text-muted-foreground">
-                          {format(new Date(t.date), "dd/MM", { locale: ptBR })}
-                        </td>
-                        <td className={`py-3 px-2 text-foreground ${isEditMode ? 'cursor-pointer hover:underline' : ''}`} onClick={() => {
-                          if (!isEditMode) return;
-                          setEditingField('description');
-                          setEditingValue(t.description);
-                          setEditingTransactionId(t.id);
-                        }}>
-                          {editingField === 'description' && editingTransactionId === t.id ? (
-                            <Input
-                              type="text"
-                              value={editingValue}
-                              onChange={(e) => setEditingValue(e.target.value)}
-                              onBlur={() => handleEditTransactionField(t, 'description', editingValue)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleEditTransactionField(t, 'description', editingValue);
-                                if (e.key === 'Escape') setEditingField(null);
-                              }}
-                              autoFocus
-                              className="h-8"
-                            />
-                          ) : (
-                            t.description
-                          )}
-                        </td>
-                        <td className={`py-3 px-2 text-muted-foreground ${isEditMode ? 'cursor-pointer hover:underline' : ''}`} onClick={() => {
-                          if (!isEditMode) return;
-                          setEditingField('category');
-                          setEditingValue(t.categoryId?.toString() || '');
-                          setEditingTransactionId(t.id);
-                        }}>
-                          {editingField === 'category' && editingTransactionId === t.id ? (
-                            <Select value={editingValue} onValueChange={(value) => {
-                              handleEditTransactionField(t, 'category', value);
-                            }}>
-                              <SelectTrigger className="h-8">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {categoriesQuery.data?.filter((c: any) => c.type === t.type).map((cat: any) => (
-                                  <SelectItem key={cat.id} value={cat.id.toString()}>
-                                    {cat.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          ) : (
-                            category?.name || "-"
-                          )}
-                        </td>
-                        <td className={`py-3 px-2 text-muted-foreground ${isEditMode ? 'cursor-pointer hover:underline' : ''}`} onClick={() => {
-                          if (!isEditMode) return;
-                          const newType = t.type === 'income' ? 'expense' : 'income';
-                          handleEditTransactionField(t, 'type', newType);
-                        }}>
-                          <span className={t.type === 'income' ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                            {t.type === 'income' ? 'Entrada' : 'Saída'}
-                          </span>
-                        </td>
-                        <td className={`py-3 px-2 text-right font-semibold text-red-600 ${isEditMode ? 'cursor-pointer hover:underline' : ''}`} onClick={() => {
-                          if (!isEditMode) return;
-                          setEditingField('amount');
-                          setEditingValue(formatBRL(t.amount).replace('R$', ''));
-                          setEditingTransactionId(t.id);
-                        }}>
-                          {editingField === 'amount' && editingTransactionId === t.id ? (
-                            <Input
-                              type="text"
-                              value={editingValue}
-                              onChange={(e) => {
-                                const value = e.target.value.replace(/[^0-9.,]/g, '');
-                                setEditingValue(value);
-                              }}
-                              onBlur={() => handleEditTransactionField(t, 'amount', editingValue)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleEditTransactionField(t, 'amount', editingValue);
-                                if (e.key === 'Escape') setEditingField(null);
-                              }}
-                              autoFocus
-                              className="h-8 text-right"
-                            />
-                          ) : (
-                            `-${formatBRL(t.amount)}`
-                          )}
-                        </td>
-                        {isEditMode && (
-                          <td className="py-3 px-2 text-center">
-                            <AlertDialog open={deleteConfirmationId === t.id} onOpenChange={(open) => {
-                              if (!open) setDeleteConfirmationId(null);
-                            }}>
-                              <button onClick={() => setDeleteConfirmationId(t.id)} className="text-red-500 hover:text-red-700">
-                                <X className="w-4 h-4" />
-                              </button>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Deletar Transação?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Tem certeza que deseja deletar esta transação? Esta ação não pode ser desfeita.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <div className="flex gap-2 justify-end">
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteTransaction(t.id)} className="bg-red-600 hover:bg-red-700">
-                                    Deletar
-                                  </AlertDialogAction>
-                                </div>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </td>
-                        )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="text-center py-8 text-muted-foreground">Nenhuma saída registrada</p>
-          )}
-          {expenses.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-border flex justify-end">
-              <div className="text-right">
-                <p className="text-sm font-medium text-muted-foreground mb-1">Total de Despesas</p>
-                <p className="text-2xl font-bold text-red-600">
-                  {formatBRL(expenses.reduce((sum: number, t: any) => sum + parseFloat(t.amount || 0), 0).toString())}
-                </p>
-              </div>
-            </div>
-          )}
-        </Card>
-      </div>
-
-      {/* Category Edit Dialog */}
-      <Dialog open={showCategoryDialog} onOpenChange={setShowCategoryDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Categoria</DialogTitle>
-          </DialogHeader>
-          {selectedTransaction && (
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-2">Transação</p>
-                <p className="text-foreground">{selectedTransaction.description}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground mb-2 block">Categoria</label>
-                <Select 
-                  defaultValue={selectedTransaction.categoryId?.toString() || ""}
-                  onValueChange={(categoryId) => {
-                    updateTransactionMutation.mutate({
-                      id: selectedTransaction.id,
-                      categoryId: parseInt(categoryId),
-                    });
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categoriesQuery.data?.filter((c: any) => c.type === selectedTransaction.type).map((category: any) => (
-                      <SelectItem key={category.id} value={category.id.toString()}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog para criar nova transação */}
+      {/* New Transaction Dialog */}
       <Dialog open={showNewTransactionDialog} onOpenChange={setShowNewTransactionDialog}>
         <DialogContent>
           <DialogHeader>
@@ -957,8 +704,8 @@ export default function BankAccountDetail() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium mb-2 block">Tipo</label>
-              <Select value={newTransactionType} onValueChange={(v) => setNewTransactionType(v as 'income' | 'expense')}>
+              <label className="text-sm font-medium mb-1 block">Tipo</label>
+              <Select value={newTransactionType} onValueChange={(v: any) => setNewTransactionType(v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -969,90 +716,58 @@ export default function BankAccountDetail() {
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Categoria</label>
-              <Select value={newTransactionData.categoryId} onValueChange={(v) => setNewTransactionData({...newTransactionData, categoryId: v})}>
+              <label className="text-sm font-medium mb-1 block">Descrição</label>
+              <Input
+                value={newTransactionData.description}
+                onChange={(e) => setNewTransactionData({ ...newTransactionData, description: e.target.value })}
+                placeholder="Descrição da transação"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Categoria</label>
+              <Select value={newTransactionData.categoryId} onValueChange={(v) => setNewTransactionData({ ...newTransactionData, categoryId: v })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma categoria" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categoriesQuery.data?.filter((c: any) => c.type === newTransactionType).map((category: any) => (
-                    <SelectItem key={category.id} value={category.id.toString()}>
-                      {category.name}
+                  {categoriesQuery.data?.map((c: any) => (
+                    <SelectItem key={c.id} value={c.id.toString()}>
+                      {c.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Descrição</label>
-              <Input
-                value={newTransactionData.description}
-                onChange={(e) => setNewTransactionData({...newTransactionData, description: e.target.value})}
-                placeholder="Descrição da transação"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Valor</label>
+              <label className="text-sm font-medium mb-1 block">Valor</label>
               <Input
                 value={newTransactionData.amount}
-                onChange={(e) => setNewTransactionData({...newTransactionData, amount: e.target.value})}
+                onChange={(e) => setNewTransactionData({ ...newTransactionData, amount: e.target.value })}
                 placeholder="0,00"
               />
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Data</label>
+              <label className="text-sm font-medium mb-1 block">Data</label>
               <Input
                 type="date"
                 value={newTransactionData.date}
-                onChange={(e) => setNewTransactionData({...newTransactionData, date: e.target.value})}
+                onChange={(e) => setNewTransactionData({ ...newTransactionData, date: e.target.value })}
               />
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Notas (opcional)</label>
+              <label className="text-sm font-medium mb-1 block">Notas</label>
               <Input
                 value={newTransactionData.notes}
-                onChange={(e) => setNewTransactionData({...newTransactionData, notes: e.target.value})}
+                onChange={(e) => setNewTransactionData({ ...newTransactionData, notes: e.target.value })}
                 placeholder="Notas adicionais"
               />
             </div>
-            <div className="flex gap-2 justify-end pt-4">
-              <Button variant="outline" onClick={() => setShowNewTransactionDialog(false)}>
-                Cancelar
-              </Button>
-              <Button
-                onClick={async () => {
-                  try {
-                    await trpc.transactions.create.useMutation().mutateAsync({
-                      accountId: parseInt(accountId || "0"),
-                      categoryId: parseInt(newTransactionData.categoryId),
-                      type: newTransactionType,
-                      description: newTransactionData.description,
-                      amount: newTransactionData.amount,
-                      date: new Date(newTransactionData.date),
-                      notes: newTransactionData.notes,
-                    });
-                    toast.success("Transação criada com sucesso");
-                    setShowNewTransactionDialog(false);
-                    setNewTransactionData({
-                      description: '',
-                      categoryId: '',
-                      amount: '',
-                      date: format(new Date(), 'yyyy-MM-dd'),
-                      notes: '',
-                    });
-                    transactionsQuery.refetch();
-                  } catch (error) {
-                    toast.error("Erro ao criar transação");
-                  }
-                }}
-              >
-                Criar
-              </Button>
-            </div>
+            <Button onClick={handleCreateNewTransaction} className="w-full">
+              Criar Transação
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }
