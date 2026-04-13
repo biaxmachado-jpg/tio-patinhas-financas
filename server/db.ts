@@ -1,5 +1,6 @@
 import { eq, and, desc, asc, gte, lte, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import { 
   InsertUser, 
   users, 
@@ -23,15 +24,22 @@ import {
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _pool: mysql.Pool | null = null;
+let _initAttempted = false;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
+  if (!_db && process.env.DATABASE_URL && !_initAttempted) {
+    _initAttempted = true;
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      if (!_pool) {
+        _pool = mysql.createPool(process.env.DATABASE_URL);
+      }
+      _db = drizzle(_pool, { mode: 'default', schema: { users, categories, bankAccounts, transactions, budgets, categorizationRules, creditCards, creditCardTransactions, monthlyBalances } });
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
+      _pool = null;
     }
   }
   return _db;

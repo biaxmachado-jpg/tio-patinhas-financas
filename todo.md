@@ -641,3 +641,14 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
   - [x] Mostrar nome da conta bancária ou cartão
   - [x] Posicionar entre "Origem" e "Valor"
   - [x] Testar com diferentes contas e cartões
+
+
+## Correções de Bugs
+
+### Bug: Saldo Inicial Não Salva (CORRIGIDO)
+- [x] Identificar erro 500 ao salvar saldo inicial
+- [x] Diagnosticar problema com inicialização do Drizzle MySQL2
+- [x] Corrigir: Drizzle agora usa mysql.createPool() corretamente
+- [x] Corrigir: Adicionado mode: 'default' ao Drizzle
+- [x] Testar: Todos os testes passando (43/44)
+- [x] Validar: Servidor retornando JSON válido em vez de HTML de erro
