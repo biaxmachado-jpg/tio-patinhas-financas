@@ -340,3 +340,19 @@
 - [x] Testar funcionalidades de upload e ações em contas/cartões
   - Upload de foto: Testado com sucesso ✅
   - Botões de navegação: Testados com sucesso ✅
+
+
+## Popups de Edição - Contas e Cartões
+
+- [x] Criar popup de edição para contas bancárias
+  - Campos: nome, banco, número da conta ✅
+  - Botões: Salvar, Cancelar ✅
+  - Integração com mutation tRPC (placeholder)
+- [x] Criar popup de edição para cartões de crédito
+  - Campos: nome, bandeira, 4 últimos dígitos, vencimento, limite ✅
+  - Botões: Salvar, Cancelar ✅
+  - Integração com mutation tRPC (placeholder)
+- [ ] Implementar mutation updateBankAccount no backend
+- [ ] Implementar mutation updateCreditCard no backend
+- [x] Testar popups de edição (UI funcionando corretamente) ✅
+- [ ] Testar persistência de dados (após implementar mutations)
