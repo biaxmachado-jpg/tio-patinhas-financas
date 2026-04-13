@@ -257,3 +257,13 @@
 - [x] Saldo Final é calculado automaticamente e mostrado como "(Calculado)"
 - [x] Testes validam corretamente a fórmula de cálculo
 - [x] Verificado manualmente: Bradesco Abril/2026 = 0,00 + 5.526,97 - 5.934,68 = -407,71 ✅
+
+
+## Ajuste: Saldo Inicial Automático do Mês Anterior
+
+- [x] Implementar query para buscar saldo final do mês anterior
+- [x] Preencher automaticamente saldo inicial com saldo final do mês anterior
+- [x] Permitir edição manual do saldo inicial
+- [x] Testar preenchimento automático em diferentes meses
+- [x] Validar que saldo final é recalculado corretamente após edição manual
+- [x] Teste manual: Bradesco Abril/2026 com saldo inicial 1000,00 = 1000,00 + 5.526,97 - 5.934,68 = 592,29 ✅
