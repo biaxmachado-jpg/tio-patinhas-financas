@@ -452,3 +452,25 @@ export async function getCreditCardUtilization(userId: number, cardId: number, m
     percentage: (totalUsed / limit) * 100,
   };
 }
+
+
+export async function updateUserProfile(userId: number, data: { name?: string; email?: string }) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  try {
+    const result = await db.update(users)
+      .set({
+        ...(data.name && { name: data.name }),
+        ...(data.email && { email: data.email }),
+      })
+      .where(eq(users.id, userId));
+
+    return result;
+  } catch (error) {
+    console.error("[Database] Error updating user profile:", error);
+    throw error;
+  }
+}
