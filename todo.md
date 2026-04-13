@@ -565,3 +565,12 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Criar mutation tRPC para resetar saldo mensal
 - [x] Adicionar botão Reset na UI com confirmação
 - [x] Testar a funcionalidade de reset
+
+
+## Funcionalidade: Redesign da Página "Visão Geral"
+
+- [x] Remover espaço branco no meio da página
+- [x] Implementar grid responsivo (mobile-first)
+- [x] Melhorar legibilidade dos gráficos com cores e tamanhos apropriados
+- [x] Testar em desktop, tablet e mobile
+- [x] Garantir que todos os dados sejam visíveis sem scroll horizontal
