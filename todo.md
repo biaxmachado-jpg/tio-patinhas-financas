@@ -373,3 +373,22 @@
 - [x] Adicionar popups/inline editing para edição de transações (popups já existentes)
 - [x] Implementar mutations tRPC para atualizar transações (já existentes)
 - [x] Testar modo edição e acessibilidade de botões ✅
+
+
+## Aba Orçamentos - Redesign
+
+- [x] Analisar página de Orçamentos atual ✅
+- [x] Criar 2 cards principais:
+  - [x] Card de Receitas com categorias de receita ✅
+  - [x] Card de Despesas com categorias de despesa ✅
+- [x] Implementar botão "Editar" em cada card ✅
+- [x] Criar popup de edição com:
+  - [x] Listagem de todas as categorias ✅
+  - [x] Campo de valor para cada categoria ✅
+  - [x] Botão "Aplicar para próximos meses" ao lado de cada valor ✅
+- [x] Implementar lógica de persistência:
+  - [x] Salvar orçamento por categoria e mês ✅
+  - [x] Aplicar valor para meses futuros automaticamente ✅
+  - [x] Se não editar, usar valor anterior ✅
+- [x] Testar funcionalidades de edição e aplicação de valores ✅
+  - Teste: Preenchido 1000 para Reembolso Bradesco e aplicado aos próximos 12 meses com sucesso
