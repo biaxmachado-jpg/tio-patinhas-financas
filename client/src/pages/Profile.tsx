@@ -32,6 +32,14 @@ export default function Profile() {
               <User className="w-6 h-6 text-white" />
             </div>
             <div>
+              <p className="text-sm text-gray-500">ID do Usuário</p>
+              <p className="text-lg font-semibold text-foreground">{user.id}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <User className="w-6 h-6 text-gray-400" />
+            <div>
               <p className="text-sm text-gray-500">Nome</p>
               <p className="text-lg font-semibold text-foreground">{user.name}</p>
             </div>
