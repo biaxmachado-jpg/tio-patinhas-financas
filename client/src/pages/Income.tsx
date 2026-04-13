@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
+import { formatBRL } from "@/lib/currency";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -169,7 +170,7 @@ export default function Income() {
           </Button>
 
           <div className="ml-auto text-lg md:text-2xl font-bold text-green-600">
-            R$ {totalIncome.toFixed(2).replace(".", ",")}
+            {formatBRL(totalIncome)}
           </div>
         </div>
       </Card>
@@ -187,7 +188,7 @@ export default function Income() {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, value }) => `${name}: R$ ${(value as number).toFixed(2)}`}
+                  label={({ name, value }) => `${name}: ${formatBRL(value as number)}`}
                   outerRadius={70}
                   fill="#8884d8"
                   dataKey="value"
@@ -196,7 +197,7 @@ export default function Income() {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => `R$ ${(value as number).toFixed(2)}`} />
+                <Tooltip formatter={(value) => formatBRL(value as number)} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -215,7 +216,7 @@ export default function Income() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip formatter={(value) => `R$ ${(value as number).toFixed(2)}`} />
+                <Tooltip formatter={(value) => formatBRL(value as number)} />
                 <Bar dataKey="value" fill="#22c55e" radius={[8, 8, 0, 0]}>
                   {incomeByCategory.slice(0, 10).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -263,7 +264,7 @@ export default function Income() {
                       </td>
                       <td className="py-2 px-2 text-xs text-muted-foreground">{inc.source}</td>
                       <td className="py-2 px-2 text-right font-semibold text-green-600">
-                        +R$ {inc.amount.toFixed(2).replace(".", ",")}
+                        +{formatBRL(inc.amount)}
                       </td>
                     </tr>
                   );
