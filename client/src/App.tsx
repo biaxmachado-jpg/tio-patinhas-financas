@@ -13,6 +13,7 @@ import Transactions from "./pages/Transactions";
 import Budgets from "./pages/Budgets";
 import CreditCards from "./pages/CreditCards";
 import CreditCardDetail from "./pages/CreditCardDetail";
+import Profile from "./pages/Profile";
 
 function Router() {
   return (
@@ -65,6 +66,11 @@ function Router() {
       <Route path="/banco-de-dados">
         <DashboardLayout>
           <Dashboard />
+        </DashboardLayout>
+      </Route>
+      <Route path="/perfil">
+        <DashboardLayout>
+          <Profile />
         </DashboardLayout>
       </Route>
       <Route path="/404" component={NotFound} />

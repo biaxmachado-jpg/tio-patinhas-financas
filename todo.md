@@ -212,3 +212,8 @@
 - [ ] Painel administrativo
 - [ ] Alertas de orçamento
 - [ ] Reclassificação em lote de transações
+
+
+## Bugs Reportados
+
+- [x] Rota /perfil retorna erro 404 - CORRIGIDO: Página de perfil criada com informações do usuário e botão de logout
