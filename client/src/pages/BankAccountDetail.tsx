@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Upload, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, FileUp, Filter, X, Edit2, Check, Plus, Wand2 } from "lucide-react";
+import { Upload, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, FileUp, Filter, X, Edit2, Check, Plus, Wand2, RotateCcw } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -114,6 +114,17 @@ export default function BankAccountDetail() {
     },
     onError: () => {
       toast.error("Erro ao atualizar saldo inicial");
+    },
+  });
+
+  const resetMonthlyBalanceMutation = trpc.bankAccounts.resetMonthlyBalance.useMutation({
+    onSuccess: () => {
+      toast.success("Saldo inicial resetado para o valor calculado");
+      setEditingBalances(false);
+      transactionsQuery.refetch();
+    },
+    onError: () => {
+      toast.error("Erro ao resetar saldo inicial");
     },
   });
 
@@ -477,6 +488,20 @@ export default function BankAccountDetail() {
               >
                 <Check className="w-4 h-4 mr-2" />
                 Salvar
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  resetMonthlyBalanceMutation.mutateAsync({
+                    accountId: parseInt(accountId || "0"),
+                    month: selectedMonth,
+                    year: selectedYear,
+                  });
+                }}
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Reset
               </Button>
               <Button
                 variant="outline"

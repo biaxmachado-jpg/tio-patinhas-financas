@@ -689,3 +689,21 @@ export async function getInitialBalanceForMonth(userId: number, accountId: numbe
     return 0;
   }
 }
+
+export async function deleteMonthlyBalance(userId: number, accountId: number, month: number, year: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  try {
+    const monthlyBalance = await getMonthlyBalance(userId, accountId, month, year);
+    if (!monthlyBalance) return false;
+
+    await db.delete(monthlyBalances)
+      .where(eq(monthlyBalances.id, monthlyBalance.id));
+
+    return true;
+  } catch (error) {
+    console.error("[Database] Error deleting monthly balance:", error);
+    return false;
+  }
+}
