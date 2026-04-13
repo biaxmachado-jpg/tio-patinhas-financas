@@ -574,3 +574,10 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Melhorar legibilidade dos gráficos com cores e tamanhos apropriados
 - [x] Testar em desktop, tablet e mobile
 - [x] Garantir que todos os dados sejam visíveis sem scroll horizontal
+
+
+## BUG: Visão Geral Mostrando Dados Acumulados em Véz de Mês Corrente
+
+- [x] Investigar por que os dados estão acumulados
+- [x] Corrigir a query para filtrar apenas transações do mês corrente
+- [x] Testar em diferentes meses

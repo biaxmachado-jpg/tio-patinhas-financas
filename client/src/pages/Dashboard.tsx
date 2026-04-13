@@ -21,6 +21,15 @@ export default function Dashboard() {
   const { data: bankAccounts } = trpc.bankAccounts.list.useQuery();
   const { data: categories } = trpc.categories.list.useQuery();
 
+  // Filter transactions for current month only
+  const currentMonthTransactions = transactions?.filter((t) => {
+    const transactionDate = new Date(t.date);
+    return (
+      transactionDate.getMonth() === now.getMonth() &&
+      transactionDate.getFullYear() === now.getFullYear()
+    );
+  }) || [];
+
   // Prepare chart data
   const chartData = [
     {
@@ -33,10 +42,10 @@ export default function Dashboard() {
     },
   ];
 
-  // Category breakdown
+  // Category breakdown - filtered by current month
   const categoryBreakdown = categories?.map((cat) => {
-    const total = transactions
-      ?.filter((t) => t.categoryId === cat.id && t.type === "expense")
+    const total = currentMonthTransactions
+      .filter((t) => t.categoryId === cat.id && t.type === "expense")
       .reduce((sum, t) => sum + parseFloat(t.amount), 0) || 0;
     return {
       name: cat.name,
@@ -199,11 +208,11 @@ export default function Dashboard() {
         {/* Recent Transactions */}
         <div className="bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-colors p-4 md:p-6 space-y-4">
           <h3 className="text-base md:text-lg font-semibold text-foreground">Transações Recentes</h3>
-          {!transactions || transactions.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8 text-sm">Nenhuma transação registrada</p>
+          {!currentMonthTransactions || currentMonthTransactions.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8 text-sm">Nenhuma transação registrada neste mês</p>
           ) : (
             <div className="space-y-2 overflow-x-auto">
-              {transactions.slice(0, 5).map((transaction) => {
+              {currentMonthTransactions.slice(0, 5).map((transaction) => {
                 const category = categories?.find((c) => c.id === transaction.categoryId);
                 return (
                   <div
