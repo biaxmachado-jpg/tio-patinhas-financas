@@ -5,22 +5,213 @@ import { Input } from "@/components/ui/input";
 import { Mail, User, LogOut, Save, X, CreditCard, Wallet, Edit2, Trash2, Upload } from "lucide-react";
 import { useState, useRef } from "react";
 import { trpc } from "@/lib/trpc";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface BankAccount {
   id: number;
   name: string;
   bank: string;
+  accountNumber?: string | null;
+  [key: string]: any;
 }
 
 interface CreditCardType {
   id: number;
   name: string;
   lastFourDigits: string | null;
+  brand?: string;
+  dueDay?: number;
+  closingDay?: number;
+  limit?: string | number;
+  [key: string]: any;
+}
+
+function EditBankAccountDialog({
+  account,
+  open,
+  onOpenChange,
+  onSave,
+}: {
+  account: BankAccount | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (data: any) => void;
+}) {
+  const [formData, setFormData] = useState({
+    name: account?.name || "",
+    bank: account?.bank || "",
+    accountNumber: account?.accountNumber || "",
+  });
+
+  const handleSave = () => {
+    onSave(formData);
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar Conta Bancária</DialogTitle>
+          <DialogDescription>Atualize os dados da sua conta bancária</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium">Nome da Conta</label>
+            <Input
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="Ex: Minha Conta Corrente"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Banco</label>
+            <Input
+              value={formData.bank}
+              onChange={(e) => setFormData({ ...formData, bank: e.target.value })}
+              placeholder="Ex: Bradesco"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Número da Conta</label>
+            <Input
+              value={formData.accountNumber}
+              onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
+              placeholder="Ex: 123456-7"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSave}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditCreditCardDialog({
+  card,
+  open,
+  onOpenChange,
+  onSave,
+}: {
+  card: CreditCardType | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (data: any) => void;
+}) {
+  const [formData, setFormData] = useState({
+    name: card?.name || "",
+    flag: card?.flag || "",
+    lastFourDigits: card?.lastFourDigits || "",
+    expiryDate: card?.expiryDate || "",
+    limit: card?.limit || 0,
+  });
+
+  const handleSave = () => {
+    onSave(formData);
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar Cartão de Crédito</DialogTitle>
+          <DialogDescription>Atualize os dados do seu cartão de crédito</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium">Nome do Cartão</label>
+            <Input
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="Ex: Cartão Master"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Bandeira</label>
+            <Input
+              value={formData.flag}
+              onChange={(e) => setFormData({ ...formData, flag: e.target.value })}
+              placeholder="Ex: Mastercard, Visa"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">4 Últimos Dígitos</label>
+            <Input
+              value={formData.lastFourDigits}
+              onChange={(e) => setFormData({ ...formData, lastFourDigits: e.target.value })}
+              placeholder="Ex: 8631"
+              maxLength={4}
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Vencimento (MM/YY)</label>
+            <Input
+              value={formData.expiryDate}
+              onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+              placeholder="Ex: 12/25"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Limite (R$)</label>
+            <Input
+              type="number"
+              value={formData.limit}
+              onChange={(e) => setFormData({ ...formData, limit: parseFloat(e.target.value) })}
+              placeholder="Ex: 5000"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSave}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function MinhasContas() {
   const { data: bankAccounts, isLoading: bankLoading } = trpc.bankAccounts.list.useQuery();
   const { data: creditCards, isLoading: cardsLoading } = trpc.creditCards.list.useQuery();
+  const [editingBankAccount, setEditingBankAccount] = useState<BankAccount | null>(null);
+  const [editingCreditCard, setEditingCreditCard] = useState<CreditCardType | null>(null);
+  const [bankDialogOpen, setBankDialogOpen] = useState(false);
+  const [cardDialogOpen, setCardDialogOpen] = useState(false);
+
+  const handleEditBankAccount = (account: BankAccount) => {
+    setEditingBankAccount(account);
+    setBankDialogOpen(true);
+  };
+
+  const handleEditCreditCard = (card: CreditCardType) => {
+    setEditingCreditCard(card);
+    setCardDialogOpen(true);
+  };
+
+  const handleSaveBankAccount = (data: any) => {
+    console.log("Salvando conta bancária:", data);
+    // TODO: Implementar mutation tRPC para salvar
+  };
+
+  const handleSaveCreditCard = (data: any) => {
+    console.log("Salvando cartão de crédito:", data);
+    // TODO: Implementar mutation tRPC para salvar
+  };
 
   if (bankLoading || cardsLoading) {
     return <p className="text-gray-500">Carregando contas...</p>;
@@ -46,7 +237,7 @@ function MinhasContas() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => window.location.href = `/contas/${account.id}`}
+                    onClick={() => handleEditBankAccount(account)}
                     className="flex items-center gap-1"
                   >
                     <Edit2 className="w-4 h-4" />
@@ -87,7 +278,7 @@ function MinhasContas() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => window.location.href = `/cartoes/${card.id}`}
+                    onClick={() => handleEditCreditCard(card)}
                     className="flex items-center gap-1"
                   >
                     <Edit2 className="w-4 h-4" />
@@ -109,6 +300,20 @@ function MinhasContas() {
           <p className="text-gray-500">Nenhum cartão de crédito cadastrado</p>
         )}
       </div>
+
+      {/* Dialogs de Edição */}
+      <EditBankAccountDialog
+        account={editingBankAccount}
+        open={bankDialogOpen}
+        onOpenChange={setBankDialogOpen}
+        onSave={handleSaveBankAccount}
+      />
+      <EditCreditCardDialog
+        card={editingCreditCard}
+        open={cardDialogOpen}
+        onOpenChange={setCardDialogOpen}
+        onSave={handleSaveCreditCard}
+      />
     </div>
   );
 }
