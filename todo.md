@@ -546,3 +546,14 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
   - [x] Verificar se os botões "Editar" e "Deletar" aparecem quando em modo de edição
   - [x] Verificar se os popups de edição abrem corretamente
   - [x] Corrigir qualquer problema encontrado - Dialog de edição foi adicionado
+
+
+## BUG: Edição de Saldo Inicial Afetando Múltiplos Meses
+
+- [x] Investigar como o saldo inicial está sendo salvo no banco de dados
+- [x] Identificar por que a edição de saldo inicial de um mês está afetando outros meses
+- [x] Corrigir a lógica para garantir que a edição seja isolada ao mês selecionado
+  - [x] Criar tabela monthlyBalances para armazenar saldo inicial por mês/ano
+  - [x] Implementar mutation tRPC updateMonthlyBalance
+  - [x] Atualizar frontend para usar a nova mutation
+- [x] Testar a correção em múltiplos meses

@@ -95,6 +95,17 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(({ ctx, input }) => db.deleteBankAccount(input.id, ctx.user.id)),
+    
+    updateMonthlyBalance: protectedProcedure
+      .input(z.object({
+        accountId: z.number(),
+        month: z.number().min(1).max(12),
+        year: z.number(),
+        initialBalance: z.string(),
+      }))
+      .mutation(({ ctx, input }) => 
+        db.upsertMonthlyBalance(ctx.user.id, input.accountId, input.month, input.year, input.initialBalance)
+      ),
   }),
 
   // ============= TRANSACTIONS =============
