@@ -445,3 +445,53 @@
   - [x] Avatar clicável para upload de arquivo funcionando
   - [x] Converter imagem para base64 antes de enviar
   - Teste confirmou: Avatar é clicável e abre seletor de arquivo ✅
+
+
+## Funcionalidades Opcionais - Não Implementadas
+
+As seguintes funcionalidades foram identificadas como opcionais e não foram implementadas nesta versão:
+
+### Backend Avançado (Opcional)
+- [ ] Implementar procedures tRPC para painel administrativo
+- [ ] Implementar parsers para PDF Bradesco e Itaú
+- [ ] Implementar parser para OFX
+- [ ] Implementar motor de categorização automática
+- [ ] Implementar alertas quando limite de orçamento é atingido
+
+### Frontend - Importação Avançada (Opcional)
+- [ ] Criar página de importação de extratos bancários (PDF/OFX)
+- [ ] Implementar upload e parsing de PDF Bradesco
+- [ ] Implementar upload e parsing de PDF Itaú
+- [ ] Implementar upload e parsing de OFX
+- [ ] Implementar preview de transações antes de confirmar importação
+- [ ] Implementar confirmação e salvamento em lote
+
+### Frontend - Importação de Faturas (Opcional)
+- [ ] Criar página de importação de faturas de cartão de crédito
+- [ ] Implementar upload e parsing de PDF de fatura
+- [ ] Implementar upload e parsing de OFX de cartão
+- [ ] Implementar preview de transações antes de confirmar importação
+- [ ] Implementar confirmação e salvamento em lote
+
+### Frontend - Painel Administrativo (Opcional)
+- [ ] Criar página de painel administrativo
+- [ ] Implementar visualização de estatísticas gerais
+- [ ] Implementar gerenciamento de usuários
+- [ ] Implementar visualização de logs de importação
+- [ ] Implementar ferramentas de limpeza/manutenção de dados
+
+### Frontend - Transações Avançadas (Opcional)
+- [ ] Implementar adicionar transação diretamente na página de detalhes do cartão
+- [ ] Implementar editar transação diretamente na página de detalhes do cartão
+- [ ] Implementar deletar transação com confirmação
+- [ ] Implementar reclassificação de transações em lote
+
+### Testes Avançados (Opcional)
+- [ ] Adicionar teste de integração frontend/backend para salvar nome/email no perfil
+- [ ] Escrever testes para parsers de PDF e OFX
+- [ ] Escrever testes para motor de categorização automática
+- [ ] Testar fluxo completo de importação de extratos
+- [ ] Testar fluxo completo de importação de faturas
+
+### Melhorias Gerais (Opcional)
+- [ ] Melhorar tratamento de erro quando nenhum campo é fornecido (retornar erro de validação claro)
