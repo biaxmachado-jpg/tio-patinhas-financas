@@ -83,6 +83,7 @@ export const appRouter = router({
         bank: z.string().optional(),
         accountNumber: z.string().optional(),
         balance: z.string().optional(),
+        initialBalance: z.string().optional(),
         finalBalance: z.string().optional(),
       }))
       .mutation(({ ctx, input }) => {
