@@ -323,3 +323,20 @@
   - Tabela com detalhes de todas as receitas
   - Filtro por mês e ano com navegação
   - Teste: Abril/2026 = R$ 26.350,61 ✅
+
+
+## Melhorias na Página de Perfil - Série 2
+
+- [x] Implementar upload de foto de perfil (clicável no avatar azul)
+  - Avatar azul agora é clicável
+  - Ícone de câmera aparece ao passar o mouse
+  - Suporta upload de imagens em qualquer formato
+- [x] Adicionar botões de editar/excluir para contas bancárias em "Minhas Contas"
+  - Botão "Editar" navega para página de detalhes da conta
+  - Botão "Excluir" com estilo vermelho (funcionalidade a implementar)
+- [x] Adicionar botões de editar/excluir para cartões de crédito em "Minhas Contas"
+  - Botão "Editar" navega para página de detalhes do cartão
+  - Botão "Excluir" com estilo vermelho (funcionalidade a implementar)
+- [x] Testar funcionalidades de upload e ações em contas/cartões
+  - Upload de foto: Testado com sucesso ✅
+  - Botões de navegação: Testados com sucesso ✅
