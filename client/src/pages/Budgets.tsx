@@ -1,12 +1,13 @@
-import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Edit2 } from "lucide-react";
+import { Edit2, Copy } from "lucide-react";
 import { useState } from "react";
+import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
 
@@ -15,133 +16,168 @@ export default function Budgets() {
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
-  const [open, setOpen] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({
-    categoryId: 0,
-    limit: "0.00",
-  });
+  const [editingType, setEditingType] = useState<"income" | "expense" | null>(null);
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
+  const [editValue, setEditValue] = useState("");
 
   const { data: budgets, refetch } = trpc.budgets.list.useQuery({ month, year });
   const { data: categories } = trpc.categories.list.useQuery();
   const { data: transactions } = trpc.transactions.list.useQuery();
   const createMutation = trpc.budgets.create.useMutation();
   const updateMutation = trpc.budgets.update.useMutation();
-  const deleteMutation = trpc.budgets.delete.useMutation();
 
   if (!user) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const incomeCategories = categories?.filter((c) => c.type === "income") || [];
+  const expenseCategories = categories?.filter((c) => c.type === "expense") || [];
+
+  const getSpentAmount = (categoryId: number, type: "income" | "expense") => {
+    return (
+      transactions
+        ?.filter((t) => t.categoryId === categoryId && t.type === (type === "income" ? "income" : "expense"))
+        .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0) || 0
+    );
+  };
+
+  const getBudgetForCategory = (categoryId: number) => {
+    const budget = budgets?.find((b) => b.categoryId === categoryId);
+    return budget ? parseFloat(budget.limit.toString()) : 0;
+  };
+
+  const handleSaveBudget = async () => {
+    if (!editingCategoryId || !editValue) return;
 
     try {
-      if (editingId) {
+      const existingBudget = budgets?.find((b) => b.categoryId === editingCategoryId);
+      
+      if (existingBudget) {
         await updateMutation.mutateAsync({
-          id: editingId,
-          limit: formData.limit,
+          id: existingBudget.id,
+          limit: editValue,
         });
-        toast.success("Orçamento atualizado com sucesso!");
       } else {
         await createMutation.mutateAsync({
-          categoryId: formData.categoryId,
+          categoryId: editingCategoryId,
           month,
           year,
-          limit: formData.limit,
+          limit: editValue,
         });
-        toast.success("Orçamento criado com sucesso!");
       }
-      setOpen(false);
-      setEditingId(null);
-      setFormData({ categoryId: 0, limit: "0.00" });
+      
+      toast.success("Orçamento salvo com sucesso!");
+      setEditingType(null);
+      setEditingCategoryId(null);
+      setEditValue("");
       refetch();
     } catch (error) {
       toast.error("Erro ao salvar orçamento");
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleApplyToNextMonths = async () => {
+    if (!editingCategoryId || !editValue) return;
+
     try {
-      await deleteMutation.mutateAsync({ id });
-      toast.success("Orçamento deletado com sucesso!");
+      // Apply to next 12 months
+      for (let i = 1; i <= 12; i++) {
+        const nextMonth = ((month - 1 + i) % 12) + 1;
+        const nextYear = year + Math.floor((month - 1 + i) / 12);
+        
+        // Check if budget exists for that month
+        const existingBudget = budgets?.find(
+          (b) => b.categoryId === editingCategoryId && b.month === nextMonth && b.year === nextYear
+        );
+
+        if (existingBudget) {
+          await updateMutation.mutateAsync({
+            id: existingBudget.id,
+            limit: editValue,
+          });
+        } else {
+          await createMutation.mutateAsync({
+            categoryId: editingCategoryId,
+            month: nextMonth,
+            year: nextYear,
+            limit: editValue,
+          });
+        }
+      }
+
+      toast.success("Orçamento aplicado aos próximos 12 meses!");
+      setEditingType(null);
+      setEditingCategoryId(null);
+      setEditValue("");
       refetch();
     } catch (error) {
-      toast.error("Erro ao deletar orçamento");
+      toast.error("Erro ao aplicar orçamento aos próximos meses");
     }
   };
 
-  const getSpentAmount = (categoryId: number) => {
-    return (
-      transactions
-        ?.filter((t) => t.categoryId === categoryId && t.type === "expense")
-        .reduce((sum, t) => sum + parseFloat(t.amount), 0) || 0
-    );
-  };
+  const BudgetCard = ({ type, categories: catList }: { type: "income" | "expense"; categories: any[] }) => (
+    <Card className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-semibold">
+          {type === "income" ? "Orçamento de Receitas" : "Orçamento de Despesas"}
+        </h2>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setEditingType(type);
+            setEditingCategoryId(catList[0]?.id || 0);
+            setEditValue(getBudgetForCategory(catList[0]?.id || 0).toString());
+          }}
+        >
+          <Edit2 className="w-4 h-4 mr-2" />
+          Editar
+        </Button>
+      </div>
 
-  const getProgressPercentage = (spent: number, limit: number) => {
-    return limit > 0 ? (spent / limit) * 100 : 0;
-  };
+      <div className="space-y-4">
+        {catList.map((cat) => {
+          const budgetAmount = getBudgetForCategory(cat.id);
+          const spentAmount = getSpentAmount(cat.id, type);
+          const percentage = budgetAmount > 0 ? (spentAmount / budgetAmount) * 100 : 0;
 
-  const getProgressColor = (percentage: number) => {
-    if (percentage >= 100) return "bg-red-500";
-    if (percentage >= 80) return "bg-yellow-500";
-    return "bg-green-500";
-  };
+          return (
+            <div key={cat.id} className="p-4 bg-muted rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-8 h-8 rounded flex items-center justify-center text-white text-xs font-semibold"
+                    style={{ backgroundColor: cat.color }}
+                  >
+                    {cat.icon?.charAt(0).toUpperCase() || "•"}
+                  </div>
+                  <span className="font-medium">{cat.name}</span>
+                </div>
+                <span className="text-sm font-semibold">
+                  {spentAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} /{" "}
+                  {budgetAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </span>
+              </div>
+              <div className="w-full bg-background rounded-full h-2 overflow-hidden">
+                <div
+                  className={`h-full transition-all ${
+                    percentage >= 100 ? "bg-red-500" : percentage >= 80 ? "bg-yellow-500" : "bg-green-500"
+                  }`}
+                  style={{ width: `${Math.min(percentage, 100)}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">{percentage.toFixed(0)}% utilizado</p>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Orçamentos</h1>
-            <p className="text-muted-foreground">Defina e acompanhe seus orçamentos mensais</p>
-          </div>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="w-4 h-4" />
-                Novo Orçamento
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{editingId ? "Editar Orçamento" : "Novo Orçamento"}</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {!editingId && (
-                  <div>
-                    <Label htmlFor="category">Categoria</Label>
-                    <Select value={formData.categoryId.toString()} onValueChange={(value) => setFormData({ ...formData, categoryId: parseInt(value) })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories?.filter((c) => c.type === "expense").map((cat) => (
-                          <SelectItem key={cat.id} value={cat.id.toString()}>
-                            {cat.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                <div>
-                  <Label htmlFor="limit">Limite</Label>
-                  <Input
-                    id="limit"
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={formData.limit}
-                    onChange={(e) => setFormData({ ...formData, limit: e.target.value })}
-                    required
-                  />
-                </div>
-                <Button type="submit" className="w-full">
-                  {editingId ? "Atualizar" : "Criar"} Orçamento
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Orçamentos</h1>
+          <p className="text-muted-foreground">Defina e acompanhe seus orçamentos mensais</p>
         </div>
 
         {/* Month/Year Selector */}
@@ -172,95 +208,67 @@ export default function Budgets() {
           </Select>
         </div>
 
-        {/* Budgets Grid */}
-        <div className="space-y-4">
-          {budgets?.map((budget) => {
-            const category = categories?.find((c) => c.id === budget.categoryId);
-            const spent = getSpentAmount(budget.categoryId);
-            const limit = parseFloat(budget.limit);
-            const percentage = getProgressPercentage(spent, limit);
-            const isOverBudget = spent > limit;
-
-            return (
-              <div key={budget.id} className="bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-colors p-6 space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-12 h-12 rounded-lg flex items-center justify-center text-white"
-                      style={{ backgroundColor: category?.color }}
-                    >
-                      {category?.icon.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">{category?.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Limite: R$ {limit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setFormData({
-                          categoryId: budget.categoryId,
-                          limit: budget.limit,
-                        });
-                        setEditingId(budget.id);
-                        setOpen(true);
-                      }}
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(budget.id)}
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Progress Bar */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Gasto</span>
-                    <span className={`font-semibold ${isOverBudget ? "text-red-600" : "text-foreground"}`}>
-                      R$ {spent.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} / R${" "}
-                      {limit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                    <div
-                      className={`h-full transition-all ${getProgressColor(percentage)}`}
-                      style={{ width: `${Math.min(percentage, 100)}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {percentage.toFixed(0)}% do orçamento utilizado
-                    {isOverBudget && (
-                      <span className="text-red-600 font-semibold">
-                        {" "}
-                        - R$ {(spent - limit).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} acima do limite
-                      </span>
-                    )}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
+        {/* Budget Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <BudgetCard type="income" categories={incomeCategories} />
+          <BudgetCard type="expense" categories={expenseCategories} />
         </div>
 
-        {budgets?.length === 0 && (
-          <div className="text-center py-12 card-elevated">
-            <p className="text-muted-foreground mb-4">Nenhum orçamento criado para este mês</p>
-            <Button asChild>
-              <a href="#new">Criar primeiro orçamento</a>
-            </Button>
-          </div>
-        )}
+        {/* Edit Dialog */}
+        <Dialog open={editingType !== null} onOpenChange={(open) => !open && setEditingType(null)}>
+          <DialogContent className="max-h-96 overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                Editar Orçamento de {editingType === "income" ? "Receitas" : "Despesas"}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              {(editingType === "income" ? incomeCategories : expenseCategories).map((cat) => (
+                <div key={cat.id} className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <div
+                      className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-semibold"
+                      style={{ backgroundColor: cat.color }}
+                    >
+                      {cat.icon?.charAt(0).toUpperCase() || "•"}
+                    </div>
+                    {cat.name}
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={editingCategoryId === cat.id ? editValue : getBudgetForCategory(cat.id).toString()}
+                      onChange={(e) => {
+                        setEditingCategoryId(cat.id);
+                        setEditValue(e.target.value);
+                      }}
+                    />
+                    {editingCategoryId === cat.id && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleApplyToNextMonths}
+                        title="Aplicar para próximos 12 meses"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2 pt-4">
+              <Button variant="outline" onClick={() => setEditingType(null)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveBudget}>Salvar</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
