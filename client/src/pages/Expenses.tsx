@@ -24,8 +24,17 @@ export default function Expenses() {
     if (transactionsQuery.data) {
       transactionsQuery.data.forEach((tx: any) => {
         const txDate = new Date(tx.date);
-        if (txDate.getMonth() + 1 === selectedMonth && txDate.getFullYear() === selectedYear && tx.type === "expense") {
-          const amount = typeof tx.amount === "string" ? parseFloat(tx.amount) : (tx.amount || 0);
+        const amount = typeof tx.amount === "string" ? parseFloat(tx.amount) : (tx.amount || 0);
+        // Filtrar apenas transações classificadas (com categoryId válido) do tipo expense
+        if (
+          txDate.getMonth() + 1 === selectedMonth &&
+          txDate.getFullYear() === selectedYear &&
+          tx.type === "expense" &&
+          tx.categoryId &&
+          tx.categoryId !== null &&
+          tx.categoryId !== undefined &&
+          amount > 0
+        ) {
           allExpenses.push({
             id: `bank-${tx.id}`,
             date: tx.date,
@@ -43,7 +52,15 @@ export default function Expenses() {
       creditCardTransactionsQuery.data.forEach((tx: any) => {
         const txDate = new Date(tx.date);
         const amount = typeof tx.amount === "string" ? parseFloat(tx.amount) : (tx.amount || 0);
-        if (txDate.getMonth() + 1 === selectedMonth && txDate.getFullYear() === selectedYear && amount < 0) {
+        // Filtrar apenas transações classificadas (com categoryId válido) e negativas
+        if (
+          txDate.getMonth() + 1 === selectedMonth &&
+          txDate.getFullYear() === selectedYear &&
+          amount < 0 &&
+          tx.categoryId &&
+          tx.categoryId !== null &&
+          tx.categoryId !== undefined
+        ) {
           allExpenses.push({
             id: `card-${tx.id}`,
             date: tx.date,
@@ -65,8 +82,10 @@ export default function Expenses() {
 
     expenses.forEach((exp) => {
       const category = categoriesQuery.data?.find((c: any) => c.id === exp.category);
-      const categoryName = category?.name || "Sem categoria";
-      grouped[categoryName] = (grouped[categoryName] || 0) + exp.amount;
+      // Apenas incluir no gráfico se a categoria existir
+      if (category) {
+        grouped[category.name] = (grouped[category.name] || 0) + exp.amount;
+      }
     });
 
     return Object.entries(grouped)
