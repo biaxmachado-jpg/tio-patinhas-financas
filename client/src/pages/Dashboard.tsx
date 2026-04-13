@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import { formatBRL } from "@/lib/currency";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp, TrendingDown, Wallet } from "lucide-react";
@@ -78,10 +79,7 @@ export default function Dashboard() {
                   <Skeleton className="h-8 w-24 mt-2" />
                 ) : (
                   <p className="stat-value text-lg md:text-2xl font-bold">
-                    R$ {parseFloat(stats?.totalBalance || "0").toLocaleString("pt-BR", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
+                    {formatBRL(parseFloat(stats?.totalBalance || "0"))}
                   </p>
                 )}
               </div>
@@ -98,10 +96,7 @@ export default function Dashboard() {
                   <Skeleton className="h-8 w-24 mt-2" />
                 ) : (
                   <p className="stat-value text-lg md:text-2xl font-bold text-green-600">
-                    R$ {parseFloat(stats?.totalIncome || "0").toLocaleString("pt-BR", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
+                    {formatBRL(parseFloat(stats?.totalIncome || "0"))}
                   </p>
                 )}
               </div>
@@ -118,10 +113,7 @@ export default function Dashboard() {
                   <Skeleton className="h-8 w-24 mt-2" />
                 ) : (
                   <p className="stat-value text-lg md:text-2xl font-bold text-red-600">
-                    R$ {parseFloat(stats?.totalExpense || "0").toLocaleString("pt-BR", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
+                    {formatBRL(parseFloat(stats?.totalExpense || "0"))}
                   </p>
                 )}
               </div>
@@ -150,7 +142,7 @@ export default function Dashboard() {
                       borderRadius: "8px",
                       fontSize: "12px",
                     }}
-                    formatter={(value) => `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                    formatter={(value) => formatBRL(value)}
                   />
                   <Bar dataKey="value" fill="var(--primary)" radius={[8, 8, 0, 0]} />
                 </BarChart>
@@ -172,10 +164,7 @@ export default function Dashboard() {
                     cy="50%"
                     labelLine={false}
                     label={({ name, value }) =>
-                      `${name}: R$ ${value.toLocaleString("pt-BR", {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                      })}`
+                      `${name}: ${formatBRL(value)}`
                     }
                     outerRadius={60}
                     fill="#8884d8"
@@ -193,7 +182,7 @@ export default function Dashboard() {
                       borderRadius: "8px",
                       fontSize: "12px",
                     }}
-                    formatter={(value) => `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                    formatter={(value) => formatBRL(value)}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -236,11 +225,7 @@ export default function Dashboard() {
                         transaction.type === "income" ? "text-green-600" : "text-red-600"
                       }`}
                     >
-                      {transaction.type === "income" ? "+" : "-"} R${" "}
-                      {parseFloat(transaction.amount).toLocaleString("pt-BR", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
+                      {transaction.type === "income" ? "+" : "-"} {formatBRL(parseFloat(transaction.amount))}
                     </p>
                   </div>
                 );
@@ -261,10 +246,7 @@ export default function Dashboard() {
                 >
                   <p className="text-xs md:text-sm text-muted-foreground font-medium">{account.name}</p>
                   <p className="text-sm md:text-lg font-bold text-foreground mt-1">
-                    R$ {parseFloat(account.balance || "0").toLocaleString("pt-BR", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
+                    {formatBRL(parseFloat(account.balance || "0"))}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">{account.bank}</p>
                 </div>

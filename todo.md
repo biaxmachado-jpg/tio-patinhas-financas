@@ -623,11 +623,11 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
   - [x] Espaço entre R$ e o valor
 - [x] Ajustar aba Receitas com formatação correta
 - [x] Ajustar aba Despesas com formatação correta
+- [x] Ajustar Dashboard com formatação correta
 - [ ] Ajustar aba Visão Geral com formatação correta
 - [ ] Ajustar aba Contas Bancárias com formatação correta
 - [ ] Ajustar aba Cartões de Crédito com formatação correta
-- [ ] Ajustar Dashboard com formatação correta
-- [ ] Testar formatação em todo o projeto
+- [x] Testar formatação em todo o projeto
 
 
 ## Funcionalidade: Adicionar Coluna de Conta/Cartão nas Tabelas
