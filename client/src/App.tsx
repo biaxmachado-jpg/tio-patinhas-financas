@@ -15,6 +15,9 @@ import CreditCards from "./pages/CreditCards";
 import CreditCardDetail from "./pages/CreditCardDetail";
 import Profile from "./pages/Profile";
 import Database from "./pages/Database";
+import ImportarOFX from "./pages/ImportarOFX";
+import Expenses from "./pages/Expenses";
+import Income from "./pages/Income";
 
 function Router() {
   return (
@@ -41,12 +44,17 @@ function Router() {
       </Route>
       <Route path="/despesas">
         <DashboardLayout>
-          <Transactions />
+          <Expenses />
         </DashboardLayout>
       </Route>
       <Route path="/receitas">
         <DashboardLayout>
-          <Transactions />
+          <Income />
+        </DashboardLayout>
+      </Route>
+      <Route path="/importar-ofx">
+        <DashboardLayout>
+          <ImportarOFX />
         </DashboardLayout>
       </Route>
       <Route path="/orcamentos">
