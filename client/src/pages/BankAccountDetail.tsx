@@ -529,6 +529,14 @@ export default function BankAccountDetail() {
               </Button>
             )}
             <Button
+              variant={isEditMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => setIsEditMode(!isEditMode)}
+            >
+              <Edit2 className="w-4 h-4 mr-2" />
+              {isEditMode ? "Sair do Modo Edição" : "Editar Transações"}
+            </Button>
+            <Button
               variant="outline"
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
@@ -647,23 +655,29 @@ export default function BankAccountDetail() {
                         {t.type === "income" ? "+" : "-"}{formatBRL(t.amount.toString())}
                       </td>
                       <td className="py-2 px-2 text-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedTransaction(t);
-                            setShowCategoryDialog(true);
-                          }}
-                        >
-                          Editar
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteConfirmationId(t.id)}
-                        >
-                          Deletar
-                        </Button>
+                        {isEditMode ? (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedTransaction(t);
+                                setShowCategoryDialog(true);
+                              }}
+                            >
+                              Editar
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteConfirmationId(t.id)}
+                            >
+                              Deletar
+                            </Button>
+                          </>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">-</span>
+                        )}
                       </td>
                     </tr>
                   );
