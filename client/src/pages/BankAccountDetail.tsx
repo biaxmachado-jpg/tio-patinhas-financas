@@ -379,8 +379,8 @@ export default function BankAccountDetail() {
               <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatBRL(account.initialBalance || "0")}</p>
             </div>
             <div className="p-4 bg-card border border-border rounded-lg">
-              <p className="text-sm font-medium text-foreground mb-1">Saldo Final</p>
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{formatBRL(account.finalBalance || "0")}</p>
+              <p className="text-sm font-medium text-foreground mb-1">Saldo Final (Calculado)</p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{formatBRL((convertBRLToNumber(account.initialBalance || "0") + totalIncome - totalExpenses).toString())}</p>
             </div>
           </div>
         )}
