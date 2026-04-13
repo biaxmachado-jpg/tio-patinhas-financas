@@ -13,6 +13,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface BankAccount {
   id: number;
@@ -186,12 +196,16 @@ function EditCreditCardDialog({
 }
 
 function MinhasContas() {
-  const { data: bankAccounts, isLoading: bankLoading } = trpc.bankAccounts.list.useQuery();
-  const { data: creditCards, isLoading: cardsLoading } = trpc.creditCards.list.useQuery();
+  const { data: bankAccounts, isLoading: bankLoading, refetch: refetchBankAccounts } = trpc.bankAccounts.list.useQuery();
+  const { data: creditCards, isLoading: cardsLoading, refetch: refetchCreditCards } = trpc.creditCards.list.useQuery();
   const [editingBankAccount, setEditingBankAccount] = useState<BankAccount | null>(null);
   const [editingCreditCard, setEditingCreditCard] = useState<CreditCardType | null>(null);
   const [bankDialogOpen, setBankDialogOpen] = useState(false);
   const [cardDialogOpen, setCardDialogOpen] = useState(false);
+  const [deletingBankAccountId, setDeletingBankAccountId] = useState<number | null>(null);
+  const [deletingCreditCardId, setDeletingCreditCardId] = useState<number | null>(null);
+  const deleteBankAccountMutation = trpc.bankAccounts.delete.useMutation();
+  const deleteCreditCardMutation = trpc.creditCards.delete.useMutation();
 
   const handleEditBankAccount = (account: BankAccount) => {
     setEditingBankAccount(account);
@@ -211,6 +225,28 @@ function MinhasContas() {
   const handleSaveCreditCard = (data: any) => {
     console.log("Salvando cartão de crédito:", data);
     // TODO: Implementar mutation tRPC para salvar
+  };
+
+  const handleDeleteBankAccount = async (id: number) => {
+    try {
+      await deleteBankAccountMutation.mutateAsync({ id });
+      console.log("Conta bancária excluída com sucesso");
+      refetchBankAccounts();
+      setDeletingBankAccountId(null);
+    } catch (error) {
+      console.error("Falha ao excluir conta bancária:", error);
+    }
+  };
+
+  const handleDeleteCreditCard = async (id: number) => {
+    try {
+      await deleteCreditCardMutation.mutateAsync({ id });
+      console.log("Cartão de crédito excluído com sucesso");
+      refetchCreditCards();
+      setDeletingCreditCardId(null);
+    } catch (error) {
+      console.error("Falha ao excluir cartão de crédito:", error);
+    }
   };
 
   if (bankLoading || cardsLoading) {
@@ -247,6 +283,7 @@ function MinhasContas() {
                     variant="ghost"
                     size="sm"
                     className="text-red-600 hover:text-red-700"
+                    onClick={() => setDeletingBankAccountId(account.id)}
                   >
                     <Trash2 className="w-4 h-4" />
                     Excluir
@@ -288,6 +325,7 @@ function MinhasContas() {
                     variant="ghost"
                     size="sm"
                     className="text-red-600 hover:text-red-700"
+                    onClick={() => setDeletingCreditCardId(card.id)}
                   >
                     <Trash2 className="w-4 h-4" />
                     Excluir
@@ -314,6 +352,48 @@ function MinhasContas() {
         onOpenChange={setCardDialogOpen}
         onSave={handleSaveCreditCard}
       />
+
+      {/* Alert Dialog para Exclusão de Conta Bancária */}
+      <AlertDialog open={deletingBankAccountId !== null} onOpenChange={(open) => !open && setDeletingBankAccountId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Conta Bancária</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta conta bancária? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deletingBankAccountId && handleDeleteBankAccount(deletingBankAccountId)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Alert Dialog para Exclusão de Cartão de Crédito */}
+      <AlertDialog open={deletingCreditCardId !== null} onOpenChange={(open) => !open && setDeletingCreditCardId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Cartão de Crédito</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este cartão de crédito? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deletingCreditCardId && handleDeleteCreditCard(deletingCreditCardId)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

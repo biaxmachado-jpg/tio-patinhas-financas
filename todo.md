@@ -411,3 +411,23 @@
   - Adicionado campo initialBalance à mutation bankAccounts.update em server/routers.ts
   - Adicionado campo initialBalance à função updateBankAccount em server/db.ts
   - Teste confirmou: saldo inicial R$ 5.000,00 salvo com sucesso
+
+## Funcionalidade: Exclusão de Contas e Cartões
+
+- [x] Implementar handlers de exclusão para contas bancárias
+  - [x] Adicionar estado para controlar qual conta está sendo deletada
+  - [x] Criar mutation tRPC para deletar conta
+  - [x] Adicionar AlertDialog com confirmação
+  - [x] Implementar refetch automático após exclusão
+  - Teste confirmou: AlertDialog aparece com mensagem de confirmação ✅
+- [x] Implementar handlers de exclusão para cartões de crédito
+  - [x] Adicionar estado para controlar qual cartão está sendo deletado
+  - [x] Criar mutation tRPC para deletar cartão
+  - [x] Adicionar AlertDialog com confirmação
+  - [x] Implementar refetch automático após exclusão
+  - Teste confirmou: AlertDialog aparece com mensagem de confirmação ✅
+- [x] Adicionar AlertDialog para confirmação de exclusão
+  - [x] Dialog para contas bancárias com mensagem apropriada
+  - [x] Dialog para cartões de crédito com mensagem apropriada
+  - [x] Botões "Cancelar" e "Excluir" (em vermelho)
+  - [x] Fechar dialog ao clicar em "Cancelar"
