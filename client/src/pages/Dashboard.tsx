@@ -1,6 +1,19 @@
 import { trpc } from "@/lib/trpc";
 import { formatBRL } from "@/lib/currency";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  LabelList,
+} from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import { format } from "date-fns";
@@ -8,69 +21,150 @@ import { ptBR } from "date-fns/locale";
 import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
 
-const COLORS = ["#6366f1", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#06b6d4"];
+const RADIAN = Math.PI / 180;
+const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  if (percent < 0.05) return null;
+  return (
+    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight="bold">
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+};
 
 export default function Dashboard() {
   const { user } = useAuth();
   const now = new Date();
+
+  // Buscar stats do mês corrente
   const { data: stats, isLoading } = trpc.dashboard.stats.useQuery({
     month: now.getMonth() + 1,
     year: now.getFullYear(),
   });
 
-  const { data: transactions } = trpc.transactions.list.useQuery();
   const { data: bankAccounts } = trpc.bankAccounts.list.useQuery();
   const { data: categories } = trpc.categories.list.useQuery();
 
-  // Filter transactions for current month only
-  const currentMonthTransactions = transactions?.filter((t) => {
-    const transactionDate = new Date(t.date);
-    return (
-      transactionDate.getMonth() === now.getMonth() &&
-      transactionDate.getFullYear() === now.getFullYear()
-    );
+  // Buscar transações apenas do mês corrente
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+  const { data: transactions } = trpc.transactions.list.useQuery({
+    startDate: startOfMonth,
+    endDate: endOfMonth,
+  });
+
+  // Buscar transações de cartão do mês corrente
+  const { data: creditCardTransactions } = trpc.creditCardTransactions.list.useQuery({});
+  const { data: creditCards } = trpc.creditCards.list.useQuery();
+
+  // Filtrar transações de cartão do mês corrente
+  const currentMonthCCTransactions = creditCardTransactions?.filter((t) => {
+    const d = new Date(t.date);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   }) || [];
 
-  // Prepare chart data
+  // Calcular receitas e despesas do mês corrente
+  const currentMonthIncome = (transactions || [])
+    .filter((t) => t.type === "income")
+    .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
+
+  const currentMonthExpenseBank = (transactions || [])
+    .filter((t) => t.type === "expense")
+    .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
+
+  // Estornos de cartão (negativos = receita)
+  const currentMonthCCRefunds = currentMonthCCTransactions
+    .filter((t) => parseFloat(t.amount) < 0)
+    .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
+
+  // Gastos de cartão (positivos = despesa)
+  const currentMonthCCExpenses = currentMonthCCTransactions
+    .filter((t) => parseFloat(t.amount) > 0)
+    .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+
+  const totalIncome = currentMonthIncome + currentMonthCCRefunds;
+  const totalExpenses = currentMonthExpenseBank + currentMonthCCExpenses;
+
+  // Dados para o gráfico de barras Receitas vs Despesas
   const chartData = [
-    {
-      name: "Receitas",
-      value: parseFloat(stats?.totalIncome || "0"),
-    },
-    {
-      name: "Despesas",
-      value: parseFloat(stats?.totalExpense || "0"),
-    },
+    { name: "Receitas", value: totalIncome, color: "#22c55e" },
+    { name: "Despesas", value: totalExpenses, color: "#ef4444" },
   ];
 
-  // Category breakdown - filtered by current month
-  const categoryBreakdown = categories?.map((cat) => {
-    const total = currentMonthTransactions
-      .filter((t) => t.categoryId === cat.id && t.type === "expense")
-      .reduce((sum, t) => sum + parseFloat(t.amount), 0) || 0;
-    return {
-      name: cat.name,
-      value: total,
-      color: cat.color,
-    };
-  }).filter(cat => cat.value > 0) || [];
+  // Breakdown de despesas por categoria (mês corrente)
+  const categoryBreakdown = (() => {
+    const grouped: Record<string, { value: number; color: string }> = {};
+
+    // Despesas de conta bancária
+    (transactions || [])
+      .filter((t) => t.type === "expense")
+      .forEach((t) => {
+        const cat = categories?.find((c) => c.id === t.categoryId);
+        const name = cat?.name || "Sem categoria";
+        const color = cat?.color || "#ef4444";
+        if (!grouped[name]) grouped[name] = { value: 0, color };
+        grouped[name].value += Math.abs(parseFloat(t.amount));
+      });
+
+    // Gastos de cartão de crédito
+    currentMonthCCTransactions
+      .filter((t) => parseFloat(t.amount) > 0)
+      .forEach((t) => {
+        const cat = categories?.find((c) => c.id === t.categoryId);
+        const name = cat?.name || "Sem categoria";
+        const color = cat?.color || "#ef4444";
+        if (!grouped[name]) grouped[name] = { value: 0, color };
+        grouped[name].value += parseFloat(t.amount);
+      });
+
+    return Object.entries(grouped)
+      .map(([name, data]) => ({ name, value: data.value, color: data.color }))
+      .filter((c) => c.value > 0)
+      .sort((a, b) => b.value - a.value);
+  })();
+
+  // Tooltip customizado
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-lg text-xs">
+          <p className="font-semibold mb-1">{label || payload[0]?.name}</p>
+          <p className="font-bold" style={{ color: payload[0]?.payload?.color || "#333" }}>
+            {formatBRL(payload[0]?.value)}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
 
   if (!user) return null;
 
+  const totalBalance = parseFloat(stats?.totalBalance || "0");
+  const monthLabel = format(now, "MMMM 'de' yyyy", { locale: ptBR });
+
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         {/* Header */}
-        <div className="space-y-2">
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground">Bem-vindo, {user.name}!</h1>
+        <div className="space-y-1">
+          <h1 className="text-2xl md:text-4xl font-bold text-foreground">
+            Bem-vindo, {user.name}!
+          </h1>
           <p className="text-sm md:text-base text-muted-foreground">
             {format(now, "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })}
           </p>
+          <p className="text-xs text-muted-foreground italic">
+            Dados referentes a {monthLabel}
+          </p>
         </div>
 
-        {/* Stats Cards - Full Width on Mobile, 3 Columns on Desktop */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {/* Total Balance */}
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+          {/* Saldo Total */}
           <div className="stat-card">
             <div className="flex items-center justify-between">
               <div className="flex-1">
@@ -79,7 +173,7 @@ export default function Dashboard() {
                   <Skeleton className="h-8 w-24 mt-2" />
                 ) : (
                   <p className="stat-value text-lg md:text-2xl font-bold">
-                    {formatBRL(parseFloat(stats?.totalBalance || "0"))}
+                    {formatBRL(totalBalance)}
                   </p>
                 )}
               </div>
@@ -87,16 +181,16 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Total Income */}
+          {/* Receitas do mês */}
           <div className="stat-card">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="stat-label text-xs md:text-sm">Receitas</p>
+                <p className="stat-label text-xs md:text-sm">Receitas ({monthLabel})</p>
                 {isLoading ? (
                   <Skeleton className="h-8 w-24 mt-2" />
                 ) : (
                   <p className="stat-value text-lg md:text-2xl font-bold text-green-600">
-                    {formatBRL(parseFloat(stats?.totalIncome || "0"))}
+                    {formatBRL(totalIncome)}
                   </p>
                 )}
               </div>
@@ -104,16 +198,16 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Total Expenses */}
+          {/* Despesas do mês */}
           <div className="stat-card">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="stat-label text-xs md:text-sm">Despesas</p>
+                <p className="stat-label text-xs md:text-sm">Despesas ({monthLabel})</p>
                 {isLoading ? (
                   <Skeleton className="h-8 w-24 mt-2" />
                 ) : (
                   <p className="stat-value text-lg md:text-2xl font-bold text-red-600">
-                    {formatBRL(parseFloat(stats?.totalExpense || "0"))}
+                    {formatBRL(totalExpenses)}
                   </p>
                 )}
               </div>
@@ -122,133 +216,95 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Charts Section - Responsive Grid */}
+        {/* Gráficos */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-          {/* Income vs Expenses Chart */}
-          <div className="bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-colors p-4 md:p-6">
-            <h3 className="text-base md:text-lg font-semibold text-foreground mb-4">Receitas vs Despesas</h3>
+          {/* Receitas vs Despesas */}
+          <div className="bg-card text-card-foreground rounded-lg border border-border shadow-sm p-4 md:p-6">
+            <h3 className="text-sm md:text-base font-semibold text-foreground mb-4">
+              Receitas vs Despesas — {monthLabel}
+            </h3>
             {isLoading ? (
-              <Skeleton className="h-64 w-full" />
+              <Skeleton className="h-56 w-full" />
             ) : (
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={chartData} margin={{ top: 20, right: 10, left: 0, bottom: 20 }}>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={chartData} margin={{ top: 20, right: 10, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                   <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={12} />
-                  <YAxis stroke="var(--muted-foreground)" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "var(--card)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                    }}
-                    formatter={(value) => formatBRL(value)}
-                  />
-                  <Bar dataKey="value" fill="var(--primary)" radius={[8, 8, 0, 0]} />
+                  <YAxis stroke="var(--muted-foreground)" fontSize={11} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                    <LabelList
+                      dataKey="value"
+                      position="top"
+                      formatter={(v: number) => formatBRL(v)}
+                      style={{ fontSize: 10, fill: "#555" }}
+                    />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             )}
           </div>
 
-          {/* Category Breakdown */}
-          <div className="bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-colors p-4 md:p-6">
-            <h3 className="text-base md:text-lg font-semibold text-foreground mb-4">Despesas por Categoria</h3>
+          {/* Despesas por Categoria */}
+          <div className="bg-card text-card-foreground rounded-lg border border-border shadow-sm p-4 md:p-6">
+            <h3 className="text-sm md:text-base font-semibold text-foreground mb-4">
+              Despesas por Categoria — {monthLabel}
+            </h3>
             {isLoading ? (
-              <Skeleton className="h-64 w-full" />
+              <Skeleton className="h-56 w-full" />
             ) : categoryBreakdown.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
                   <Pie
                     data={categoryBreakdown}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, value }) =>
-                      `${name}: ${formatBRL(value)}`
-                    }
-                    outerRadius={60}
-                    fill="#8884d8"
+                    label={renderCustomizedLabel}
+                    outerRadius={75}
                     dataKey="value"
-                    fontSize={11}
                   >
                     {categoryBreakdown.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                      <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "var(--card)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                    }}
-                    formatter={(value) => formatBRL(value)}
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend
+                    formatter={(value, entry: any) => (
+                      <span style={{ color: entry.color, fontSize: 10 }}>
+                        {value}: {formatBRL(entry.payload.value)}
+                      </span>
+                    )}
+                    wrapperStyle={{ fontSize: 10 }}
                   />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">
-                Nenhuma despesa registrada
+              <div className="h-56 flex items-center justify-center text-muted-foreground text-sm">
+                Nenhuma despesa registrada neste mês
               </div>
             )}
           </div>
         </div>
 
-        {/* Recent Transactions */}
-        <div className="bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-colors p-4 md:p-6 space-y-4">
-          <h3 className="text-base md:text-lg font-semibold text-foreground">Transações Recentes</h3>
-          {!currentMonthTransactions || currentMonthTransactions.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8 text-sm">Nenhuma transação registrada neste mês</p>
-          ) : (
-            <div className="space-y-2 overflow-x-auto">
-              {currentMonthTransactions.slice(0, 5).map((transaction) => {
-                const category = categories?.find((c) => c.id === transaction.categoryId);
-                return (
-                  <div
-                    key={transaction.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-sm md:text-base"
-                  >
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div
-                        className="w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center text-white flex-shrink-0 text-xs md:text-sm"
-                        style={{ backgroundColor: category?.color }}
-                      >
-                        {category?.icon}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-foreground truncate text-xs md:text-sm">{transaction.description}</p>
-                        <p className="text-xs text-muted-foreground truncate">{category?.name}</p>
-                      </div>
-                    </div>
-                    <p
-                      className={`font-semibold ml-2 flex-shrink-0 text-xs md:text-sm ${
-                        transaction.type === "income" ? "text-green-600" : "text-red-600"
-                      }`}
-                    >
-                      {transaction.type === "income" ? "+" : "-"} {formatBRL(parseFloat(transaction.amount))}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Bank Accounts Summary */}
+        {/* Contas Bancárias */}
         {bankAccounts && bankAccounts.length > 0 && (
-          <div className="bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-colors p-4 md:p-6 space-y-4">
-            <h3 className="text-base md:text-lg font-semibold text-foreground">Contas Bancárias</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+          <div className="bg-card text-card-foreground rounded-lg border border-border shadow-sm p-4 md:p-6 space-y-4">
+            <h3 className="text-sm md:text-base font-semibold text-foreground">Contas Bancárias</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {bankAccounts.map((account) => (
                 <div
                   key={account.id}
-                  className="p-3 md:p-4 rounded-lg border border-border bg-muted/50 hover:bg-muted transition-colors"
+                  className="p-3 rounded-lg border border-border bg-muted/50 hover:bg-muted transition-colors"
                 >
-                  <p className="text-xs md:text-sm text-muted-foreground font-medium">{account.name}</p>
-                  <p className="text-sm md:text-lg font-bold text-foreground mt-1">
+                  <p className="text-xs text-muted-foreground font-medium truncate">{account.name}</p>
+                  <p className="text-sm md:text-base font-bold text-foreground mt-1">
                     {formatBRL(parseFloat(account.balance || "0"))}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">{account.bank}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate">{account.bank}</p>
                 </div>
               ))}
             </div>

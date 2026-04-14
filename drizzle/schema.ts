@@ -55,6 +55,7 @@ export const bankAccounts = mysqlTable("bankAccounts", {
   balance: decimal("balance", { precision: 12, scale: 2 }).default("0.00").notNull(),
   initialBalance: decimal("initialBalance", { precision: 12, scale: 2 }).default("0.00").notNull(),
   finalBalance: decimal("finalBalance", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  color: varchar("color", { length: 7 }).default("#3b82f6").notNull(), // Hex color for card/account
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

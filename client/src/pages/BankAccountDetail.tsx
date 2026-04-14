@@ -171,6 +171,8 @@ export default function BankAccountDetail() {
   // Computed values
   const account = accountsQuery.data?.find((a: any) => a.id === parseInt(accountId || "0"));
   const theme = account ? getBankTheme(account.bank) : getBankTheme("");
+  // Usar cor personalizada da conta se disponível, senão usar a cor do banco
+  const accountColor = (account as any)?.color || theme.primaryColorHex;
   
 
 
@@ -341,7 +343,7 @@ export default function BankAccountDetail() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className={`bg-gradient-to-r ${theme.primaryColor} text-white p-6 rounded-lg shadow-xl opacity-100`} style={{backgroundColor: theme.primaryColorHex}}>
+      <div className="text-white p-6 rounded-lg shadow-xl" style={{background: `linear-gradient(to right, ${accountColor}, ${accountColor}dd)`}}>
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-3xl font-bold drop-shadow-lg" style={{textShadow: '2px 2px 4px rgba(0,0,0,0.5)'}}>{account.name}</h1>

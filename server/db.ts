@@ -165,7 +165,7 @@ export async function getBankAccountById(id: number, userId: number) {
   return result[0];
 }
 
-export async function createBankAccount(userId: number, data: { name: string; bank: string; accountNumber?: string; initialBalance: string }) {
+export async function createBankAccount(userId: number, data: { name: string; bank: string; accountNumber?: string; initialBalance: string; color?: string }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const result = await db.insert(bankAccounts).values({ 
@@ -177,7 +177,7 @@ export async function createBankAccount(userId: number, data: { name: string; ba
   return result;
 }
 
-export async function updateBankAccount(id: number, userId: number, data: Partial<{ name: string; bank: string; accountNumber: string; balance: string; initialBalance: string; finalBalance: string }>) {
+export async function updateBankAccount(id: number, userId: number, data: Partial<{ name: string; bank: string; accountNumber: string; balance: string; initialBalance: string; finalBalance: string; color: string }>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   return db.update(bankAccounts).set(data).where(and(eq(bankAccounts.id, id), eq(bankAccounts.userId, userId)));

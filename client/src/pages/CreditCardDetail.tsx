@@ -65,7 +65,9 @@ export default function CreditCardDetail() {
   const deleteCreditCardTransactionMutation = trpc.creditCardTransactions.delete.useMutation();
 
   const card = cardsQuery.data?.find((c: any) => c.id === parseInt(cardId || "0"));
-  const theme = card ? { color: "#ef4444" } : null; // Default red color for card header
+  // Usar a cor personalizada do cartão se disponível
+  const cardColor = card?.color || "#ef4444";
+  const theme = card ? { color: cardColor } : null;
 
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
@@ -298,7 +300,7 @@ export default function CreditCardDetail() {
     <div className="space-y-6">
       {/* Header */}
       <div className="rounded-xl p-8 text-white" style={{
-        background: theme ? `linear-gradient(to bottom right, ${theme.color}, ${theme.color}dd)` : "linear-gradient(to bottom right, #ef4444, #dc262699)"
+        background: theme ? `linear-gradient(to bottom right, ${theme.color}, ${theme.color}cc)` : `linear-gradient(to bottom right, ${cardColor}, ${cardColor}cc)`
       }}>
         <div className="flex items-start justify-between">
           <div>

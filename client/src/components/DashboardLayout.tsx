@@ -233,9 +233,9 @@ function DashboardLayoutContent({
                                   className="h-9 transition-all font-normal text-sm"
                                 >
                                   <div className="h-2 w-2 rounded-full" style={{
-                                    backgroundColor: account.bank === "Itaú" ? "#FF6B35" :
+                                    backgroundColor: account.color || (account.bank === "Itaú" ? "#FF6B35" :
                                                    account.bank === "Bradesco" ? "#C41E3A" :
-                                                   account.bank === "BRB" ? "#000000" : "#999"
+                                                   account.bank === "BRB" ? "#000000" : "#3b82f6")
                                   }} />
                                   <span>{account.name}</span>
                                 </SidebarMenuButton>
@@ -285,12 +285,12 @@ function DashboardLayoutContent({
                                   className="h-9 transition-all font-normal text-sm"
                                 >
                                   <div className="h-2 w-2 rounded-full" style={{
-                                    backgroundColor: card.brand === "Visa" ? "#1434CB" :
+                                    backgroundColor: card.color || (card.brand === "Visa" ? "#1434CB" :
                                                    card.brand === "Mastercard" ? "#EB001B" :
                                                    card.brand === "Elo" ? "#FF6000" :
                                                    card.brand === "American Express" ? "#006FCF" :
                                                    card.brand === "Hipercard" ? "#CC0000" :
-                                                   card.brand === "Discover" ? "#FF6000" : "#999",
+                                                   card.brand === "Discover" ? "#FF6000" : "#3b82f6"),
                                   }} />
                                   <span>{card.name}</span>
                                 </SidebarMenuButton>

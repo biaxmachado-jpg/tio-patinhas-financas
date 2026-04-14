@@ -4,8 +4,37 @@ import { formatBRL } from "@/lib/currency";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { ChevronLeft, ChevronRight, TrendingDown } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  LabelList,
+} from "recharts";
+
+// Componente de label customizado para o gráfico de pizza
+const RADIAN = Math.PI / 180;
+const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+  if (percent < 0.04) return null;
+
+  return (
+    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight="bold">
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+};
 
 export default function Expenses() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
@@ -17,24 +46,22 @@ export default function Expenses() {
   const bankAccountsQuery = trpc.bankAccounts.list.useQuery();
   const creditCardsQuery = trpc.creditCards.list.useQuery();
 
-  // Combinar e filtrar despesas
+  // Combinar e filtrar despesas:
+  // - transactions com type = "expense" (valores negativos)
+  // - creditCardTransactions com valores POSITIVOS (gastos)
   const expenses = useMemo(() => {
     const allExpenses: any[] = [];
 
-    // Despesas de contas bancárias (type = "expense", valores negativos)
+    // Despesas de contas bancárias: type = "expense"
     if (transactionsQuery.data) {
       transactionsQuery.data.forEach((tx: any) => {
         const txDate = new Date(tx.date);
         const amount = typeof tx.amount === "string" ? parseFloat(tx.amount) : (tx.amount || 0);
-        
+
         if (
           txDate.getMonth() + 1 === selectedMonth &&
           txDate.getFullYear() === selectedYear &&
-          tx.type === "expense" &&
-          amount < 0 &&
-          tx.categoryId &&
-          tx.categoryId !== null &&
-          tx.categoryId !== undefined
+          tx.type === "expense"
         ) {
           allExpenses.push({
             id: `bank-${tx.id}`,
@@ -43,25 +70,22 @@ export default function Expenses() {
             categoryId: tx.categoryId,
             amount: Math.abs(amount),
             source: "Conta Bancária",
-            bankAccountId: tx.bankAccountId,
+            accountId: tx.accountId,
           });
         }
       });
     }
 
-    // Gastos de cartões de crédito (valores positivos = débito/gasto)
+    // Gastos de cartões de crédito: valores POSITIVOS
     if (creditCardTransactionsQuery.data) {
       creditCardTransactionsQuery.data.forEach((tx: any) => {
         const txDate = new Date(tx.date);
         const amount = typeof tx.amount === "string" ? parseFloat(tx.amount) : (tx.amount || 0);
-        
+
         if (
           txDate.getMonth() + 1 === selectedMonth &&
           txDate.getFullYear() === selectedYear &&
-          amount > 0 &&
-          tx.categoryId &&
-          tx.categoryId !== null &&
-          tx.categoryId !== undefined
+          amount > 0
         ) {
           allExpenses.push({
             id: `card-${tx.id}`,
@@ -70,7 +94,7 @@ export default function Expenses() {
             categoryId: tx.categoryId,
             amount: amount,
             source: "Cartão de Crédito",
-            creditCardId: tx.creditCardId,
+            cardId: tx.cardId,
           });
         }
       });
@@ -85,12 +109,13 @@ export default function Expenses() {
 
     expenses.forEach((exp) => {
       const category = categoriesQuery.data?.find((c: any) => c.id === exp.categoryId);
-      if (category) {
-        if (!grouped[category.name]) {
-          grouped[category.name] = { value: 0, color: category.color || "#ef4444" };
-        }
-        grouped[category.name].value += exp.amount;
+      const catName = category?.name || "Sem categoria";
+      const catColor = category?.color || "#ef4444";
+
+      if (!grouped[catName]) {
+        grouped[catName] = { value: 0, color: catColor };
       }
+      grouped[catName].value += exp.amount;
     });
 
     return Object.entries(grouped)
@@ -102,7 +127,7 @@ export default function Expenses() {
 
   const months = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
   ];
 
   const currentYear = new Date().getFullYear();
@@ -126,55 +151,74 @@ export default function Expenses() {
     }
   };
 
+  // Tooltip customizado
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-lg text-xs">
+          <p className="font-semibold mb-1">{label || payload[0]?.name}</p>
+          <p className="text-red-600 font-bold">{formatBRL(payload[0]?.value)}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="space-y-4 md:space-y-6 p-2 md:p-0">
       {/* Header */}
       <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-4 md:p-6 rounded-lg shadow-lg">
-        <h1 className="text-2xl md:text-3xl font-bold">Despesas</h1>
-        <p className="text-red-100 mt-1 md:mt-2 text-sm md:text-base">Visualize despesas de contas e gastos de cartões</p>
+        <div className="flex items-center gap-3">
+          <TrendingDown className="w-6 h-6 md:w-8 md:h-8" />
+          <div>
+            <h1 className="text-xl md:text-3xl font-bold">Despesas</h1>
+            <p className="text-red-100 mt-0.5 text-xs md:text-sm">
+              Transações expense + gastos de cartão
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* Filtros */}
-      <Card className="p-3 md:p-6">
-        <div className="flex items-center gap-2 md:gap-4 flex-wrap">
-          <Button variant="outline" size="sm" onClick={handlePreviousMonth}>
+      {/* Filtros + Total */}
+      <Card className="p-3 md:p-4">
+        <div className="flex flex-wrap items-center gap-2 md:gap-3">
+          <Button variant="outline" size="sm" onClick={handlePreviousMonth} className="h-8 w-8 p-0">
             <ChevronLeft className="w-4 h-4" />
           </Button>
 
-          <div className="flex gap-2">
-            <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
-              <SelectTrigger className="w-28 md:w-32 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {months.map((month, idx) => (
-                  <SelectItem key={idx} value={(idx + 1).toString()}>
-                    {month}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
+            <SelectTrigger className="w-28 md:w-32 h-8 text-xs md:text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {months.map((month, idx) => (
+                <SelectItem key={idx} value={(idx + 1).toString()} className="text-xs md:text-sm">
+                  {month}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-            <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
-              <SelectTrigger className="w-20 md:w-24 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {years.map((year) => (
-                  <SelectItem key={year} value={year.toString()}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
+            <SelectTrigger className="w-20 md:w-24 h-8 text-xs md:text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map((year) => (
+                <SelectItem key={year} value={year.toString()} className="text-xs md:text-sm">
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-          <Button variant="outline" size="sm" onClick={handleNextMonth}>
+          <Button variant="outline" size="sm" onClick={handleNextMonth} className="h-8 w-8 p-0">
             <ChevronRight className="w-4 h-4" />
           </Button>
 
-          <div className="ml-auto text-lg md:text-2xl font-bold text-red-600">
-            {formatBRL(totalExpenses)}
+          <div className="ml-auto">
+            <p className="text-xs text-muted-foreground">Total do período</p>
+            <p className="text-lg md:text-2xl font-bold text-red-600">{formatBRL(totalExpenses)}</p>
           </div>
         </div>
       </Card>
@@ -183,53 +227,70 @@ export default function Expenses() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {/* Gráfico de Pizza */}
         <Card className="p-3 md:p-6">
-          <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Despesas por Categoria</h2>
+          <h2 className="text-sm md:text-base font-semibold mb-3">Despesas por Categoria</h2>
           {expensesByCategory.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={260}>
               <PieChart>
                 <Pie
                   data={expensesByCategory}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, value }) => `${name}: ${formatBRL(value as number)}`}
-                  outerRadius={70}
-                  fill="#8884d8"
+                  label={renderCustomizedLabel}
+                  outerRadius={90}
                   dataKey="value"
                 >
                   {expensesByCategory.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => formatBRL(value as number)} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend
+                  formatter={(value, entry: any) => (
+                    <span style={{ color: entry.color, fontSize: 11 }}>
+                      {value}: {formatBRL(entry.payload.value)}
+                    </span>
+                  )}
+                  wrapperStyle={{ fontSize: 11 }}
+                />
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">
+            <div className="h-[260px] flex items-center justify-center text-muted-foreground text-sm">
               Sem despesas neste período
             </div>
           )}
         </Card>
 
-        {/* Gráfico de Barras */}
+        {/* Gráfico de Barras Horizontal */}
         <Card className="p-3 md:p-6">
-          <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Top Categorias</h2>
+          <h2 className="text-sm md:text-base font-semibold mb-3">Top Categorias</h2>
           {expensesByCategory.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={expensesByCategory.slice(0, 10)}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip formatter={(value) => formatBRL(value as number)} />
-                <Bar dataKey="value" fill="#ef4444" radius={[8, 8, 0, 0]}>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart
+                data={expensesByCategory.slice(0, 10)}
+                layout="vertical"
+                margin={{ top: 5, right: 60, left: 5, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={90} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="value" radius={[0, 6, 6, 0]}>
                   {expensesByCategory.slice(0, 10).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
+                  <LabelList
+                    dataKey="value"
+                    position="right"
+                    formatter={(v: number) => formatBRL(v)}
+                    style={{ fontSize: 10, fill: "#555" }}
+                  />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">
+            <div className="h-[260px] flex items-center justify-center text-muted-foreground text-sm">
               Sem despesas neste período
             </div>
           )}
@@ -238,18 +299,21 @@ export default function Expenses() {
 
       {/* Tabela de Despesas */}
       <Card className="p-3 md:p-6">
-        <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Detalhes das Despesas</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm md:text-base font-semibold">Detalhes das Despesas</h2>
+          <span className="text-xs text-muted-foreground">{expenses.length} registros</span>
+        </div>
         {expenses.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs md:text-sm">
+          <div className="overflow-x-auto -mx-3 md:mx-0">
+            <table className="w-full text-xs md:text-sm min-w-[500px]">
               <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 px-2">Data</th>
-                  <th className="text-left py-2 px-2">Descrição</th>
-                  <th className="text-left py-2 px-2">Categoria</th>
-                  <th className="text-left py-2 px-2">Origem</th>
-                  <th className="text-left py-2 px-2">Conta/Cartão</th>
-                  <th className="text-right py-2 px-2">Valor</th>
+                <tr className="border-b bg-muted/30">
+                  <th className="text-left py-2 px-2 md:px-3 font-medium text-muted-foreground">Data</th>
+                  <th className="text-left py-2 px-2 md:px-3 font-medium text-muted-foreground">Descrição</th>
+                  <th className="text-left py-2 px-2 md:px-3 font-medium text-muted-foreground">Categoria</th>
+                  <th className="text-left py-2 px-2 md:px-3 font-medium text-muted-foreground">Origem</th>
+                  <th className="text-left py-2 px-2 md:px-3 font-medium text-muted-foreground">Conta/Cartão</th>
+                  <th className="text-right py-2 px-2 md:px-3 font-medium text-muted-foreground">Valor</th>
                 </tr>
               </thead>
               <tbody>
@@ -257,33 +321,51 @@ export default function Expenses() {
                   const category = categoriesQuery.data?.find((c: any) => c.id === exp.categoryId);
                   let accountName = "";
                   if (exp.source === "Conta Bancária") {
-                    const account = bankAccountsQuery.data?.find((a: any) => a.id === exp.bankAccountId);
-                    accountName = account?.name || "Conta desconhecida";
+                    const account = bankAccountsQuery.data?.find((a: any) => a.id === exp.accountId);
+                    accountName = account ? `${account.name} (${account.bank})` : "Conta desconhecida";
                   } else if (exp.source === "Cartão de Crédito") {
-                    const card = creditCardsQuery.data?.find((c: any) => c.id === exp.creditCardId);
+                    const card = creditCardsQuery.data?.find((c: any) => c.id === exp.cardId);
                     accountName = card?.name || "Cartão desconhecido";
                   }
                   return (
-                    <tr key={exp.id} className="border-b hover:bg-muted/50">
-                      <td className="py-2 px-2">{new Date(exp.date).toLocaleDateString("pt-BR")}</td>
-                      <td className="py-2 px-2 truncate">{exp.description}</td>
-                      <td className="py-2 px-2">
-                        <span 
-                          className="inline-block px-2 py-1 rounded text-xs font-medium text-white"
+                    <tr key={exp.id} className="border-b hover:bg-muted/30 transition-colors">
+                      <td className="py-2 px-2 md:px-3 whitespace-nowrap">
+                        {new Date(exp.date).toLocaleDateString("pt-BR")}
+                      </td>
+                      <td className="py-2 px-2 md:px-3 max-w-[120px] md:max-w-[200px] truncate">
+                        {exp.description}
+                      </td>
+                      <td className="py-2 px-2 md:px-3">
+                        <span
+                          className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-white whitespace-nowrap"
                           style={{ backgroundColor: category?.color || "#ef4444" }}
                         >
                           {category?.name || "Sem categoria"}
                         </span>
                       </td>
-                      <td className="py-2 px-2 text-xs text-muted-foreground">{exp.source}</td>
-                      <td className="py-2 px-2 text-xs text-muted-foreground">{accountName}</td>
-                      <td className="py-2 px-2 text-right font-semibold text-red-600">
+                      <td className="py-2 px-2 md:px-3 text-xs text-muted-foreground whitespace-nowrap">
+                        {exp.source}
+                      </td>
+                      <td className="py-2 px-2 md:px-3 text-xs text-muted-foreground max-w-[100px] truncate">
+                        {accountName}
+                      </td>
+                      <td className="py-2 px-2 md:px-3 text-right font-semibold text-red-600 whitespace-nowrap">
                         -{formatBRL(exp.amount)}
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
+              <tfoot>
+                <tr className="border-t-2 bg-red-50 dark:bg-red-950/20">
+                  <td colSpan={5} className="py-2 px-2 md:px-3 font-semibold text-xs md:text-sm">
+                    Total
+                  </td>
+                  <td className="py-2 px-2 md:px-3 text-right font-bold text-red-600 text-xs md:text-sm">
+                    -{formatBRL(totalExpenses)}
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         ) : (

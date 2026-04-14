@@ -84,6 +84,7 @@ export const appRouter = router({
         bank: z.string().min(1),
         accountNumber: z.string().optional(),
         initialBalance: z.string(),
+        color: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
       }))
       .mutation(({ ctx, input }) => db.createBankAccount(ctx.user.id, input)),
     
@@ -96,6 +97,7 @@ export const appRouter = router({
         balance: z.string().optional(),
         initialBalance: z.string().optional(),
         finalBalance: z.string().optional(),
+        color: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
       }))
       .mutation(({ ctx, input }) => {
         const { id, ...data } = input;

@@ -5,11 +5,27 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, Edit2 } from "lucide-react";
+import { Plus, Trash2, Edit2, Palette } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
+
+// Paleta de cores predefinidas para contas
+const PRESET_COLORS = [
+  "#3b82f6", // azul
+  "#6366f1", // índigo
+  "#8b5cf6", // violeta
+  "#ec4899", // rosa
+  "#ef4444", // vermelho
+  "#f97316", // laranja
+  "#eab308", // amarelo
+  "#22c55e", // verde
+  "#14b8a6", // teal
+  "#06b6d4", // ciano
+  "#64748b", // cinza-azulado
+  "#78716c", // marrom
+];
 
 export default function BankAccounts() {
   const { user } = useAuth();
@@ -21,6 +37,7 @@ export default function BankAccounts() {
     bank: "",
     accountNumber: "",
     initialBalance: "0.00",
+    color: "#3b82f6",
   });
 
   const { data: accounts, refetch } = trpc.bankAccounts.list.useQuery();
@@ -37,16 +54,25 @@ export default function BankAccounts() {
       if (editingId) {
         await updateMutation.mutateAsync({
           id: editingId,
-          ...formData,
+          name: formData.name,
+          bank: formData.bank,
+          accountNumber: formData.accountNumber,
+          color: formData.color,
         });
         toast.success("Conta atualizada com sucesso!");
       } else {
-        await createMutation.mutateAsync(formData);
+        await createMutation.mutateAsync({
+          name: formData.name,
+          bank: formData.bank,
+          accountNumber: formData.accountNumber,
+          initialBalance: formData.initialBalance,
+          color: formData.color,
+        });
         toast.success("Conta criada com sucesso!");
       }
       setOpen(false);
       setEditingId(null);
-      setFormData({ name: "", bank: "", accountNumber: "", initialBalance: "0.00" });
+      setFormData({ name: "", bank: "", accountNumber: "", initialBalance: "0.00", color: "#3b82f6" });
       refetch();
     } catch (error) {
       toast.error("Erro ao salvar conta");
@@ -68,17 +94,18 @@ export default function BankAccounts() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Contas Bancárias</h1>
-            <p className="text-muted-foreground">Gerencie suas contas bancárias</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Contas Bancárias</h1>
+            <p className="text-muted-foreground text-sm md:text-base">Gerencie suas contas bancárias</p>
           </div>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus className="w-4 h-4" />
-                Nova Conta
+                <span className="hidden sm:inline">Nova Conta</span>
+                <span className="sm:hidden">Nova</span>
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>{editingId ? "Editar Conta" : "Nova Conta Bancária"}</DialogTitle>
               </DialogHeader>
@@ -112,17 +139,74 @@ export default function BankAccounts() {
                     onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
                   />
                 </div>
+                {!editingId && (
+                  <div>
+                    <Label htmlFor="initialBalance">Saldo Inicial (Opcional)</Label>
+                    <Input
+                      id="initialBalance"
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={formData.initialBalance}
+                      onChange={(e) => setFormData({ ...formData, initialBalance: e.target.value || "0.00" })}
+                    />
+                  </div>
+                )}
+
+                {/* Seletor de Cor */}
                 <div>
-                  <Label htmlFor="initialBalance">Saldo Inicial (Opcional)</Label>
-                  <Input
-                    id="initialBalance"
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={formData.initialBalance}
-                    onChange={(e) => setFormData({ ...formData, initialBalance: e.target.value || "0.00" })}
-                  />
+                  <Label className="flex items-center gap-2">
+                    <Palette className="w-4 h-4" />
+                    Cor do Cartão
+                  </Label>
+                  <div className="mt-2 space-y-3">
+                    {/* Paleta de cores */}
+                    <div className="flex flex-wrap gap-2">
+                      {PRESET_COLORS.map((color) => (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, color })}
+                          className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${
+                            formData.color === color ? "border-foreground scale-110 shadow-lg" : "border-transparent"
+                          }`}
+                          style={{ backgroundColor: color }}
+                          title={color}
+                        />
+                      ))}
+                    </div>
+                    {/* Input de cor personalizada */}
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-10 h-10 rounded-lg border border-border shadow-sm flex-shrink-0"
+                        style={{ backgroundColor: formData.color }}
+                      />
+                      <Input
+                        type="color"
+                        value={formData.color}
+                        onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                        className="w-full h-10 cursor-pointer"
+                      />
+                      <span className="text-xs text-muted-foreground font-mono whitespace-nowrap">
+                        {formData.color}
+                      </span>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Preview */}
+                <div className="rounded-lg overflow-hidden border border-border">
+                  <div
+                    className="p-3 text-white text-sm font-semibold"
+                    style={{ backgroundColor: formData.color }}
+                  >
+                    {formData.name || "Nome da Conta"} — {formData.bank || "Banco"}
+                  </div>
+                  <div className="p-3 bg-card text-xs text-muted-foreground">
+                    Preview do cartão
+                  </div>
+                </div>
+
                 <Button type="submit" className="w-full">
                   {editingId ? "Atualizar" : "Criar"} Conta
                 </Button>
@@ -132,63 +216,79 @@ export default function BankAccounts() {
         </div>
 
         {/* Accounts Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {accounts?.map((account) => (
-            <div key={account.id} className="bg-card text-card-foreground rounded-lg border border-border shadow-sm hover:shadow-md transition-colors p-6 space-y-4 cursor-pointer" onClick={() => navigate(`/contas/${account.id}`)}>
-              <div className="flex items-start justify-between">
-                <div onClick={(e) => e.stopPropagation()}>
-                  <h3 className="font-semibold text-foreground">{account.name}</h3>
-                  <p className="text-sm text-muted-foreground">{account.bank}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          {accounts?.map((account) => {
+            const cardColor = (account as any).color || "#3b82f6";
+            return (
+              <div
+                key={account.id}
+                className="rounded-lg overflow-hidden border border-border shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => navigate(`/contas/${account.id}`)}
+              >
+                {/* Header colorido */}
+                <div
+                  className="p-4 text-white"
+                  style={{ backgroundColor: cardColor }}
+                >
+                  <div className="flex items-start justify-between">
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <h3 className="font-semibold text-base">{account.name}</h3>
+                      <p className="text-sm text-white/80">{account.bank}</p>
+                    </div>
+                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-white hover:bg-white/20 h-8 w-8 p-0"
+                        onClick={() => {
+                          setFormData({
+                            name: account.name,
+                            bank: account.bank,
+                            accountNumber: account.accountNumber || "",
+                            initialBalance: account.balance,
+                            color: (account as any).color || "#3b82f6",
+                          });
+                          setEditingId(account.id);
+                          setOpen(true);
+                        }}
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-white hover:bg-white/20 h-8 w-8 p-0"
+                        onClick={() => handleDelete(account.id)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setFormData({
-                        name: account.name,
-                        bank: account.bank,
-                        accountNumber: account.accountNumber || "",
-                        initialBalance: account.balance,
-                      });
-                      setEditingId(account.id);
-                      setOpen(true);
-                    }}
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(account.id)}
-                  >
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </Button>
+
+                {/* Conteúdo */}
+                <div className="p-4 bg-card">
+                  {account.accountNumber && (
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Conta: {account.accountNumber}
+                    </p>
+                  )}
+                  <div>
+                    <p className="text-xs text-muted-foreground">Saldo</p>
+                    <p className="text-xl md:text-2xl font-bold text-foreground mt-0.5">
+                      {formatBRL(parseFloat(account.balance))}
+                    </p>
+                  </div>
                 </div>
               </div>
-
-              {account.accountNumber && (
-                <p className="text-sm text-muted-foreground">
-                  Conta: {account.accountNumber}
-                </p>
-              )}
-
-              <div className="pt-4 border-t border-border">
-                <p className="text-sm text-muted-foreground">Saldo</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {formatBRL(parseFloat(account.balance))}
-                </p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {accounts?.length === 0 && (
-          <div className="text-center py-12 card-elevated">
+          <div className="text-center py-12 bg-card rounded-lg border border-border">
             <p className="text-muted-foreground mb-4">Nenhuma conta criada ainda</p>
-            <Button asChild>
-              <a href="#new">Criar primeira conta</a>
-            </Button>
+            <Button onClick={() => setOpen(true)}>Criar primeira conta</Button>
           </div>
         )}
       </div>
