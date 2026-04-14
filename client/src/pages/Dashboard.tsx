@@ -15,9 +15,12 @@ import {
   LabelList,
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TrendingUp, TrendingDown, Wallet } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TrendingUp, TrendingDown, Wallet, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
 
@@ -37,19 +40,21 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
 export default function Dashboard() {
   const { user } = useAuth();
   const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
 
-  // Buscar stats do mês corrente
+  // Buscar stats do mês selecionado
   const { data: stats, isLoading } = trpc.dashboard.stats.useQuery({
-    month: now.getMonth() + 1,
-    year: now.getFullYear(),
+    month: selectedMonth,
+    year: selectedYear,
   });
 
   const { data: bankAccounts } = trpc.bankAccounts.list.useQuery();
   const { data: categories } = trpc.categories.list.useQuery();
 
-  // Buscar transações apenas do mês corrente
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  // Buscar transações apenas do mês selecionado
+  const startOfMonth = new Date(selectedYear, selectedMonth - 1, 1);
+  const endOfMonth = new Date(selectedYear, selectedMonth, 0, 23, 59, 59);
 
   const { data: transactions } = trpc.transactions.list.useQuery({
     startDate: startOfMonth,
@@ -60,10 +65,10 @@ export default function Dashboard() {
   const { data: creditCardTransactions } = trpc.creditCardTransactions.list.useQuery({});
   const { data: creditCards } = trpc.creditCards.list.useQuery();
 
-  // Filtrar transações de cartão do mês corrente
+  // Filtrar transações de cartão do mês selecionado
   const currentMonthCCTransactions = creditCardTransactions?.filter((t) => {
     const d = new Date(t.date);
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    return d.getMonth() === selectedMonth - 1 && d.getFullYear() === selectedYear;
   }) || [];
 
   // Calcular receitas e despesas do mês corrente
@@ -148,6 +153,66 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
+
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (selectedMonth === 1) {
+                setSelectedMonth(12);
+                setSelectedYear(selectedYear - 1);
+              } else {
+                setSelectedMonth(selectedMonth - 1);
+              }
+            }}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          
+          <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+                <SelectItem key={month} value={month.toString()}>
+                  {new Date(selectedYear, month - 1).toLocaleDateString('pt-BR', { month: 'long' })}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+            <SelectTrigger className="w-24">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (selectedMonth === 12) {
+                setSelectedMonth(1);
+                setSelectedYear(selectedYear + 1);
+              } else {
+                setSelectedMonth(selectedMonth + 1);
+              }
+            }}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
       <div className="space-y-4 md:space-y-6">
         {/* Header */}
         <div className="space-y-1">
