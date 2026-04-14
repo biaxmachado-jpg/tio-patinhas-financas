@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Edit2, AlertCircle, X } from "lucide-react";
+import { Edit2, AlertCircle, X, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { formatBRL } from "@/lib/currency";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -161,17 +161,84 @@ export default function Budgets() {
     return editingType === "income" ? incomeCategories : expenseCategories;
   };
 
+  const handlePreviousMonth = () => {
+    if (month === 1) {
+      setMonth(12);
+      setYear(year - 1);
+    } else {
+      setMonth(month - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (month === 12) {
+      setMonth(1);
+      setYear(year + 1);
+    } else {
+      setMonth(month + 1);
+    }
+  };
+
+  const handleExportXLSX = async () => {
+    try {
+      const XLSX = await import('xlsx');
+      
+      const incomeData = incomeCategories.map(cat => ({
+        Categoria: cat.name,
+        Realizado: getSpentAmount(cat.id, "income"),
+        Orcamento: getBudgetForCategory(cat.id),
+        Tipo: "Receita"
+      }));
+
+      const expenseData = expenseCategories.map(cat => ({
+        Categoria: cat.name,
+        Realizado: getSpentAmount(cat.id, "expense"),
+        Orcamento: getBudgetForCategory(cat.id),
+        Tipo: "Despesa"
+      }));
+
+      const allData = [...incomeData, ...expenseData];
+
+      const ws = XLSX.utils.json_to_sheet(allData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, `Orcamentos ${months[month - 1]} ${year}`);
+
+      XLSX.writeFile(wb, `orcamentos_${months[month - 1]}_${year}.xlsx`);
+      
+      toast.success("Orcamentos exportados com sucesso!");
+    } catch (error) {
+      console.error("Erro ao exportar:", error);
+      toast.error("Erro ao exportar orcamentos");
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold">Orçamentos</h1>
-          <p className="text-muted-foreground">Defina e acompanhe seus orçamentos mensais</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold">Orçamentos</h1>
+            <p className="text-muted-foreground">Defina e acompanhe seus orçamentos mensais</p>
+          </div>
+          <button
+            onClick={handleExportXLSX}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium"
+          >
+            <Download className="w-4 h-4" />
+            Exportar XLSX
+          </button>
         </div>
 
-        {/* Month/Year Selector */}
-        <div className="flex gap-2">
+        {/* Month/Year Selector with Navigation */}
+        <div className="flex gap-2 items-center">
+          <button
+            onClick={handlePreviousMonth}
+            className="p-2 border rounded-md hover:bg-gray-100"
+            title="Mês anterior"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
           <select
             value={month}
             onChange={(e) => setMonth(parseInt(e.target.value))}
@@ -194,6 +261,13 @@ export default function Budgets() {
               </option>
             ))}
           </select>
+          <button
+            onClick={handleNextMonth}
+            className="p-2 border rounded-md hover:bg-gray-100"
+            title="Próximo mês"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Budget Alerts */}
