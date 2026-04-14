@@ -36,6 +36,13 @@
       "when": 1776184045062,
       "tag": "0004_quiet_bloodstrike",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1776194377634,
+      "tag": "0005_easy_magneto",
+      "breakpoints": true
     }
   ]
 }

@@ -12,6 +12,7 @@ import {
   creditCards,
   creditCardTransactions,
   monthlyBalances,
+  profileHistory,
   type Category,
   type BankAccount,
   type Transaction,
@@ -20,6 +21,7 @@ import {
   type CreditCard,
   type CreditCardTransaction,
   type MonthlyBalance,
+  type ProfileHistory,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -35,7 +37,7 @@ export async function getDb() {
       if (!_pool) {
         _pool = mysql.createPool(process.env.DATABASE_URL);
       }
-      _db = drizzle(_pool, { mode: 'default', schema: { users, categories, bankAccounts, transactions, budgets, categorizationRules, creditCards, creditCardTransactions, monthlyBalances } });
+      _db = drizzle(_pool, { mode: 'default', schema: { users, categories, bankAccounts, transactions, budgets, categorizationRules, creditCards, creditCardTransactions, monthlyBalances, profileHistory } });
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -603,6 +605,22 @@ export async function updateUserProfile(userId: number, data: { name?: string; e
       throw new Error("At least one field (name, email, or profilePhoto) must be provided");
     }
 
+    // Get current user data to compare
+    const [currentUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    
+    if (currentUser) {
+      // Record changes for each field
+      if (data.name && data.name !== currentUser.name) {
+        await recordProfileChange(userId, "name", currentUser.name || null, data.name);
+      }
+      if (data.email && data.email !== currentUser.email) {
+        await recordProfileChange(userId, "email", currentUser.email || null, data.email);
+      }
+      if (data.profilePhoto && data.profilePhoto !== currentUser.profilePhoto) {
+        await recordProfileChange(userId, "profilePhoto", currentUser.profilePhoto || null, data.profilePhoto);
+      }
+    }
+
     const result = await db.update(users)
       .set({
         ...(data.name && { name: data.name }),
@@ -719,4 +737,28 @@ export async function deleteMonthlyBalance(userId: number, accountId: number, mo
     console.error("[Database] Error deleting monthly balance:", error);
     return false;
   }
+}
+
+
+// ============= PROFILE HISTORY =============
+
+export async function recordProfileChange(userId: number, fieldName: string, oldValue: string | null, newValue: string | null) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // Only record if values actually changed
+  if (oldValue === newValue) return;
+  
+  return db.insert(profileHistory).values({
+    userId,
+    fieldName,
+    oldValue: oldValue ? JSON.stringify(oldValue) : null,
+    newValue: newValue ? JSON.stringify(newValue) : null,
+  });
+}
+
+export async function getProfileHistory(userId: number, limit: number = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(profileHistory).where(eq(profileHistory.userId, userId)).orderBy(desc(profileHistory.changedAt)).limit(limit);
 }

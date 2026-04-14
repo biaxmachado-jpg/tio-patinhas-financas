@@ -182,3 +182,20 @@ export const creditCardTransactions = mysqlTable("creditCardTransactions", {
 
 export type CreditCardTransaction = typeof creditCardTransactions.$inferSelect;
 export type InsertCreditCardTransaction = typeof creditCardTransactions.$inferInsert;
+
+
+/**
+ * Profile history table for tracking user profile changes
+ */
+export const profileHistory = mysqlTable("profileHistory", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  fieldName: varchar("fieldName", { length: 100 }).notNull(), // e.g., "name", "email"
+  oldValue: text("oldValue"), // Previous value
+  newValue: text("newValue"), // New value
+  changedAt: timestamp("changedAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ProfileHistory = typeof profileHistory.$inferSelect;
+export type InsertProfileHistory = typeof profileHistory.$inferInsert;

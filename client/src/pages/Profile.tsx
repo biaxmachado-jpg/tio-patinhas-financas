@@ -304,6 +304,53 @@ function EditCreditCardDialog({
 }
 
 
+function ProfileHistorySection() {
+  const { data: history, isLoading } = trpc.auth.getProfileHistory.useQuery();
+
+  if (isLoading) {
+    return <p className="text-gray-500">Carregando histórico...</p>;
+  }
+
+  if (!history || history.length === 0) {
+    return <p className="text-gray-500">Nenhuma alteração registrada</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {history.map((entry) => (
+        <div key={entry.id} className="border rounded-lg p-3 bg-gray-50">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="font-medium text-sm text-foreground">
+                {entry.fieldName === "name" && "Nome"}
+                {entry.fieldName === "email" && "Email"}
+                {entry.fieldName === "profilePhoto" && "Foto de Perfil"}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                {new Date(entry.changedAt).toLocaleString("pt-BR")}
+              </p>
+            </div>
+          </div>
+          <div className="mt-2 text-xs space-y-1">
+            <div>
+              <span className="text-gray-600">De: </span>
+              <span className="font-mono text-red-600">
+                {entry.oldValue ? JSON.parse(entry.oldValue).substring(0, 50) : "(vazio)"}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-600">Para: </span>
+              <span className="font-mono text-green-600">
+                {entry.newValue ? JSON.parse(entry.newValue).substring(0, 50) : "(vazio)"}
+              </span>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function MinhasContas() {
   const { data: bankAccounts, isLoading: bankLoading, refetch: refetchBankAccounts } = trpc.bankAccounts.list.useQuery();
   const { data: creditCards, isLoading: cardsLoading, refetch: refetchCreditCards } = trpc.creditCards.list.useQuery();
@@ -788,6 +835,17 @@ export default function Profile() {
               </Button>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Histórico de Alterações */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Histórico de Alterações</CardTitle>
+          <CardDescription>Registro de mudanças no seu perfil</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ProfileHistorySection />
         </CardContent>
       </Card>
 

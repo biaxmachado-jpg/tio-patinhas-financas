@@ -796,3 +796,12 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Corrigir erro "Cannot read property 'split' of undefined" na página de perfil - Corrigido com useEffect
 - [x] Investigar qual campo está causando o erro - Loop infinito no useState
 - [x] Testar edição de perfil após correção - Funcionando perfeitamente
+
+
+## Feature: Histórico de Alterações de Perfil
+
+- [x] Criar tabela profileHistory no banco de dados - Criada em drizzle/schema.ts
+- [x] Adicionar procedimento tRPC para registrar alterações - getProfileHistory implementado em server/routers.ts
+- [x] Implementar lógica de comparação de valores antigos vs novos - recordProfileChange implementado em server/db.ts
+- [x] Criar UI para exibir histórico na página de perfil - ProfileHistorySection implementado com cards
+- [x] Testar registro e exibição de alterações - Seção visível e funcional na página de perfil

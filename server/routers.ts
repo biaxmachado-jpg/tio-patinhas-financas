@@ -27,6 +27,10 @@ export const appRouter = router({
         { message: "At least one field (name, email, or profilePhoto) must be provided" }
       ))
       .mutation(({ ctx, input }) => db.updateUserProfile(ctx.user.id, input)),
+    
+    getProfileHistory: protectedProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).optional() }).optional())
+      .query(({ ctx, input }) => db.getProfileHistory(ctx.user.id, input?.limit)),
   }),
 
   // ============= CATEGORIES =============
