@@ -766,3 +766,9 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Remover valores de "TRANSF. ENTRE CONTAS" do totalIncome - Implementado
 - [x] Remover valores de "TRANSF. ENTRE CONTAS" do totalExpenses - Implementado
 - [x] Testar se os totais estão corretos - Testado com sucesso (Despesas: R$ 706.108,19)
+
+
+## Alteração: Mover Card de Transferências para Entre Receitas e Despesas
+
+- [x] Reorganizar layout para colocar card de transferências entre receitas e despesas - Implementado
+- [x] Testar visualização do novo layout - Testado com sucesso

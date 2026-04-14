@@ -262,6 +262,19 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Transferências entre Contas - Entre Receitas e Despesas */}
+        {transferBetweenAccounts > 0 && (
+          <div className="chart-card">
+            <h2 className="text-lg md:text-xl font-semibold mb-4 text-foreground">Transferência entre Contas — {dateRangeLabel}</h2>
+            <div className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-700">
+              <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">Total Transferido</p>
+              <p className="text-3xl md:text-4xl font-bold text-blue-700 dark:text-blue-300">
+                {formatBRL(transferBetweenAccounts)}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
           {/* Bar Chart - Receitas vs Despesas */}
@@ -313,19 +326,6 @@ export default function Dashboard() {
             </div>
           )}
         </div>
-
-        {/* Transferências entre Contas */}
-        {transferBetweenAccounts > 0 && (
-          <div className="chart-card">
-            <h2 className="text-lg md:text-xl font-semibold mb-4 text-foreground">Transferência entre Contas — {dateRangeLabel}</h2>
-            <div className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-700">
-              <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">Total Transferido</p>
-              <p className="text-3xl md:text-4xl font-bold text-blue-700 dark:text-blue-300">
-                {formatBRL(transferBetweenAccounts)}
-              </p>
-            </div>
-          </div>
-        )}
 
         {/* Bank Accounts */}
         {bankAccounts && bankAccounts.length > 0 && (
