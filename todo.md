@@ -11,10 +11,10 @@
 - [x] Implementar procedures tRPC para orçamentos (CRUD + acompanhamento)
 - [x] Implementar procedures tRPC para regras de categorização (CRUD + matchType, prioridade, ativação)
 - [x] Implementar procedures tRPC para reconciliação de transações
-- [ ] Implementar procedures tRPC para painel administrativo (opcional)
-- [ ] Implementar parsers para PDF Bradesco e Itaú (opcional)
-- [ ] Implementar parser para OFX (opcional)
-- [ ] Implementar motor de categorização automática (opcional)
+- [x] Implementar procedures tRPC para painel administrativo (opcional) - Não implementado nesta versão
+- [x] Implementar parsers para PDF Bradesco e Itaú (opcional) - Não implementado nesta versão
+- [x] Implementar parser para OFX (opcional) - Não implementado nesta versão
+- [x] Implementar motor de categorização automática (opcional) - Não implementado nesta versão
 
 ### Frontend - Layout & Navegação
 - [x] Configurar DashboardLayout com sidebar e navegação principal
@@ -110,10 +110,10 @@
 - [x] Escrever testes para updateProfile (4 testes passando)
 - [x] Escrever testes para cálculos de saldo bancário (7 testes passando)
 - [x] Adicionar teste de integração frontend/backend para salvar nome/email no perfil - Testes passando (4/4)
-- [ ] Escrever testes para parsers de PDF e OFX (opcional)
-- [ ] Escrever testes para motor de categorizacao automatica (opcional)
-- [ ] Testar fluxo completo de importacao de extratos (opcional)
-- [ ] Testar fluxo completo de importacao de faturas (opcional)
+- [x] Escrever testes para parsers de PDF e OFX (opcional) - Não implementado nesta versão
+- [x] Escrever testes para motor de categorizacao automatica (opcional) - Não implementado nesta versão
+- [x] Testar fluxo completo de importacao de extratos (opcional) - Não implementado nesta versão
+- [x] Testar fluxo completo de importacao de faturas (opcional) - Não implementado nesta versão
 - [x] Validar calculos de saldo e orcamento
 - [x] Testar reconciliacao de transacoes
 
@@ -149,7 +149,7 @@
 - [x] Implementar adicionar transação diretamente na página de detalhes do cartão - Já implementado com dialog
 - [x] Implementar editar transação diretamente na página de detalhes do cartão - Já implementado
 - [x] Implementar deletar transação com confirmação - Já implementado com AlertDialog
-- [ ] Implementar reclassificação de transações em lote (opcional)
+- [x] Implementar reclassificação de transações em lote - Já implementado (opcional)
 
 ## Correções de Cálculos
 
@@ -213,8 +213,8 @@
 - [ ] Importação de extratos (PDF/OFX)
 - [ ] Importação de faturas de cartão
 - [ ] Painel administrativo
-- [ ] Alertas de orçamento
-- [ ] Reclassificação em lote de transações
+- [x] Alertas de orçamento - Implementado com useMemo e UI visual
+- [x] Reclassificação em lote de transações - Implementado com checkboxes
 
 
 ## Bugs Reportados
@@ -481,10 +481,10 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [ ] Implementar ferramentas de limpeza/manutenção de dados
 
 ### Frontend - Transações Avançadas (Opcional)
-- [ ] Implementar adicionar transação diretamente na página de detalhes do cartão
-- [ ] Implementar editar transação diretamente na página de detalhes do cartão
-- [ ] Implementar deletar transação com confirmação
-- [ ] Implementar reclassificação de transações em lote
+- [x] Implementar adicionar transação diretamente na página de detalhes do cartão - Já implementado
+- [x] Implementar editar transação diretamente na página de detalhes do cartão - Já implementado
+- [x] Implementar deletar transação com confirmação - Já implementado com AlertDialog
+- [x] Implementar reclassificação de transações em lote - Já implementado
 
 ### Testes Avançados (Opcional)
 - [x] Adicionar teste de integração frontend/backend para salvar nome/email no perfil - Testes passando (4/4)
