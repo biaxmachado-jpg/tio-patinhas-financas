@@ -67,11 +67,22 @@ function EditBankAccountDialog({
   onDelete: (id: number) => void;
 }) {
   const [formData, setFormData] = useState({
-    name: account?.name || "",
-    bank: account?.bank || "",
-    accountNumber: account?.accountNumber || "",
-    color: (account as any)?.color || "#3b82f6",
+    name: "",
+    bank: "",
+    accountNumber: "",
+    color: "#3b82f6",
   });
+
+  useEffect(() => {
+    if (open && account) {
+      setFormData({
+        name: account.name || "",
+        bank: account.bank || "",
+        accountNumber: account.accountNumber || "",
+        color: (account as any)?.color || "#3b82f6",
+      });
+    }
+  }, [account?.id, open]);
 
   const PRESET_COLORS = [
     "#3b82f6", "#6366f1", "#8b5cf6", "#ec4899", "#ef4444", "#f97316",
@@ -171,7 +182,7 @@ function EditCreditCardDialog({
 
   // Sincronizar formData quando card muda
   useEffect(() => {
-    if (card) {
+    if (open && card) {
       setFormData({
         name: card?.name || "",
         brand: card?.brand || "Visa",
@@ -182,7 +193,7 @@ function EditCreditCardDialog({
         color: (card as any)?.color || "#1434CB",
       });
     }
-  }, [card?.id, open]);
+  }, [card?.id]);
 
   const CARD_BRANDS = [
     { value: "Visa", label: "Visa" },

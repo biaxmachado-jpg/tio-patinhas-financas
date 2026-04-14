@@ -819,3 +819,11 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Investigar causa do loop infinito no ProfileHistorySection - JSON.parse() desnecessário
 - [x] Corrigir useEffect ou useState que causa re-renders infinitos - Removido JSON.parse()
 - [x] Testar página de perfil após correção - Funcionando perfeitamente
+
+
+## Bug: Loop Infinito em EditBankAccountDialog e EditCreditCardDialog
+
+- [x] Investigar padrão de derived state - Inicializava formData com account?.name
+- [x] Corrigir EditBankAccountDialog - Inicializa vazio e sincroniza via useEffect
+- [x] Corrigir EditCreditCardDialog - Removido open das dependências
+- [x] Testar página de perfil - Funcionando perfeitamente sem erros
