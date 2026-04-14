@@ -30,41 +30,48 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
 export default function Dashboard() {
   const { user } = useAuth();
   const now = new Date();
-  
-  // Inicializar com o primeiro dia do mês atual até hoje
-  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const [startDate, setStartDate] = useState(firstDayOfMonth);
-  const [endDate, setEndDate] = useState(now);
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
 
   const { data: bankAccounts } = trpc.bankAccounts.list.useQuery();
   const { data: categories } = trpc.categories.list.useQuery();
 
-  // Buscar transações do período selecionado
-  const { data: transactions } = trpc.transactions.list.useQuery({
-    startDate: startDate,
-    endDate: endDate,
-  });
+  // Buscar TODAS as transações (sem filtro de data)
+  const { data: transactions } = trpc.transactions.list.useQuery({});
 
-  // Buscar transacoes de cartao do período selecionado
-  const { data: creditCardTransactions } = trpc.creditCardTransactions.list.useQuery({
-    startDate: startDate,
-    endDate: endDate,
-  });
+  // Buscar TODAS as transacoes de cartao (sem filtro de data)
+  const { data: creditCardTransactions } = trpc.creditCardTransactions.list.useQuery({});
 
-  const currentMonthCCTransactions = creditCardTransactions || [];
+  const currentMonthCCTransactions = (creditCardTransactions || [])
+    .filter((t) => {
+      const txDate = new Date(t.date);
+      return txDate.getMonth() + 1 === selectedMonth && txDate.getFullYear() === selectedYear;
+    });
 
-  // Calcular receitas e despesas do período selecionado (SEM TRANSF. ENTRE CONTAS)
+  // Calcular receitas e despesas do mês selecionado (SEM TRANSF. ENTRE CONTAS)
   const currentMonthIncome = (transactions || [])
     .filter((t) => {
+      const txDate = new Date(t.date);
       const cat = categories?.find((c) => c.id === t.categoryId);
-      return t.type === "income" && cat?.name !== "TRANSF. ENTRE CONTAS";
+      return (
+        txDate.getMonth() + 1 === selectedMonth &&
+        txDate.getFullYear() === selectedYear &&
+        t.type === "income" &&
+        cat?.name !== "TRANSF. ENTRE CONTAS"
+      );
     })
     .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
 
   const currentMonthExpenseBank = (transactions || [])
     .filter((t) => {
+      const txDate = new Date(t.date);
       const cat = categories?.find((c) => c.id === t.categoryId);
-      return t.type === "expense" && cat?.name !== "TRANSF. ENTRE CONTAS";
+      return (
+        txDate.getMonth() + 1 === selectedMonth &&
+        txDate.getFullYear() === selectedYear &&
+        t.type === "expense" &&
+        cat?.name !== "TRANSF. ENTRE CONTAS"
+      );
     })
     .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
 
@@ -90,15 +97,27 @@ export default function Dashboard() {
   // Calcular transferências entre contas - Receitas e Despesas
   const transferIncome = (transactions || [])
     .filter((t) => {
+      const txDate = new Date(t.date);
       const cat = categories?.find((c) => c.id === t.categoryId);
-      return t.type === "income" && cat?.name === "TRANSF. ENTRE CONTAS";
+      return (
+        txDate.getMonth() + 1 === selectedMonth &&
+        txDate.getFullYear() === selectedYear &&
+        t.type === "income" &&
+        cat?.name === "TRANSF. ENTRE CONTAS"
+      );
     })
     .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
 
   const transferExpense = (transactions || [])
     .filter((t) => {
+      const txDate = new Date(t.date);
       const cat = categories?.find((c) => c.id === t.categoryId);
-      return t.type === "expense" && cat?.name === "TRANSF. ENTRE CONTAS";
+      return (
+        txDate.getMonth() + 1 === selectedMonth &&
+        txDate.getFullYear() === selectedYear &&
+        t.type === "expense" &&
+        cat?.name === "TRANSF. ENTRE CONTAS"
+      );
     })
     .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
 
@@ -109,7 +128,14 @@ export default function Dashboard() {
     const grouped: Record<string, { value: number; color: string }> = {};
 
     (transactions || [])
-      .filter((t) => t.type === "expense")
+      .filter((t) => {
+        const txDate = new Date(t.date);
+        return (
+          txDate.getMonth() + 1 === selectedMonth &&
+          txDate.getFullYear() === selectedYear &&
+          t.type === "expense"
+        );
+      })
       .forEach((t) => {
         const cat = categories?.find((c) => c.id === t.categoryId);
         const name = cat?.name || "Sem categoria";
@@ -141,7 +167,14 @@ export default function Dashboard() {
     const grouped: Record<string, { value: number; color: string }> = {};
 
     (transactions || [])
-      .filter((t) => t.type === "income")
+      .filter((t) => {
+        const txDate = new Date(t.date);
+        return (
+          txDate.getMonth() + 1 === selectedMonth &&
+          txDate.getFullYear() === selectedYear &&
+          t.type === "income"
+        );
+      })
       .forEach((t) => {
         const cat = categories?.find((c) => c.id === t.categoryId);
         const name = cat?.name || "Sem categoria";
@@ -173,35 +206,48 @@ export default function Dashboard() {
   const totalBalance = (bankAccounts || [])
     .reduce((sum, acc) => sum + parseFloat(acc.balance || "0"), 0);
   
-  const dateRangeLabel = `${format(startDate, "dd/MM/yyyy")} a ${format(endDate, "dd/MM/yyyy")}`;
+  const monthNames = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  ];
 
   return (
     <DashboardLayout>
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <label className="text-sm font-medium text-foreground">Data Início:</label>
-          <input
-            type="date"
-            value={format(startDate, "yyyy-MM-dd")}
-            onChange={(e) => setStartDate(new Date(e.target.value))}
+          <label className="text-sm font-medium text-foreground">Mês:</label>
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
             className="px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm"
-          />
+          >
+            {monthNames.map((month, index) => (
+              <option key={index} value={index + 1}>
+                {month}
+              </option>
+            ))}
+          </select>
           
-          <label className="text-sm font-medium text-foreground">Data Fim:</label>
-          <input
-            type="date"
-            value={format(endDate, "yyyy-MM-dd")}
-            onChange={(e) => setEndDate(new Date(e.target.value))}
+          <label className="text-sm font-medium text-foreground">Ano:</label>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
             className="px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm"
-          />
+          >
+            {[2024, 2025, 2026, 2027].map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
           
           <Button
             variant="outline"
             size="sm"
             onClick={() => {
               const today = new Date();
-              setStartDate(new Date(today.getFullYear(), today.getMonth(), 1));
-              setEndDate(today);
+              setSelectedMonth(today.getMonth() + 1);
+              setSelectedYear(today.getFullYear());
             }}
             className="ml-auto sm:ml-0"
           >
@@ -220,7 +266,7 @@ export default function Dashboard() {
             {format(now, "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })}
           </p>
           <p className="text-xs text-muted-foreground italic">
-            Dados referentes ao período: {dateRangeLabel}
+            Dados referentes a: {monthNames[selectedMonth - 1]}/{selectedYear}
           </p>
         </div>
 
@@ -241,7 +287,7 @@ export default function Dashboard() {
           <div className="stat-card">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="stat-label text-xs md:text-sm">Receitas ({format(startDate, "MMM/yy", { locale: ptBR })})</p>
+                <p className="stat-label text-xs md:text-sm">Receitas ({monthNames[selectedMonth - 1]}/{selectedYear})</p>
                 <p className="stat-value text-lg md:text-2xl font-bold text-green-600">
                   {formatBRL(totalIncome)}
                 </p>
@@ -253,7 +299,7 @@ export default function Dashboard() {
           <div className="stat-card">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="stat-label text-xs md:text-sm">Despesas ({format(startDate, "MMM/yy", { locale: ptBR })})</p>
+                <p className="stat-label text-xs md:text-sm">Despesas ({monthNames[selectedMonth - 1]}/{selectedYear})</p>
                 <p className="stat-value text-lg md:text-2xl font-bold text-red-600">
                   {formatBRL(totalExpenses)}
                 </p>
@@ -266,7 +312,7 @@ export default function Dashboard() {
         {/* BLOCO DE DESPESAS */}
         {totalExpenses > 0 && (
           <div className="chart-card">
-            <h2 className="text-lg md:text-xl font-semibold mb-6 text-foreground">Despesas por Categoria — {dateRangeLabel}</h2>
+            <h2 className="text-lg md:text-xl font-semibold mb-6 text-foreground">Despesas por Categoria — {monthNames[selectedMonth - 1]}/{selectedYear}</h2>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Tabela de Despesas */}
               <div className="lg:col-span-2">
@@ -325,7 +371,7 @@ export default function Dashboard() {
         {/* BLOCO DE RECEITAS */}
         {totalIncome > 0 && (
           <div className="chart-card">
-            <h2 className="text-lg md:text-xl font-semibold mb-6 text-foreground">Receitas por Categoria — {dateRangeLabel}</h2>
+            <h2 className="text-lg md:text-xl font-semibold mb-6 text-foreground">Receitas por Categoria — {monthNames[selectedMonth - 1]}/{selectedYear}</h2>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Tabela de Receitas */}
               <div className="lg:col-span-2">
@@ -384,7 +430,7 @@ export default function Dashboard() {
         {/* CARD DE TRANSFERÊNCIAS */}
         {transferBetweenAccounts > 0 && (
           <div className="chart-card">
-            <h2 className="text-lg md:text-xl font-semibold mb-4 text-foreground">Transferência entre Contas — {dateRangeLabel}</h2>
+            <h2 className="text-lg md:text-xl font-semibold mb-4 text-foreground">Transferência entre Contas — {monthNames[selectedMonth - 1]}/{selectedYear}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border border-green-200 dark:border-green-700">
                 <p className="text-xs md:text-sm text-green-600 dark:text-green-400 mb-2">Transferências Recebidas</p>

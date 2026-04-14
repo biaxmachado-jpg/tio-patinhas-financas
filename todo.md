@@ -900,3 +900,11 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
   - Gráfico de pizza mostrando % de cada categoria
 - [x] Testar layout responsivo em desktop e mobile
 - [x] Testar gráficos de pizza e tabelas
+
+
+## Bug: Valores Acumulados na Visão Geral
+
+- [x] Valores de despesas e receitas estão acumulados, não apenas de abril/26
+- [x] Corrigir filtro de datas no Dashboard para mostrar SOMENTE o mês selecionado
+- [x] Verificar se as transações estão sendo filtradas corretamente por data
+- [x] Testar valores corretos após correção
