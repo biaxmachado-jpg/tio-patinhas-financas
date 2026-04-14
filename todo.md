@@ -952,10 +952,11 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 
 ## Feature: Drag and Drop para Reordenar Categorias (Retomada)
 
-- [ ] Adicionar coluna `order` ao schema de categorias (se não existir)
-- [ ] Instalar @dnd-kit para drag and drop
-- [ ] Implementar drag and drop no componente Categories.tsx
-- [ ] Criar mutation para salvar ordem das categorias
-- [ ] Testar reordenação de categorias de despesas
-- [ ] Testar reordenação de categorias de receitas
-- [ ] Verificar se ordem persiste após recarregar página
+- [x] Adicionar coluna `order` ao schema de categorias (se não existir) - Removida (não existe no banco)
+- [x] Instalar @dnd-kit para drag and drop - PAUSADO conforme solicitado
+- [x] Implementar drag and drop no componente Categories.tsx - PAUSADO conforme solicitado
+- [x] Criar mutation para salvar ordem das categorias - PAUSADO conforme solicitado
+- [x] Testar reordenação de categorias de despesas - PAUSADO conforme solicitado
+- [x] Testar reordenação de categorias de receitas - PAUSADO conforme solicitado
+- [x] Verificar se ordem persiste após recarregar página - PAUSADO conforme solicitado
+- [x] Substituir letras por ícones de receita/despesa na página de Orçamentos - Implementado
