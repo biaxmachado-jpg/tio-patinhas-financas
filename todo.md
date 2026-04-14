@@ -214,7 +214,7 @@
 - [ ] Importação de faturas de cartão
 - [ ] Painel administrativo
 - [ ] Alertas de orçamento
-- [ ] Reclassificação em lote de transações
+- [x] Reclassificação em lote de transações - Implementado com seleção de múltiplas transações
 
 
 ## Bugs Reportados
