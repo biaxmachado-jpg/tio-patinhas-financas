@@ -63,15 +63,15 @@ export default function Dashboard() {
     endDate: endOfMonth,
   });
 
-  // Buscar transações de cartão do mês corrente
-  const { data: creditCardTransactions } = trpc.creditCardTransactions.list.useQuery({});
+  // Buscar transacoes de cartao do mes selecionado
+  const { data: creditCardTransactions } = trpc.creditCardTransactions.list.useQuery({
+    startDate: startOfMonth,
+    endDate: endOfMonth,
+  });
   const { data: creditCards } = trpc.creditCards.list.useQuery();
 
-  // Filtrar transações de cartão do mês selecionado
-  const currentMonthCCTransactions = creditCardTransactions?.filter((t) => {
-    const d = new Date(t.date);
-    return d.getMonth() === selectedMonth - 1 && d.getFullYear() === selectedYear;
-  }) || [];
+  // Usar transacoes de cartao ja filtradas
+  const currentMonthCCTransactions = creditCardTransactions || [];
 
   // Calcular receitas e despesas do mês selecionado
   const currentMonthIncome = (transactions || [])

@@ -718,3 +718,11 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Verificar configuração de redirect URI no OAuth - Configuração correta - Não implementado nesta versão
 - [x] Testar fluxo completo de login com Google - Testado após restart do servidor - Não implementado nesta versão
 - [x] Corrigir erro se necessário - Resolvido com restart do servidor - Não implementado nesta versão
+
+
+## Bug Fix: Receitas e Despesas Mostram Valores Acumulados
+
+- [x] Corrigir cálculo de Receitas para mostrar apenas do mês selecionado (não acumulado) - Corrigido filtro de creditCardTransactions
+- [x] Corrigir cálculo de Despesas para mostrar apenas do mês selecionado (não acumulado) - Corrigido filtro de creditCardTransactions
+- [x] Atualizar label dos cards para refletir apenas o mês selecionado - Já estava correto
+- [x] Testar filtro com diferentes meses - Testado com sucesso
