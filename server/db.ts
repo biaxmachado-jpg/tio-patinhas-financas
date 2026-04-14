@@ -662,45 +662,16 @@ export async function getInitialBalanceForMonth(userId: number, accountId: numbe
   if (!db) return 0;
 
   try {
-    // First, check if there's a custom monthly balance
+    // NOVA REGRA: Saldo inicial eh SEMPRE 0, a menos que o usuario tenha digitado manualmente
+    // Buscar apenas saldo customizado (digitado pelo usuario)
     const monthlyBalance = await getMonthlyBalance(userId, accountId, month, year);
     if (monthlyBalance) {
       const balance = parseFloat(monthlyBalance.initialBalance.toString());
-      console.log(`[getInitialBalanceForMonth] Custom balance for ${month}/${year}: ${balance}`);
       return balance;
     }
-    console.log(`[getInitialBalanceForMonth] No custom balance for ${month}/${year}`);
-
-    // If no custom balance, use the account's initial balance (for the first month)
-    const account = await getBankAccountById(accountId, userId);
-    if (!account) return 0;
-
-    // For months after the first, calculate from previous month's final balance
-    if (month === 1) {
-      return parseFloat(account.initialBalance.toString());
-    }
-
-    // Get previous month's final balance
-    const previousMonth = month === 1 ? 12 : month - 1;
-    const previousYear = month === 1 ? year - 1 : year;
-
-    const previousTransactions = await getTransactions(userId, {
-      accountId,
-      startDate: new Date(previousYear, previousMonth - 1, 1),
-      endDate: new Date(previousYear, previousMonth, 0, 23, 59, 59),
-    }) || [];
-    const previousAccount = await getBankAccountById(accountId, userId);
-    if (!previousAccount) return 0;
-
-    const previousInitialBalance = await getInitialBalanceForMonth(userId, accountId, previousMonth, previousYear);
-    const previousIncome = previousTransactions
-      .filter((t: Transaction) => t.type === 'income')
-      .reduce((sum: number, t: Transaction) => sum + parseFloat(t.amount.toString()), 0);
-    const previousExpenses = previousTransactions
-      .filter((t: Transaction) => t.type === 'expense')
-      .reduce((sum: number, t: Transaction) => sum + parseFloat(t.amount.toString()), 0);
-
-    return previousInitialBalance + previousIncome - previousExpenses;
+    
+    // Se nenhum saldo foi digitado manualmente, retorna 0
+    return 0;
   } catch (error) {
     console.error("[Database] Error getting initial balance for month:", error);
     return 0;

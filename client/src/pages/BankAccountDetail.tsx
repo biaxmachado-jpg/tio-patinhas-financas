@@ -524,16 +524,12 @@ export default function BankAccountDetail() {
               <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                 {monthlyBalanceQuery.data !== undefined && monthlyBalanceQuery.data !== null
                   ? formatBRL(monthlyBalanceQuery.data.toString())
-                  : (selectedMonth === 1 && selectedYear === new Date().getFullYear()
-                    ? formatBRL(account.initialBalance || "0")
-                    : formatBRL(previousMonthFinalBalance.toString()))}
+                  : formatBRL("0")}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {monthlyBalanceQuery.data !== undefined && monthlyBalanceQuery.data !== null
                   ? "Saldo inicial customizado"
-                  : (selectedMonth === 1 && selectedYear === new Date().getFullYear()
-                    ? "Saldo inicial da conta"
-                    : "Saldo final do mês anterior")}
+                  : "Comeca com zero - edite para alterar"}
               </p>
             </div>
             <div className="p-4 bg-card border border-border rounded-lg">
