@@ -29,6 +29,13 @@
       "when": 1776110752201,
       "tag": "0003_dazzling_monster_badoon",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1776184045062,
+      "tag": "0004_quiet_bloodstrike",
+      "breakpoints": true
     }
   ]
 }

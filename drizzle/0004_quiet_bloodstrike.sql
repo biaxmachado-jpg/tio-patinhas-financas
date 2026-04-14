@@ -1,0 +1,1 @@
+ALTER TABLE `bankAccounts` ADD `color` varchar(7) DEFAULT '#3b82f6' NOT NULL;

@@ -33,8 +33,8 @@ export default function Budgets() {
 
   if (!user) return null;
 
-  const incomeCategories = categories?.filter((c) => c.type === "income") || [];
-  const expenseCategories = categories?.filter((c) => c.type === "expense") || [];
+  const incomeCategories = useMemo(() => categories?.filter((c) => c.type === "income") ?? [], [categories]);
+  const expenseCategories = useMemo(() => categories?.filter((c) => c.type === "expense") ?? [], [categories]);
 
   const getSpentAmount = (categoryId: number, type: "income" | "expense") => {
     return (
@@ -70,7 +70,7 @@ export default function Budgets() {
     });
     
     setBudgetAlerts(alerts);
-  }, [budgets, transactions, expenseCategories]);
+  }, [budgets, transactions, categories]);
 
   const handleSaveBudget = async () => {
     if (!editingCategoryId || !editValue) return;
