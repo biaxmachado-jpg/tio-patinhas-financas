@@ -447,7 +447,12 @@ function CategoryCard({
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {rules && rules.length > 0 && (
+            <span className="text-xs text-muted-foreground">
+              {rules.length} regra{rules.length > 1 ? "s" : ""}
+            </span>
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -464,44 +469,6 @@ function CategoryCard({
           </Button>
         </div>
       </div>
-
-      {rules && rules.length > 0 && (
-          <div className="mt-1 pt-1 border-t">
-          <button
-            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground"
-            onClick={() => setExpandedRules(expandedRules === category.id ? null : category.id)}
-          >
-            {expandedRules === category.id ? (
-              <ChevronUp className="w-3 h-3" />
-            ) : (
-              <ChevronDown className="w-3 h-3" />
-            )}
-            {rules.length} regra{rules.length > 1 ? "s" : ""}
-          </button>
-
-          {expandedRules === category.id && (
-            <div className="mt-1 space-y-0.5">
-              {rules.map((rule: any) => (
-                <div key={rule.id} className="flex items-center justify-between text-xs p-1 bg-muted rounded">
-                  <span>{rule.keywords}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onDeleteRule(rule.id)}
-                    disabled={deletingRuleId === rule.id}
-                  >
-                    {deletingRuleId === rule.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    )}
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </Card>
   );
 }
