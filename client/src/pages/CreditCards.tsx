@@ -44,12 +44,16 @@ const PRESET_COLORS = [
 
 export default function CreditCards() {
   const [, navigate] = useLocation();
+  const [open, setOpen] = useState(false);
 
   const cardsQuery = trpc.creditCards.list.useQuery();
   const createMutation = trpc.creditCards.create.useMutation();
   const updateMutation = trpc.creditCards.update.useMutation();
   const deleteMutation = trpc.creditCards.delete.useMutation();
 
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+  };
 
   const totalLimit = cardsQuery.data?.reduce((sum: number, card: any) => sum + parseFloat(card.limit.toString()), 0) || 0;
 
