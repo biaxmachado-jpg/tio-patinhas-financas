@@ -449,9 +449,17 @@ function CategoryCard({
 
         <div className="flex items-center gap-2">
           {rules && rules.length > 0 && (
-            <span className="text-xs text-muted-foreground">
+            <button
+              className="text-xs text-muted-foreground hover:text-foreground cursor-pointer flex items-center gap-1"
+              onClick={() => setExpandedRules(expandedRules === category.id ? null : category.id)}
+            >
+              {expandedRules === category.id ? (
+                <ChevronUp className="w-3 h-3" />
+              ) : (
+                <ChevronDown className="w-3 h-3" />
+              )}
               {rules.length} regra{rules.length > 1 ? "s" : ""}
-            </span>
+            </button>
           )}
           <Button
             variant="ghost"
@@ -469,6 +477,36 @@ function CategoryCard({
           </Button>
         </div>
       </div>
+
+      {expandedRules === category.id && rules && rules.length > 0 && (
+        <div className="mt-2 pt-2 border-t space-y-1">
+          {rules.map((rule: any) => (
+            <div key={rule.id} className="flex items-center justify-between text-xs p-1 bg-muted rounded">
+              <span>{rule.keywords}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onDeleteRule(rule.id)}
+                disabled={deletingRuleId === rule.id}
+              >
+                {deletingRuleId === rule.id ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4 text-destructive" />
+                )}
+              </Button>
+            </div>
+          ))}
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full mt-2 text-xs"
+            onClick={() => onAddRule()}
+          >
+            + Adicionar Regra
+          </Button>
+        </div>
+      )}
     </Card>
   );
 }
