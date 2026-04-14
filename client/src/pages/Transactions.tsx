@@ -6,8 +6,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Edit2 } from "lucide-react";
-import { useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Trash2, Edit2, CheckSquare, Square } from "lucide-react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -17,6 +18,9 @@ export default function Transactions() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [showBulkDialog, setShowBulkDialog] = useState(false);
+  const [bulkCategoryId, setBulkCategoryId] = useState<number>(0);
   const [formData, setFormData] = useState({
     categoryId: 0,
     accountId: 0,
@@ -33,6 +37,54 @@ export default function Transactions() {
   const createMutation = trpc.transactions.create.useMutation();
   const updateMutation = trpc.transactions.update.useMutation();
   const deleteMutation = trpc.transactions.delete.useMutation();
+
+  const handleBulkReclassify = async () => {
+    if (selectedIds.size === 0 || bulkCategoryId === 0) {
+      toast.error("Selecione transações e uma categoria");
+      return;
+    }
+
+    try {
+      for (const id of selectedIds) {
+        const transaction = transactions?.find(t => t.id === id);
+        if (transaction) {
+          await updateMutation.mutateAsync({
+            id,
+            categoryId: bulkCategoryId,
+            description: transaction.description,
+            amount: transaction.amount.toString(),
+            date: new Date(transaction.date),
+            notes: transaction.notes || "",
+          });
+        }
+      }
+      toast.success(`${selectedIds.size} transações reclassificadas!`);
+      setSelectedIds(new Set());
+      setBulkCategoryId(0);
+      setShowBulkDialog(false);
+      refetch();
+    } catch (error) {
+      toast.error("Erro ao reclassificar transações");
+    }
+  };
+
+  const toggleSelection = (id: number) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === transactions?.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(transactions?.map(t => t.id) || []));
+    }
+  };
 
   if (!user) return null;
 

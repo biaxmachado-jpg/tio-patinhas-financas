@@ -456,7 +456,7 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [ ] Implementar parsers para PDF Bradesco e Itaú
 - [ ] Implementar parser para OFX
 - [ ] Implementar motor de categorização automática
-- [ ] Implementar alertas quando limite de orçamento é atingido
+- [x] Implementar alertas quando limite de orçamento é atingido - Alertas em 80%+ com UI visual
 
 ### Frontend - Importação Avançada (Opcional)
 - [ ] Criar página de importação de extratos bancários (PDF/OFX)
