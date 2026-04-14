@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Edit2, AlertCircle, X, ChevronLeft, ChevronRight, Download, Copy } from "lucide-react";
+import { Edit2, AlertCircle, X, ChevronLeft, ChevronRight, Download, Copy, TrendingUp, TrendingDown } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { formatBRL } from "@/lib/currency";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -352,7 +352,7 @@ export default function Budgets() {
                         className="w-8 h-8 rounded flex items-center justify-center text-white text-sm font-bold"
                         style={{ backgroundColor: cat.color || "#6366f1" }}
                       >
-                        {cat.icon ? cat.icon.charAt(0) : cat.name.charAt(0)}
+                        <TrendingUp className="w-5 h-5" />
                       </div>
                       <div className="flex-1">
                         <h3 className="font-medium">{cat.name}</h3>
@@ -407,7 +407,7 @@ export default function Budgets() {
                         className="w-8 h-8 rounded flex items-center justify-center text-white text-sm font-bold"
                         style={{ backgroundColor: cat.color || "#ef4444" }}
                       >
-                        {cat.icon ? cat.icon.charAt(0) : cat.name.charAt(0)}
+                        <TrendingDown className="w-5 h-5" />
                       </div>
                       <div className="flex-1">
                         <h3 className="font-medium">{cat.name}</h3>
