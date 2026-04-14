@@ -41,10 +41,8 @@ export default function Income() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const transactionsQuery = trpc.transactions.list.useQuery({});
-  const creditCardTransactionsQuery = trpc.creditCardTransactions.list.useQuery({});
   const categoriesQuery = trpc.categories.list.useQuery();
   const bankAccountsQuery = trpc.bankAccounts.list.useQuery();
-  const creditCardsQuery = trpc.creditCards.list.useQuery();
 
   // Combinar e filtrar receitas:
   // - transactions com type = "income" (valores positivos)
@@ -76,32 +74,8 @@ export default function Income() {
       });
     }
 
-    // Estornos de cartões de crédito: valores NEGATIVOS
-    if (creditCardTransactionsQuery.data) {
-      creditCardTransactionsQuery.data.forEach((tx: any) => {
-        const txDate = new Date(tx.date);
-        const amount = typeof tx.amount === "string" ? parseFloat(tx.amount) : (tx.amount || 0);
-
-        if (
-          txDate.getMonth() + 1 === selectedMonth &&
-          txDate.getFullYear() === selectedYear &&
-          amount < 0
-        ) {
-          allIncome.push({
-            id: `card-${tx.id}`,
-            date: tx.date,
-            description: tx.description,
-            categoryId: tx.categoryId,
-            amount: Math.abs(amount),
-            source: "Estorno Cartão",
-            cardId: tx.cardId,
-          });
-        }
-      });
-    }
-
     return allIncome.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [transactionsQuery.data, creditCardTransactionsQuery.data, selectedMonth, selectedYear]);
+  }, [transactionsQuery.data, selectedMonth, selectedYear]);
 
   // Calcular totais por categoria com cores
   const incomeByCategory = useMemo(() => {

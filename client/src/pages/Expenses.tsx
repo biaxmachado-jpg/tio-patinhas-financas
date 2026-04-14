@@ -41,10 +41,8 @@ export default function Expenses() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const transactionsQuery = trpc.transactions.list.useQuery({});
-  const creditCardTransactionsQuery = trpc.creditCardTransactions.list.useQuery({});
   const categoriesQuery = trpc.categories.list.useQuery();
   const bankAccountsQuery = trpc.bankAccounts.list.useQuery();
-  const creditCardsQuery = trpc.creditCards.list.useQuery();
 
   // Combinar e filtrar despesas:
   // - transactions com type = "expense" (valores negativos)
