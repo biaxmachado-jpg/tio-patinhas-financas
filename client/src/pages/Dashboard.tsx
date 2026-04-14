@@ -20,7 +20,7 @@ import { TrendingUp, TrendingDown, Wallet, ChevronLeft, ChevronRight } from "luc
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
 
