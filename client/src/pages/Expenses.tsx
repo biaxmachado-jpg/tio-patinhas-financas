@@ -74,32 +74,8 @@ export default function Expenses() {
       });
     }
 
-    // Gastos de cartões de crédito: valores POSITIVOS
-    if (creditCardTransactionsQuery.data) {
-      creditCardTransactionsQuery.data.forEach((tx: any) => {
-        const txDate = new Date(tx.date);
-        const amount = typeof tx.amount === "string" ? parseFloat(tx.amount) : (tx.amount || 0);
-
-        if (
-          txDate.getMonth() + 1 === selectedMonth &&
-          txDate.getFullYear() === selectedYear &&
-          amount > 0
-        ) {
-          allExpenses.push({
-            id: `card-${tx.id}`,
-            date: tx.date,
-            description: tx.description,
-            categoryId: tx.categoryId,
-            amount: amount,
-            source: "Cartão de Crédito",
-            cardId: tx.cardId,
-          });
-        }
-      });
-    }
-
     return allExpenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [transactionsQuery.data, creditCardTransactionsQuery.data, selectedMonth, selectedYear]);
+  }, [transactionsQuery.data, selectedMonth, selectedYear]);
 
   // Calcular totais por categoria com cores
   const expensesByCategory = useMemo(() => {
