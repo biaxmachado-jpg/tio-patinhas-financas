@@ -44,6 +44,7 @@ export default function Dashboard() {
   const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const [startDate, setStartDate] = useState(firstDayOfMonth);
   const [endDate, setEndDate] = useState(now);
+  const [showTransferModal, setShowTransferModal] = useState(false);
 
   const { data: bankAccounts } = trpc.bankAccounts.list.useQuery();
   const { data: categories } = trpc.categories.list.useQuery();
@@ -291,6 +292,13 @@ export default function Dashboard() {
                 </p>
               </div>
             </div>
+            <Button
+              variant="outline"
+              className="w-full mt-4"
+              onClick={() => setShowTransferModal(true)}
+            >
+              Ver Detalhes
+            </Button>
           </div>
         )}
 
@@ -358,6 +366,58 @@ export default function Dashboard() {
                   <p className="text-xs text-muted-foreground mt-1">{account.bank}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Histórico de Transferências */}
+        {showTransferModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-background rounded-lg shadow-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+              <div className="sticky top-0 bg-background border-b border-border p-4 flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Histórico de Transferências</h3>
+                <button
+                  onClick={() => setShowTransferModal(false)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="p-4">
+                <div className="space-y-3">
+                  {(transactions || [])
+                    .filter((t) => {
+                      const cat = categories?.find((c) => c.id === t.categoryId);
+                      return cat?.name === "TRANSF. ENTRE CONTAS";
+                    })
+                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                    .map((transaction) => {
+                      const cat = categories?.find((c) => c.id === transaction.categoryId);
+                      const isIncome = transaction.type === "income";
+                      return (
+                        <div
+                          key={transaction.id}
+                          className="p-3 border border-border rounded-lg flex justify-between items-center hover:bg-muted/50 transition"
+                        >
+                          <div className="flex-1">
+                            <p className="font-medium text-foreground">{cat?.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(transaction.date), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                            </p>
+                            {transaction.description && (
+                              <p className="text-xs text-muted-foreground mt-1">{transaction.description}</p>
+                            )}
+                          </div>
+                          <div className={`text-right font-semibold ${
+                            isIncome ? "text-green-600" : "text-red-600"
+                          }`}>
+                            {isIncome ? "+" : "-"} {formatBRL(Math.abs(parseFloat(transaction.amount)))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
             </div>
           </div>
         )}
