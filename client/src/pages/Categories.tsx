@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Trash2, Edit2, Plus, Zap, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { Trash2, Edit2, Plus, Zap, ChevronDown, ChevronUp, Loader2, TrendingUp, TrendingDown, ArrowRightLeft } from "lucide-react";
 import { useState } from "react";
 import { ColorPicker } from "@/components/ColorPicker";
 import { toast } from "sonner";
@@ -42,7 +42,6 @@ export default function Categories() {
     name: "",
     type: "expense" as "income" | "expense" | "transfer",
     color: "#6366f1",
-    icon: "tag",
   });
 
   // Queries
@@ -61,7 +60,7 @@ export default function Categories() {
     setOpen(newOpen);
     if (!newOpen) {
       setEditingId(null);
-      setFormData({ name: "", type: "expense", color: "#6366f1", icon: "tag" });
+      setFormData({ name: "", type: "expense", color: "#6366f1" });
     }
   };
 
@@ -73,6 +72,7 @@ export default function Categories() {
         await updateCategoryMutation.mutateAsync({
           id: editingId,
           name: formData.name,
+          type: formData.type,
           color: formData.color,
         });
         toast.success("Categoria atualizada com sucesso!");
@@ -81,7 +81,6 @@ export default function Categories() {
           name: formData.name,
           type: formData.type,
           color: formData.color,
-          icon: formData.icon,
         });
         toast.success("Categoria criada com sucesso!");
       }
@@ -89,7 +88,7 @@ export default function Categories() {
       await categoriesQuery.refetch();
       setOpen(false);
       setEditingId(null);
-      setFormData({ name: "", type: "expense", color: "#6366f1", icon: "tag" });
+      setFormData({ name: "", type: "expense", color: "#6366f1" });
     } catch (error) {
       toast.error("Erro ao salvar categoria");
     }
@@ -101,7 +100,6 @@ export default function Categories() {
       name: category.name,
       type: category.type,
       color: category.color,
-      icon: category.icon || "tag",
     });
     setOpen(true);
   };
@@ -229,7 +227,7 @@ export default function Categories() {
 
                 <div>
                   <Label htmlFor="type">Tipo</Label>
-                  <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value as "income" | "expense" | "transfer" })} disabled={!!editingId}>
+                  <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value as "income" | "expense" | "transfer" })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -252,33 +250,6 @@ export default function Categories() {
                     onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                     className="w-full h-10 rounded cursor-pointer"
                   />
-                </div>
-
-                <div>
-                  <Label htmlFor="icon">Ícone</Label>
-                  <Select value={formData.icon} onValueChange={(value) => setFormData({ ...formData, icon: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="tag">🏷️ Tag</SelectItem>
-                      <SelectItem value="dollar">💰 Dólar</SelectItem>
-                      <SelectItem value="trending-up">📈 Tendência Alta</SelectItem>
-                      <SelectItem value="trending-down">📉 Tendência Baixa</SelectItem>
-                      <SelectItem value="shopping-cart">🛒 Compras</SelectItem>
-                      <SelectItem value="home">🏠 Casa</SelectItem>
-                      <SelectItem value="car">🚗 Carro</SelectItem>
-                      <SelectItem value="utensils">🍽️ Alimentação</SelectItem>
-                      <SelectItem value="heart">❤️ Saúde</SelectItem>
-                      <SelectItem value="book">📚 Educação</SelectItem>
-                      <SelectItem value="zap">⚡ Energia</SelectItem>
-                      <SelectItem value="wifi">📡 Internet</SelectItem>
-                      <SelectItem value="smartphone">📱 Telefone</SelectItem>
-                      <SelectItem value="gift">🎁 Presentes</SelectItem>
-                      <SelectItem value="plane">✈️ Viagem</SelectItem>
-                      <SelectItem value="briefcase">💼 Trabalho</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
 
                 <Button type="submit" className="w-full">
@@ -432,26 +403,18 @@ export default function Categories() {
   );
 }
 
-function getIconEmoji(iconName: string): string {
-  const iconMap: { [key: string]: string } = {
-    tag: "🏷️",
-    dollar: "💰",
-    "trending-up": "📈",
-    "trending-down": "📉",
-    "shopping-cart": "🛒",
-    home: "🏠",
-    car: "🚗",
-    utensils: "🍽️",
-    heart: "❤️",
-    book: "📚",
-    zap: "⚡",
-    wifi: "📡",
-    smartphone: "📱",
-    gift: "🎁",
-    plane: "✈️",
-    briefcase: "💼",
-  };
-  return iconMap[iconName] || "🏷️";
+// Função para obter o ícone baseado no tipo de categoria
+function getIconForType(type: "income" | "expense" | "transfer"): React.ReactNode {
+  switch (type) {
+    case "income":
+      return <TrendingUp className="w-5 h-5 text-green-500" />;
+    case "expense":
+      return <TrendingDown className="w-5 h-5 text-red-500" />;
+    case "transfer":
+      return <ArrowRightLeft className="w-5 h-5 text-blue-500" />;
+    default:
+      return null;
+  }
 }
 
 function CategoryCard({
@@ -475,7 +438,7 @@ function CategoryCard({
           />
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-lg">{getIconEmoji(category.icon)}</span>
+              {getIconForType(category.type)}
               <p className="font-medium text-foreground">{category.name}</p>
             </div>
             <p className="text-sm text-muted-foreground">

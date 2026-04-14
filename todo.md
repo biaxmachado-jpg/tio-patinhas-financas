@@ -856,3 +856,16 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Usar ícones do lucide-react (Tag, DollarSign, TrendingUp, etc.)
 - [x] Testar seletor de ícones
 - [x] Testar exibição de ícones na lista de categorias
+
+
+## Correção: Ícones Devem Ser Baseados no Tipo (Receita/Despesa/Transferência)
+
+- [x] Remover seletor customizável de ícones (não deve ser um dropdown)
+- [x] Implementar lógica que define ícone automaticamente baseado no tipo:
+  - Receita → TrendingUp (verde)
+  - Despesa → TrendingDown (vermelho)
+  - Transferência → ArrowRightLeft (azul)
+- [x] Exibir ícone correto na lista de categorias baseado no tipo
+- [x] Testar ícones aparecem corretamente para cada tipo
+- [x] Tornar campo "Tipo" editável (remover disabled)
+- [x] Testar mudança de tipo e verificar se ícone atualiza
