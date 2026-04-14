@@ -264,8 +264,8 @@ export default function Categories() {
       {/* Income Categories */}
       {incomeCategories.length > 0 && (
         <div>
-          <h2 className="text-lg font-semibold text-foreground mb-3">Receitas</h2>
-          <div className="space-y-3">
+          <h2 className="text-lg font-semibold text-foreground mb-2">Receitas</h2>
+          <div className="space-y-2">
             {incomeCategories.map((category) => (
               <CategoryCard
                 key={category.id}
@@ -290,8 +290,8 @@ export default function Categories() {
       {/* Expense Categories */}
       {expenseCategories.length > 0 && (
         <div>
-          <h2 className="text-lg font-semibold text-foreground mb-3">Despesas</h2>
-          <div className="space-y-3">
+          <h2 className="text-lg font-semibold text-foreground mb-2">Despesas</h2>
+          <div className="space-y-2">
             {expenseCategories.map((category) => (
               <CategoryCard
                 key={category.id}
@@ -316,8 +316,8 @@ export default function Categories() {
       {/* Transfer Categories */}
       {transferCategories.length > 0 && (
         <div>
-          <h2 className="text-lg font-semibold text-foreground mb-3">Transferências entre Contas</h2>
-          <div className="space-y-3">
+          <h2 className="text-lg font-semibold text-foreground mb-2">Transferências entre Contas</h2>
+          <div className="space-y-2">
             {transferCategories.map((category) => (
               <CategoryCard
                 key={category.id}
@@ -466,23 +466,23 @@ function CategoryCard({
       </div>
 
       {rules && rules.length > 0 && (
-          <div className="mt-2 pt-2 border-t">
+          <div className="mt-1 pt-1 border-t">
           <button
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground"
             onClick={() => setExpandedRules(expandedRules === category.id ? null : category.id)}
           >
             {expandedRules === category.id ? (
-              <ChevronUp className="w-4 h-4" />
+              <ChevronUp className="w-3 h-3" />
             ) : (
-              <ChevronDown className="w-4 h-4" />
+              <ChevronDown className="w-3 h-3" />
             )}
             {rules.length} regra{rules.length > 1 ? "s" : ""}
           </button>
 
           {expandedRules === category.id && (
-            <div className="mt-2 space-y-1">
+            <div className="mt-1 space-y-0.5">
               {rules.map((rule: any) => (
-                <div key={rule.id} className="flex items-center justify-between text-sm p-2 bg-muted rounded">
+                <div key={rule.id} className="flex items-center justify-between text-xs p-1 bg-muted rounded">
                   <span>{rule.keywords}</span>
                   <Button
                     variant="ghost"

@@ -57,6 +57,20 @@
       "when": 1776199210186,
       "tag": "0007_cloudy_longshot",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1776203234610,
+      "tag": "0008_minor_beyonder",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1776203513301,
+      "tag": "0009_smooth_wrecker",
+      "breakpoints": true
     }
   ]
 }

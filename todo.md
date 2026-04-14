@@ -948,3 +948,14 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Corrigir procedure auth.updateProfile para fazer upload para S3
 - [x] Testar upload de foto no perfil
 - [x] Verificar se foto aparece no avatar após upload
+
+
+## Feature: Drag and Drop para Reordenar Categorias (Retomada)
+
+- [ ] Adicionar coluna `order` ao schema de categorias (se não existir)
+- [ ] Instalar @dnd-kit para drag and drop
+- [ ] Implementar drag and drop no componente Categories.tsx
+- [ ] Criar mutation para salvar ordem das categorias
+- [ ] Testar reordenação de categorias de despesas
+- [ ] Testar reordenação de categorias de receitas
+- [ ] Verificar se ordem persiste após recarregar página
