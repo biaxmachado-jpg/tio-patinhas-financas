@@ -926,10 +926,10 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 
 ## Bug: Upload de Fotos no Perfil Não Está Funcionando
 
-- [ ] Investigar problema de upload de fotos no perfil
-- [ ] Debugar erro no frontend ou backend
-- [ ] Corrigir funcionalidade de upload
-- [ ] Testar upload de foto após correção
+- [x] Investigar problema de upload de fotos no perfil
+- [x] Debugar erro no frontend ou backend
+- [x] Corrigir funcionalidade de upload
+- [x] Testar upload de foto após correção
 
 
 ## Feature: Padronizar Tamanho dos Cards de Categorias
@@ -942,5 +942,5 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 ## Bug: Upload de Fotos no Perfil (Continuação)
 
 - [x] Corrigir procedure auth.updateProfile para fazer upload para S3
-- [ ] Testar upload de foto no perfil
-- [ ] Verificar se foto aparece no avatar após upload
+- [x] Testar upload de foto no perfil
+- [x] Verificar se foto aparece no avatar após upload

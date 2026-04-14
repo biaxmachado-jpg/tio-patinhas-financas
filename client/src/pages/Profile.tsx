@@ -691,13 +691,25 @@ export default function Profile() {
     },
   });
 
-  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
-      setProfilePhoto(e.target?.result as string);
+    reader.onload = async (e) => {
+      const photoData = e.target?.result as string;
+      setProfilePhoto(photoData);
+      
+      // Salvar foto automaticamente
+      try {
+        await updateProfileMutation.mutateAsync({
+          name: formData.name,
+          email: formData.email,
+          profilePhoto: photoData,
+        });
+      } catch (error) {
+        console.error("Erro ao fazer upload de foto:", error);
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -756,7 +768,10 @@ export default function Profile() {
           {/* Foto de Perfil (clicável) */}
           <div className="flex items-center space-x-4">
             <div
-              onClick={() => fileInputRef.current?.click()}
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
               className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity relative group"
             >
               {profilePhoto ? (
