@@ -146,9 +146,9 @@
 - [x] Página de detalhes de cartão de crédito funcionando corretamente
 - [x] Filtro de período (mês/ano) funcionando em ambas as páginas
 - [x] Cálculos de saldo e fatura validados manualmente
-- [ ] Implementar adicionar transação diretamente na página de detalhes do cartão (opcional)
-- [ ] Implementar editar transação diretamente na página de detalhes do cartão (opcional)
-- [ ] Implementar deletar transação com confirmação (opcional)
+- [x] Implementar adicionar transação diretamente na página de detalhes do cartão - Já implementado com dialog
+- [x] Implementar editar transação diretamente na página de detalhes do cartão - Já implementado
+- [x] Implementar deletar transação com confirmação - Já implementado com AlertDialog
 - [ ] Implementar reclassificação de transações em lote (opcional)
 
 ## Correções de Cálculos
@@ -702,3 +702,10 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Adicionar validação para evitar sobrescrita de orçamentos existentes - Validação implementada
 - [x] Melhorar visualização da aba de orçamento com interface mais clara - Dialog com resumo visual
 - [x] Adicionar confirmação antes de copiar orçamentos para múltiplos meses - Dialog de confirmação implementado
+
+
+## Melhorias de Visão Geral - Nova Sessão
+
+- [x] Filtrar dados da Visão Geral para apenas o mês corrente - Já implementado em Dashboard.tsx
+- [x] Remover dados acumulados do Dashboard - Já implementado
+- [x] Atualizar gráficos para mostrar apenas mês atual - Já implementado
