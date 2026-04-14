@@ -335,13 +335,13 @@ function ProfileHistorySection() {
             <div>
               <span className="text-gray-600">De: </span>
               <span className="font-mono text-red-600">
-                {entry.oldValue ? JSON.parse(entry.oldValue).substring(0, 50) : "(vazio)"}
+                {entry.oldValue ? entry.oldValue.substring(0, 50) : "(vazio)"}
               </span>
             </div>
             <div>
               <span className="text-gray-600">Para: </span>
               <span className="font-mono text-green-600">
-                {entry.newValue ? JSON.parse(entry.newValue).substring(0, 50) : "(vazio)"}
+                {entry.newValue ? entry.newValue.substring(0, 50) : "(vazio)"}
               </span>
             </div>
           </div>

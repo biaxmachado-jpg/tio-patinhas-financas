@@ -812,3 +812,10 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Criar tabela profileHistory no banco de dados - Criada automaticamente no startup do servidor
 - [x] Testar se o erro de query foi corrigido - Erro corrigido, página carrega sem problemas
 - [x] Verificar se o histórico de alterações funciona corretamente - Seção visível e funcional
+
+
+## Bug: Loop Infinito no ProfileHistorySection
+
+- [x] Investigar causa do loop infinito no ProfileHistorySection - JSON.parse() desnecessário
+- [x] Corrigir useEffect ou useState que causa re-renders infinitos - Removido JSON.parse()
+- [x] Testar página de perfil após correção - Funcionando perfeitamente
