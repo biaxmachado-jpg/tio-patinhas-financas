@@ -10,6 +10,7 @@ import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
+import { ColorPicker } from "@/components/ColorPicker";
 
 // Paleta de cores predefinidas para contas
 const PRESET_COLORS = [
@@ -132,55 +133,10 @@ export default function BankAccounts() {
                     <Palette className="w-4 h-4" />
                     Cor do Cartão
                   </Label>
-                  <div className="mt-2 space-y-3">
-                    {/* Paleta de cores */}
-                    <div className="flex flex-wrap gap-2">
-                      {PRESET_COLORS.map((color) => (
-                        <button
-                          key={color}
-                          type="button"
-                          onClick={() => setFormData({ ...formData, color })}
-                          className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${
-                            formData.color === color ? "border-foreground scale-110 shadow-lg" : "border-transparent"
-                          }`}
-                          style={{ backgroundColor: color }}
-                          title={color}
-                        />
-                      ))}
-                    </div>
-                    {/* Input de cor personalizada */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-10 h-10 rounded-lg border border-border shadow-sm flex-shrink-0"
-                          style={{ backgroundColor: formData.color }}
-                        />
-                        <Input
-                          type="color"
-                          value={formData.color}
-                          onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                          className="w-full h-10 cursor-pointer"
-                        />
-                      </div>
-                      {/* Input de codigo hex */}
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground font-mono">#</span>
-                        <Input
-                          type="text"
-                          placeholder="3b82f6"
-                          value={formData.color.replace('#', '')}
-                          onChange={(e) => {
-                            const hex = e.target.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
-                            if (hex.length > 0) {
-                              setFormData({ ...formData, color: '#' + hex });
-                            }
-                          }}
-                          maxLength={6}
-                          className="w-full font-mono text-sm"
-                        />
-                      </div>
-                    </div>
-                  </div>
+                  <ColorPicker
+                    value={formData.color}
+                    onChange={(color) => setFormData({ ...formData, color })}
+                  />
                 </div>
 
                 {/* Preview */}

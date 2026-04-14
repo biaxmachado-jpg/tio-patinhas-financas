@@ -671,3 +671,6 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Atualizar seletor de cores em Profile para entrada de hex customizável
 - [x] Adicionar validação de código hex (filtra caracteres inválidos)
 - [x] Adicionar preview de cor em tempo real (atualiza enquanto digita)
+- [x] Implementar color picker visual com gradiente
+- [x] Adicionar seletores de matiz, saturação e brilho
+- [x] Adicionar 12 cores rápidas
