@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Mail, User, LogOut, Save, X, CreditCard, Wallet, Edit2, Trash2, Upload, Palette, ChevronRight } from "lucide-react";
 import { formatBRL } from "@/lib/currency";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { ColorPicker } from "@/components/ColorPicker";
@@ -78,10 +78,10 @@ function EditBankAccountDialog({
     "#eab308", "#22c55e", "#14b8a6", "#06b6d4", "#64748b", "#78716c",
   ];
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     onSave(formData);
     onOpenChange(false);
-  };
+  }, [formData, onSave, onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -193,10 +193,10 @@ function EditCreditCardDialog({
     { value: "Discover", label: "Discover" },
   ];
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     onSave(formData);
     onOpenChange(false);
-  };
+  }, [formData, onSave, onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

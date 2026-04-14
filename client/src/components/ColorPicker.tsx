@@ -1,5 +1,5 @@
 import { Input } from "@/components/ui/input";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 const PRESET_COLORS = [
   "#ef4444", // red
@@ -73,6 +73,9 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
     return [h * 360, s * 100, l * 100];
   };
 
+  // Memoize onChange to prevent infinite loops
+  const memoizedOnChange = useCallback(onChange, [onChange]);
+
   // Sync HSL with hex input
   useEffect(() => {
     if (hexInput.length === 6 && /^[0-9a-fA-F]{6}$/.test(hexInput)) {
@@ -80,16 +83,30 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
       setHue(h);
       setSaturation(s);
       setLightness(l);
-      onChange(`#${hexInput}`);
+      memoizedOnChange(`#${hexInput}`);
     }
-  }, [hexInput, onChange]);
+  }, [hexInput, memoizedOnChange]);
 
   // Update color when HSL changes
   useEffect(() => {
     const hex = hslToHex(hue, saturation, lightness);
     setHexInput(hex.replace("#", ""));
-    onChange(hex);
-  }, [hue, saturation, lightness, onChange]);
+    memoizedOnChange(hex);
+  }, [hue, saturation, lightness, memoizedOnChange]);
+
+  // Sync with external value prop
+  useEffect(() => {
+    if (value && value.length === 7 && value.startsWith("#")) {
+      const hex = value.replace("#", "");
+      if (hex !== hexInput && /^[0-9a-fA-F]{6}$/.test(hex)) {
+        setHexInput(hex);
+        const [h, s, l] = hexToHsl(hex);
+        setHue(h);
+        setSaturation(s);
+        setLightness(l);
+      }
+    }
+  }, [value]);
 
   // Handle gradient click
   const handleGradientClick = (e: React.MouseEvent<HTMLDivElement>) => {
