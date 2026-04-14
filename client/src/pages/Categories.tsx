@@ -1,4 +1,4 @@
-import { useState } from "react";
+"use client";
 import { trpc } from "@/lib/trpc";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,12 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Trash2, Edit2, Plus, Zap, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { ColorPicker } from "@/components/ColorPicker";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const CATEGORY_TYPES = [
   { value: "income", label: "Receita" },
   { value: "expense", label: "Despesa" },
+  { value: "transfer", label: "Transferência entre contas" },
 ];
 
 const DEFAULT_COLORS = [
@@ -37,7 +40,7 @@ export default function Categories() {
   });
   const [formData, setFormData] = useState({
     name: "",
-    type: "expense" as "income" | "expense",
+    type: "expense" as "income" | "expense" | "transfer",
     color: "#6366f1",
     icon: "tag",
   });
@@ -53,6 +56,14 @@ export default function Categories() {
   const createRuleMutation = trpc.categorizationRules.create.useMutation();
   const updateRuleMutation = trpc.categorizationRules.update.useMutation();
   const deleteRuleMutation = trpc.categorizationRules.delete.useMutation();
+
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      setEditingId(null);
+      setFormData({ name: "", type: "expense", color: "#6366f1", icon: "tag" });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,21 +111,21 @@ export default function Categories() {
       await deleteCategoryMutation.mutateAsync({ id });
       await categoriesQuery.refetch();
       toast.success("Categoria deletada com sucesso!");
-    } catch (error) {
-      toast.error("Erro ao deletar categoria");
+    } catch (error: any) {
+      const errorMessage = error?.message || "Erro desconhecido";
+      toast.error("Erro ao deletar categoria", {
+        description: errorMessage.includes("FOREIGN KEY") 
+          ? "Esta categoria não pode ser deletada. Verifique se há transações associadas."
+          : "Tente novamente ou entre em contato com o suporte.",
+        duration: 5000,
+      });
     }
   };
 
-  const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen);
-    if (!newOpen) {
-      setEditingId(null);
-      setFormData({ name: "", type: "expense", color: "#6366f1", icon: "tag" });
-    }
-  };
+  const handleCreateRule = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  const handleAddRule = async () => {
-    if (!selectedCategoryForRule || !ruleFormData.keywords.trim()) {
+    if (!selectedCategoryForRule || !ruleFormData.keywords) {
       toast.error("Preencha todos os campos");
       return;
     }
@@ -126,24 +137,21 @@ export default function Categories() {
         matchType: ruleFormData.matchType,
         caseSensitive: ruleFormData.caseSensitive,
         priority: parseInt(ruleFormData.priority),
-        enabled: true,
       });
+
       toast.success("Regra criada com sucesso!");
-      await rulesQuery.refetch();
       setRuleDialogOpen(false);
-      setSelectedCategoryForRule(null);
       setRuleFormData({
         keywords: "",
         matchType: "contains",
         caseSensitive: false,
         priority: "10",
       });
+      await rulesQuery.refetch();
     } catch (error) {
       toast.error("Erro ao criar regra");
     }
   };
-
-
 
   const handleApplyRules = async () => {
     toast.info("Funcionalidade de aplicação em lote ainda não implementada");
@@ -181,13 +189,14 @@ export default function Categories() {
 
   const incomeCategories = categoriesQuery.data?.filter(c => c.type === "income") || [];
   const expenseCategories = categoriesQuery.data?.filter(c => c.type === "expense") || [];
+  const transferCategories = categoriesQuery.data?.filter(c => c.type === "transfer") || [];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Categorias</h1>
-          <p className="text-muted-foreground mt-1">Gerencie suas categorias de receitas e despesas</p>
+          <p className="text-muted-foreground mt-1">Gerencie suas categorias de receitas, despesas e transferências</p>
         </div>
 
         <div className="flex gap-2">
@@ -218,39 +227,31 @@ export default function Categories() {
                   />
                 </div>
 
-                {!editingId && (
-                  <div>
-                    <Label htmlFor="type">Tipo</Label>
-                    <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value as "income" | "expense" })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CATEGORY_TYPES.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                <div>
+                  <Label htmlFor="type">Tipo</Label>
+                  <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value as "income" | "expense" | "transfer" })} disabled={!!editingId}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CATEGORY_TYPES.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
                 <div>
                   <Label htmlFor="color">Cor</Label>
-                  <div className="grid grid-cols-7 gap-2 mt-2">
-                    {DEFAULT_COLORS.map((color) => (
-                      <button
-                        key={color}
-                        type="button"
-                        className={`w-8 h-8 rounded-lg border-2 transition-all ${
-                          formData.color === color ? "border-foreground scale-110" : "border-transparent"
-                        }`}
-                        style={{ backgroundColor: color }}
-                        onClick={() => setFormData({ ...formData, color })}
-                      />
-                    ))}
-                  </div>
+                  <input
+                    type="color"
+                    id="color"
+                    value={formData.color}
+                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                    className="w-full h-10 rounded cursor-pointer"
+                  />
                 </div>
 
                 <Button type="submit" className="w-full">
@@ -314,30 +315,53 @@ export default function Categories() {
         </div>
       )}
 
-      {/* Rule Dialog */}
+      {/* Transfer Categories */}
+      {transferCategories.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold text-foreground mb-3">Transferências entre Contas</h2>
+          <div className="space-y-3">
+            {transferCategories.map((category) => (
+              <CategoryCard
+                key={category.id}
+                category={category}
+                rules={getCategoriesRules(category.id)}
+                expandedRules={expandedRules}
+                setExpandedRules={setExpandedRules}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onAddRule={() => {
+                  setSelectedCategoryForRule(category.id);
+                  setRuleDialogOpen(true);
+                }}
+                onDeleteRule={handleDeleteRule}
+                deletingRuleId={deletingRuleId}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Rules Dialog */}
       <Dialog open={ruleDialogOpen} onOpenChange={setRuleDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Adicionar Regra de Categorização</DialogTitle>
           </DialogHeader>
-
-          <div className="space-y-4">
+          <form onSubmit={handleCreateRule} className="space-y-4">
             <div>
-              <Label htmlFor="keywords">Palavras-chave (separadas por vírgula)</Label>
+              <Label htmlFor="keywords">Palavras-chave</Label>
               <Input
                 id="keywords"
                 value={ruleFormData.keywords}
                 onChange={(e) => setRuleFormData({ ...ruleFormData, keywords: e.target.value })}
-                placeholder="Ex: Salão, Beleza, Spa"
+                placeholder="Ex: Amazon, Uber"
+                required
               />
             </div>
 
             <div>
               <Label htmlFor="matchType">Tipo de Correspondência</Label>
-              <Select
-                value={ruleFormData.matchType}
-                onValueChange={(value: any) => setRuleFormData({ ...ruleFormData, matchType: value })}
-              >
+              <Select value={ruleFormData.matchType} onValueChange={(value) => setRuleFormData({ ...ruleFormData, matchType: value as any })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -350,6 +374,15 @@ export default function Categories() {
               </Select>
             </div>
 
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="caseSensitive"
+                checked={ruleFormData.caseSensitive}
+                onCheckedChange={(checked) => setRuleFormData({ ...ruleFormData, caseSensitive: checked as boolean })}
+              />
+              <Label htmlFor="caseSensitive">Diferenciar maiúsculas/minúsculas</Label>
+            </div>
+
             <div>
               <Label htmlFor="priority">Prioridade</Label>
               <Input
@@ -357,40 +390,19 @@ export default function Categories() {
                 type="number"
                 value={ruleFormData.priority}
                 onChange={(e) => setRuleFormData({ ...ruleFormData, priority: e.target.value })}
+                min="1"
+                max="100"
               />
             </div>
 
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="caseSensitive"
-                checked={ruleFormData.caseSensitive}
-                onCheckedChange={(checked) => setRuleFormData({ ...ruleFormData, caseSensitive: checked as boolean })}
-              />
-              <Label htmlFor="caseSensitive" className="text-sm font-medium cursor-pointer">
-                Case-sensitive
-              </Label>
-            </div>
-
-            <Button onClick={handleAddRule} className="w-full">
-              Adicionar Regra
+            <Button type="submit" className="w-full">
+              Criar Regra
             </Button>
-          </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
   );
-}
-
-interface CategoryCardProps {
-  category: any;
-  rules: any[];
-  expandedRules: number | null;
-  setExpandedRules: (id: number | null) => void;
-  onEdit: (category: any) => void;
-  onDelete: (id: number) => void;
-  onAddRule: () => void;
-  onDeleteRule: (ruleId: number) => void;
-  deletingRuleId: number | null;
 }
 
 function CategoryCard({
@@ -403,21 +415,19 @@ function CategoryCard({
   onAddRule,
   onDeleteRule,
   deletingRuleId,
-}: CategoryCardProps) {
-  const isExpanded = expandedRules === category.id;
-
+}: any) {
   return (
     <Card className="p-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3 flex-1">
+        <div className="flex items-center gap-3">
           <div
-            className="w-4 h-4 rounded"
+            className="w-6 h-6 rounded-lg"
             style={{ backgroundColor: category.color }}
           />
           <div>
-            <h3 className="font-semibold text-foreground">{category.name}</h3>
-            <p className="text-xs text-muted-foreground">
-              {rules.length} {rules.length === 1 ? "regra" : "regras"}
+            <p className="font-medium text-foreground">{category.name}</p>
+            <p className="text-sm text-muted-foreground">
+              {category.type === "income" ? "Receita" : category.type === "expense" ? "Despesa" : "Transferência"}
             </p>
           </div>
         </div>
@@ -435,67 +445,46 @@ function CategoryCard({
             size="sm"
             onClick={() => onDelete(category.id)}
           >
-            <Trash2 className="w-4 h-4 text-red-500" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setExpandedRules(isExpanded ? null : category.id)}
-          >
-            {isExpanded ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
-            )}
+            <Trash2 className="w-4 h-4 text-destructive" />
           </Button>
         </div>
       </div>
 
-      {isExpanded && (
-        <div className="mt-4 pt-4 border-t space-y-3">
-          {rules.length > 0 ? (
-            rules.map((rule) => (
-              <div key={rule.id} className="flex items-center justify-between bg-muted p-3 rounded-lg">
-                <div className="flex-1">
-                  <p className="text-sm font-medium">
-                    {typeof rule.keywords === "string" ? rule.keywords : rule.keywords.join(", ")}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {rule.matchType === "contains" && "Contém"}
-                    {rule.matchType === "exact" && "Exato"}
-                    {rule.matchType === "startsWith" && "Começa com"}
-                    {rule.matchType === "endsWith" && "Termina com"}
-                    {" • Prioridade: " + rule.priority}
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onDeleteRule(rule.id)}
-                  disabled={deletingRuleId === rule.id}
-                  className="relative"
-                >
-                  {deletingRuleId === rule.id ? (
-                    <Loader2 className="w-4 h-4 text-red-500 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-4 h-4 text-red-500" />
-                  )}
-                </Button>
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-muted-foreground">Nenhuma regra cadastrada</p>
-          )}
-
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full gap-2"
-            onClick={onAddRule}
+      {rules && rules.length > 0 && (
+        <div className="mt-4 pt-4 border-t">
+          <button
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+            onClick={() => setExpandedRules(expandedRules === category.id ? null : category.id)}
           >
-            <Plus className="w-4 h-4" />
-            Adicionar Regra
-          </Button>
+            {expandedRules === category.id ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
+            {rules.length} regra{rules.length > 1 ? "s" : ""}
+          </button>
+
+          {expandedRules === category.id && (
+            <div className="mt-3 space-y-2">
+              {rules.map((rule: any) => (
+                <div key={rule.id} className="flex items-center justify-between text-sm p-2 bg-muted rounded">
+                  <span>{rule.keywords}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onDeleteRule(rule.id)}
+                    disabled={deletingRuleId === rule.id}
+                  >
+                    {deletingRuleId === rule.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    )}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </Card>

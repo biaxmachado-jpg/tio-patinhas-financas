@@ -827,3 +827,23 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Corrigir EditBankAccountDialog - Inicializa vazio e sincroniza via useEffect
 - [x] Corrigir EditCreditCardDialog - Removido open das dependências
 - [x] Testar página de perfil - Funcionando perfeitamente sem erros
+
+
+## Feature: Customização de Categorias (Cores e Tipo)
+
+- [ ] Adicionar campo color em categories no schema
+- [ ] Adicionar campo type em categories com enum (receita, despesa, transferencia)
+- [ ] Gerar migração SQL para novos campos
+- [ ] Implementar seletor de cores na UI de categorias
+- [ ] Implementar picklist de tipo (receita, despesa, transferência entre contas)
+- [ ] Testar customização de cores e tipos de categorias
+
+
+## Feature: Customização de Cores e Tipo em Categorias
+
+- [x] Adicionar campo "Tipo" com picklist (Receita, Despesa, Transferência entre contas)
+- [x] Adicionar seletor de cores HTML5 para customização de cores
+- [x] Campo "Tipo" visível tanto na criação quanto na edição
+- [x] Campo "Tipo" desabilitado na edição (não pode ser alterado após criação)
+- [x] Testar dialog de nova categoria
+- [x] Testar dialog de edição de categoria

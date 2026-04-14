@@ -33,7 +33,7 @@ export const categories = mysqlTable("categories", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   name: varchar("name", { length: 100 }).notNull(),
-  type: mysqlEnum("type", ["income", "expense"]).notNull(),
+  type: mysqlEnum("type", ["income", "expense", "transfer"]).notNull(),
   color: varchar("color", { length: 7 }).default("#6366f1").notNull(), // Hex color
   icon: varchar("icon", { length: 50 }).default("tag").notNull(), // Lucide icon name
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -88,7 +88,7 @@ export const transactions = mysqlTable("transactions", {
   userId: int("userId").notNull(),
   categoryId: int("categoryId").notNull(),
   accountId: int("accountId").notNull(),
-  type: mysqlEnum("type", ["income", "expense"]).notNull(),
+  type: mysqlEnum("type", ["income", "expense", "transfer"]).notNull(),
   description: varchar("description", { length: 255 }).notNull(),
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
   date: timestamp("date").notNull(),

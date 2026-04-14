@@ -43,6 +43,13 @@
       "when": 1776194377634,
       "tag": "0005_easy_magneto",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1776196628141,
+      "tag": "0006_chubby_eternity",
+      "breakpoints": true
     }
   ]
 }
