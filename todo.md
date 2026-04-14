@@ -690,3 +690,15 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Implementar color picker visual com gradiente
 - [x] Adicionar seletores de matiz, saturação e brilho
 - [x] Adicionar 12 cores rápidas
+
+
+## Melhorias de Orçamento - Nova Sessão
+
+- [ ] Adicionar coluna "Repetir para próximos meses" no formulário de orçamento
+- [ ] Implementar funcionalidade de copiar orçamento para múltiplos meses
+- [ ] Adicionar opção de "Importar em lote" para carregar orçamentos de uma vez
+- [ ] Criar UI para seleção de meses de destino (range de meses)
+- [ ] Implementar mutation tRPC para copiar orçamento entre meses
+- [ ] Adicionar validação para evitar sobrescrita de orçamentos existentes
+- [ ] Melhorar visualização da aba de orçamento com interface mais clara
+- [ ] Adicionar confirmação antes de copiar orçamentos para múltiplos meses

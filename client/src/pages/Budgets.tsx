@@ -1,16 +1,16 @@
-import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit2, Copy } from "lucide-react";
-import { useState } from "react";
+import { Edit2, Copy, ChevronDown } from "lucide-react";
+import { useState, useMemo } from "react";
 import { formatBRL } from "@/lib/currency";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 
 export default function Budgets() {
   const { user } = useAuth();
@@ -20,6 +20,8 @@ export default function Budgets() {
   const [editingType, setEditingType] = useState<"income" | "expense" | null>(null);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [showCopyDialog, setShowCopyDialog] = useState(false);
+  const [copyMonths, setCopyMonths] = useState("3");
 
   const { data: budgets, refetch } = trpc.budgets.list.useQuery({ month, year });
   const { data: categories } = trpc.categories.list.useQuery();
@@ -78,9 +80,10 @@ export default function Budgets() {
   const handleApplyToNextMonths = async () => {
     if (!editingCategoryId || !editValue) return;
 
+    const monthsToApply = parseInt(copyMonths) || 12;
     try {
-      // Apply to next 12 months
-      for (let i = 1; i <= 12; i++) {
+      // Apply to next N months
+      for (let i = 1; i <= monthsToApply; i++) {
         const nextMonth = ((month - 1 + i) % 12) + 1;
         const nextYear = year + Math.floor((month - 1 + i) / 12);
         
@@ -104,10 +107,11 @@ export default function Budgets() {
         }
       }
 
-      toast.success("Orçamento aplicado aos próximos 12 meses!");
+      toast.success(`Orçamento aplicado aos próximos ${monthsToApply} meses!`);
       setEditingType(null);
       setEditingCategoryId(null);
       setEditValue("");
+      setShowCopyDialog(false);
       refetch();
     } catch (error) {
       toast.error("Erro ao aplicar orçamento aos próximos meses");
@@ -250,8 +254,8 @@ export default function Budgets() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleApplyToNextMonths}
-                        title="Aplicar para próximos 12 meses"
+                        onClick={() => setShowCopyDialog(true)}
+                        title="Copiar para próximos meses"
                       >
                         <Copy className="w-4 h-4" />
                       </Button>
@@ -266,6 +270,49 @@ export default function Budgets() {
                 Cancelar
               </Button>
               <Button onClick={handleSaveBudget}>Salvar</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Copy Dialog */}
+        <Dialog open={showCopyDialog} onOpenChange={setShowCopyDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Copiar Orçamento para Próximos Meses</DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Quantos meses?</Label>
+                <Select value={copyMonths} onValueChange={setCopyMonths}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 mês</SelectItem>
+                    <SelectItem value="3">3 meses</SelectItem>
+                    <SelectItem value="6">6 meses</SelectItem>
+                    <SelectItem value="12">12 meses</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="bg-muted p-3 rounded text-sm">
+                <p className="font-medium mb-1">Resumo:</p>
+                <p className="text-muted-foreground">
+                  Será copiado o orçamento de <strong>{copyMonths} mês(es)</strong> a partir de{" "}
+                  <strong>
+                    {new Date(year, month - 1).toLocaleString("pt-BR", { month: "long", year: "numeric" })}
+                  </strong>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-4">
+              <Button variant="outline" onClick={() => setShowCopyDialog(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleApplyToNextMonths}>Copiar</Button>
             </div>
           </DialogContent>
         </Dialog>
