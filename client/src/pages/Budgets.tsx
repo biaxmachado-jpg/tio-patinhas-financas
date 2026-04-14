@@ -2,9 +2,8 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Edit2, Copy, ChevronDown, AlertCircle } from "lucide-react";
+import { Edit2, AlertCircle, X } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { formatBRL } from "@/lib/currency";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -18,10 +17,7 @@ export default function Budgets() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [editingType, setEditingType] = useState<"income" | "expense" | null>(null);
-  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
-  const [editValue, setEditValue] = useState("");
-  const [showCopyDialog, setShowCopyDialog] = useState(false);
-  const [copyMonths, setCopyMonths] = useState("3");
+  const [budgetValues, setBudgetValues] = useState<Record<number, string>>({});
   const [budgetAlerts, setBudgetAlerts] = useState<Array<{ categoryId: number; categoryName: string; percentage: number }>>([]);
 
   const { data: budgets, refetch } = trpc.budgets.list.useQuery({ month, year });
@@ -104,56 +100,53 @@ export default function Budgets() {
     setBudgetAlerts(alerts);
   }, [budgets, transactions, creditCardTransactions, categories]);
 
-  const handleSaveBudget = async () => {
-    if (!editingCategoryId || !editValue) return;
+  const handleOpenEditDialog = (type: "income" | "expense") => {
+    setEditingType(type);
+    const categoriesToEdit = type === "income" ? incomeCategories : expenseCategories;
+    const values: Record<number, string> = {};
+    categoriesToEdit.forEach((cat) => {
+      const budget = getBudgetForCategory(cat.id);
+      values[cat.id] = budget > 0 ? budget.toString() : "";
+    });
+    setBudgetValues(values);
+  };
 
+  const handleCloseEditDialog = () => {
+    setEditingType(null);
+    setBudgetValues({});
+  };
+
+  const handleSaveAllBudgets = async () => {
     try {
-      const existingBudget = budgets?.find((b) => b.categoryId === editingCategoryId);
+      const categoriesToEdit = editingType === "income" ? incomeCategories : expenseCategories;
       
-      if (existingBudget) {
-        await updateMutation.mutateAsync({
-          id: existingBudget.id,
-          limit: editValue,
-        });
-      } else {
-        await createMutation.mutateAsync({
-          categoryId: editingCategoryId,
-          month,
-          year,
-          limit: editValue,
-        });
+      for (const cat of categoriesToEdit) {
+        const value = budgetValues[cat.id];
+        if (value && value !== "") {
+          const existingBudget = budgets?.find((b) => b.categoryId === cat.id);
+          
+          if (existingBudget) {
+            await updateMutation.mutateAsync({
+              id: existingBudget.id,
+              limit: value,
+            });
+          } else {
+            await createMutation.mutateAsync({
+              categoryId: cat.id,
+              month,
+              year,
+              limit: value,
+            });
+          }
+        }
       }
       
-      toast.success("Orçamento salvo com sucesso!");
-      setEditingType(null);
-      setEditingCategoryId(null);
-      setEditValue("");
+      toast.success("Orçamentos salvos com sucesso!");
+      handleCloseEditDialog();
       refetch();
     } catch (error) {
-      console.error("Erro ao salvar orçamento:", error);
-      toast.error("Erro ao salvar orçamento");
-    }
-  };
-
-  const handleDeleteBudget = async (budgetId: number) => {
-    try {
-      // Implement delete mutation when available
-      toast.success("Orçamento deletado com sucesso!");
-      refetch();
-    } catch (error) {
-      console.error("Erro ao deletar orçamento:", error);
-      toast.error("Erro ao deletar orçamento");
-    }
-  };
-
-  const handleCopyBudgets = async () => {
-    try {
-      // Implement copy logic when available
-      toast.success("Orçamentos copiados com sucesso!");
-      setShowCopyDialog(false);
-    } catch (error) {
-      console.error("Erro ao copiar orçamentos:", error);
-      toast.error("Erro ao copiar orçamentos");
+      console.error("Erro ao salvar orçamentos:", error);
+      toast.error("Erro ao salvar orçamentos");
     }
   };
 
@@ -163,6 +156,10 @@ export default function Budgets() {
   ];
 
   const years = Array.from({ length: 4 }, (_, i) => now.getFullYear() - 2 + i);
+
+  const getEditingCategories = () => {
+    return editingType === "income" ? incomeCategories : expenseCategories;
+  };
 
   return (
     <DashboardLayout>
@@ -214,11 +211,7 @@ export default function Budgets() {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">Orçamento de Receitas</h2>
             <button
-              onClick={() => {
-                setEditingType("income");
-                setEditingCategoryId(null);
-                setEditValue("");
-              }}
+              onClick={() => handleOpenEditDialog("income")}
               className="flex items-center gap-2 px-3 py-2 text-sm font-medium hover:bg-gray-100 rounded-md"
             >
               <Edit2 className="w-4 h-4" />
@@ -269,11 +262,7 @@ export default function Budgets() {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">Orçamento de Despesas</h2>
             <button
-              onClick={() => {
-                setEditingType("expense");
-                setEditingCategoryId(null);
-                setEditValue("");
-              }}
+              onClick={() => handleOpenEditDialog("expense")}
               className="flex items-center gap-2 px-3 py-2 text-sm font-medium hover:bg-gray-100 rounded-md"
             >
               <Edit2 className="w-4 h-4" />
@@ -325,6 +314,65 @@ export default function Budgets() {
           </div>
         </div>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={editingType !== null} onOpenChange={(open) => !open && handleCloseEditDialog()}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex justify-between items-center">
+              <DialogTitle>
+                Editar Orçamento de {editingType === "income" ? "Receitas" : "Despesas"}
+              </DialogTitle>
+              <button
+                onClick={handleCloseEditDialog}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-3 py-4">
+            {getEditingCategories().map((cat) => (
+              <div key={cat.id} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50">
+                <div
+                  className="w-8 h-8 rounded flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+                  style={{ backgroundColor: cat.color || "#6366f1" }}
+                >
+                  {cat.icon ? cat.icon.charAt(0) : cat.name.charAt(0)}
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-sm">{cat.name}</p>
+                </div>
+                <Input
+                  type="number"
+                  placeholder="0.00"
+                  value={budgetValues[cat.id] || ""}
+                  onChange={(e) => setBudgetValues({ ...budgetValues, [cat.id]: e.target.value })}
+                  className="w-32 text-right"
+                  step="0.01"
+                  min="0"
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="flex gap-2 justify-end pt-4 border-t">
+            <button
+              onClick={handleCloseEditDialog}
+              className="px-4 py-2 text-sm font-medium border rounded-md hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleSaveAllBudgets}
+              className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              Salvar
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
