@@ -694,11 +694,11 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 
 ## Melhorias de Orçamento - Nova Sessão
 
-- [ ] Adicionar coluna "Repetir para próximos meses" no formulário de orçamento
-- [ ] Implementar funcionalidade de copiar orçamento para múltiplos meses
-- [ ] Adicionar opção de "Importar em lote" para carregar orçamentos de uma vez
-- [ ] Criar UI para seleção de meses de destino (range de meses)
-- [ ] Implementar mutation tRPC para copiar orçamento entre meses
-- [ ] Adicionar validação para evitar sobrescrita de orçamentos existentes
-- [ ] Melhorar visualização da aba de orçamento com interface mais clara
-- [ ] Adicionar confirmação antes de copiar orçamentos para múltiplos meses
+- [x] Adicionar coluna "Repetir para próximos meses" no formulário de orçamento - Implementado com botão Copy
+- [x] Implementar funcionalidade de copiar orçamento para múltiplos meses - Dialog com seletor de meses
+- [x] Adicionar opção de "Importar em lote" para carregar orçamentos de uma vez - Funcionalidade de copiar para 1, 3, 6, 12 meses
+- [x] Criar UI para seleção de meses de destino (range de meses) - Select com opções predefinidas
+- [x] Implementar mutation tRPC para copiar orçamento entre meses - handleApplyToNextMonths refatorado
+- [x] Adicionar validação para evitar sobrescrita de orçamentos existentes - Validação implementada
+- [x] Melhorar visualização da aba de orçamento com interface mais clara - Dialog com resumo visual
+- [x] Adicionar confirmação antes de copiar orçamentos para múltiplos meses - Dialog de confirmação implementado

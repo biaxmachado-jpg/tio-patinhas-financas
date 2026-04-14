@@ -4,8 +4,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit2, Copy, ChevronDown } from "lucide-react";
-import { useState, useMemo } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Edit2, Copy, ChevronDown, AlertCircle } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
 import { formatBRL } from "@/lib/currency";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -22,6 +23,7 @@ export default function Budgets() {
   const [editValue, setEditValue] = useState("");
   const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [copyMonths, setCopyMonths] = useState("3");
+  const [budgetAlerts, setBudgetAlerts] = useState<Array<{ categoryId: number; categoryName: string; percentage: number }>>([]);
 
   const { data: budgets, refetch } = trpc.budgets.list.useQuery({ month, year });
   const { data: categories } = trpc.categories.list.useQuery();
@@ -46,6 +48,29 @@ export default function Budgets() {
     const budget = budgets?.find((b) => b.categoryId === categoryId);
     return budget ? parseFloat(budget.limit.toString()) : 0;
   };
+
+  // Check for budget alerts
+  useEffect(() => {
+    const alerts: Array<{ categoryId: number; categoryName: string; percentage: number }> = [];
+    
+    expenseCategories.forEach((cat) => {
+      const budgetAmount = getBudgetForCategory(cat.id);
+      if (budgetAmount > 0) {
+        const spentAmount = getSpentAmount(cat.id, "expense");
+        const percentage = (spentAmount / budgetAmount) * 100;
+        
+        if (percentage >= 80) {
+          alerts.push({
+            categoryId: cat.id,
+            categoryName: cat.name,
+            percentage: Math.round(percentage),
+          });
+        }
+      }
+    });
+    
+    setBudgetAlerts(alerts);
+  }, [budgets, transactions, expenseCategories]);
 
   const handleSaveBudget = async () => {
     if (!editingCategoryId || !editValue) return;
@@ -183,6 +208,20 @@ export default function Budgets() {
           <h1 className="text-3xl font-bold text-foreground">Orçamentos</h1>
           <p className="text-muted-foreground">Defina e acompanhe seus orçamentos mensais</p>
         </div>
+
+        {/* Budget Alerts */}
+        {budgetAlerts.length > 0 && (
+          <div className="space-y-2">
+            {budgetAlerts.map((alert) => (
+              <Alert key={alert.categoryId} className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
+                <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+                  <strong>{alert.categoryName}</strong> atingiu <strong>{alert.percentage}%</strong> do orçamento
+                </AlertDescription>
+              </Alert>
+            ))}
+          </div>
+        )}
 
         {/* Month/Year Selector */}
         <div className="flex gap-4">
