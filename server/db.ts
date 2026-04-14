@@ -545,6 +545,26 @@ export async function getCreditCardTransactionsByMonth(userId: number, cardId: n
   return result;
 }
 
+export async function getCreditCardTransactionsByDate(userId: number, startDate: Date, endDate: Date) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  // Filter by date (when the transaction was made) for Dashboard summary
+  // This is used to show transactions made in a specific month, not by due date
+  const result = await db.select()
+    .from(creditCardTransactions)
+    .where(
+      and(
+        eq(creditCardTransactions.userId, userId),
+        gte(creditCardTransactions.date, startDate),
+        lte(creditCardTransactions.date, endDate)
+      )
+    )
+    .orderBy(desc(creditCardTransactions.date));
+  
+  return result;
+}
+
 export async function getCreditCardUtilization(userId: number, cardId: number, month: number, year: number) {
   const db = await getDb();
   if (!db) return null;

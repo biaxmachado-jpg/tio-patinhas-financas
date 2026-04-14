@@ -734,3 +734,13 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Atualizar query de creditCardTransactions para filtrar por DUEDATE ao invés de DATE - Implementado em server/routers.ts
 - [x] Atualizar Dashboard.tsx para usar DUEDATE ao filtrar transações de cartão - Query agora usa getCreditCardTransactionsByMonth
 - [x] Testar filtro com diferentes meses usando DUEDATE - Testado com sucesso
+
+
+## Correção: Dashboard - Receitas e Despesas Não Devem Ser Acumuladas
+
+- [x] Verificar se receitas e despesas no Dashboard mostram apenas do mês (1-31) - Corrigido com getCreditCardTransactionsByDate
+- [x] Garantir que getCreditCardTransactionsByMonth filtra por DATE (não DUEDATE) para Dashboard - Implementado nova função
+- [x] Testar com diferentes meses para confirmar que não está acumulando - Testado com sucesso (abril vs março)
+- [x] Criar função getCreditCardTransactionsByDate que filtra por DATE - Implementado em server/db.ts
+- [x] Atualizar creditCardTransactions.list para usar a nova função - Implementado em server/routers.ts
+- [x] Adicionar testes para validar a correção - 2 testes adicionados em server/db.creditcard.test.ts

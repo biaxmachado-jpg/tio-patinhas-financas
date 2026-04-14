@@ -340,18 +340,9 @@ export const appRouter = router({
       }).optional())
       .query(({ ctx, input }) => {
         if (input?.startDate && input?.endDate) {
-          const startMonth = input.startDate.getMonth() + 1;
-          const startYear = input.startDate.getFullYear();
-          const endMonth = input.endDate.getMonth() + 1;
-          const endYear = input.endDate.getFullYear();
-          
-          // Se for o mesmo mês, retornar transações desse mês
-          if (startMonth === endMonth && startYear === endYear) {
-            return db.getCreditCardTransactionsByMonth(ctx.user.id, input?.cardId || 0, startMonth, startYear);
-          }
-          
-          // Caso contrário, retornar todas as transações (sem filtro de data)
-          return db.getCreditCardTransactions(ctx.user.id, input?.cardId);
+          // Use getCreditCardTransactionsByDate to filter by transaction date (not due date)
+          // This is used for Dashboard summary to show transactions made in a specific period
+          return db.getCreditCardTransactionsByDate(ctx.user.id, input.startDate, input.endDate);
         }
         return db.getCreditCardTransactions(ctx.user.id, input?.cardId);
       }),
