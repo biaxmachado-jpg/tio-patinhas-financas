@@ -150,11 +150,6 @@ export default function Transactions() {
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus className="w-4 h-4" />
-            {selectedIds.size > 0 && (
-              <Button variant="outline" className="gap-2" onClick={() => setShowBulkDialog(true)}>
-                Reclassificar {selectedIds.size} selecionadas
-              </Button>
-            )}
                 Nova Transação
               </Button>
             </DialogTrigger>
@@ -260,12 +255,6 @@ export default function Transactions() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border bg-muted/50">
-                  <th className="px-6 py-3 text-center text-sm font-semibold text-foreground">
-                    <Checkbox
-                      checked={selectedIds.size === transactions?.length && transactions?.length > 0}
-                      onCheckedChange={toggleSelectAll}
-                    />
-                  </th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Data</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Descrição</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Categoria</th>
@@ -280,12 +269,6 @@ export default function Transactions() {
                   const account = accounts?.find((a) => a.id === transaction.accountId);
                   return (
                     <tr key={transaction.id} className="border-b border-border hover:bg-muted/50 transition-colors">
-                      <td className="px-6 py-3 text-center">
-                        <Checkbox
-                          checked={selectedIds.has(transaction.id)}
-                          onCheckedChange={() => toggleSelection(transaction.id)}
-                        />
-                      </td>
                       <td className="px-6 py-3 text-sm text-foreground">
                         {format(new Date(transaction.date), "dd/MM/yyyy", { locale: ptBR })}
                       </td>
@@ -350,41 +333,6 @@ export default function Transactions() {
           </div>
         )}
       </div>
-      {/* Bulk Reclassification Dialog */}
-      {showBulkDialog && (
-        <Dialog open={showBulkDialog} onOpenChange={setShowBulkDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Reclassificar {selectedIds.size} Transações</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="bulk-category">Selecione a nova categoria</Label>
-                <Select value={bulkCategoryId.toString()} onValueChange={(value) => setBulkCategoryId(parseInt(value))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Escolha uma categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories?.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id.toString()}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setShowBulkDialog(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleBulkReclassify}>
-                  Reclassificar
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
     </DashboardLayout>
   );
 }
