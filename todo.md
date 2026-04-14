@@ -772,3 +772,11 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 
 - [x] Reorganizar layout para colocar card de transferências entre receitas e despesas - Implementado
 - [x] Testar visualização do novo layout - Testado com sucesso
+
+
+## Alteração: Adicionar Breakdown de Receitas e Despesas no Card de Transferências
+
+- [x] Calcular receitas de TRANSF. ENTRE CONTAS (type = income) - Implementado
+- [x] Calcular despesas de TRANSF. ENTRE CONTAS (type = expense) - Implementado
+- [x] Atualizar card para mostrar ambos os valores - Implementado com layout lado a lado
+- [x] Testar visualização - Testado com sucesso (R$ 0,00 recebidas, R$ 343.920,00 enviadas)
