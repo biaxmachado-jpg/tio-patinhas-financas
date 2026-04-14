@@ -448,7 +448,7 @@ function CategoryCard({
         </div>
 
         <div className="flex items-center gap-2">
-          {rules && rules.length > 0 && (
+          {rules && rules.length > 0 ? (
             <button
               className="text-xs text-muted-foreground hover:text-foreground cursor-pointer flex items-center gap-1"
               onClick={() => setExpandedRules(expandedRules === category.id ? null : category.id)}
@@ -459,6 +459,13 @@ function CategoryCard({
                 <ChevronDown className="w-3 h-3" />
               )}
               {rules.length} regra{rules.length > 1 ? "s" : ""}
+            </button>
+          ) : (
+            <button
+              className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+              onClick={() => onAddRule()}
+            >
+              + Regra
             </button>
           )}
           <Button
