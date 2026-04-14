@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Edit2, AlertCircle, X, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { Edit2, AlertCircle, X, ChevronLeft, ChevronRight, Download, Copy } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { formatBRL } from "@/lib/currency";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -116,6 +116,52 @@ export default function Budgets() {
     setBudgetValues({});
   };
 
+  const handleRepeatFor12Months = async (categoryId: number, value: string) => {
+    try {
+      if (!value || value === "") {
+        toast.error("Digite um valor antes de repetir");
+        return;
+      }
+
+      const currentMonth = month;
+      const currentYear = year;
+
+      for (let i = 0; i < 12; i++) {
+        let targetMonth = currentMonth + i;
+        let targetYear = currentYear;
+
+        if (targetMonth > 12) {
+          targetMonth = targetMonth - 12;
+          targetYear += 1;
+        }
+
+        const existingBudget = budgets?.find(
+          (b) => b.categoryId === categoryId && b.month === targetMonth && b.year === targetYear
+        );
+
+        if (existingBudget) {
+          await updateMutation.mutateAsync({
+            id: existingBudget.id,
+            limit: value,
+          });
+        } else {
+          await createMutation.mutateAsync({
+            categoryId,
+            month: targetMonth,
+            year: targetYear,
+            limit: value,
+          });
+        }
+      }
+
+      toast.success("Orçamento repetido para os próximos 12 meses!");
+      refetch();
+    } catch (error) {
+      console.error("Erro ao repetir orçamento:", error);
+      toast.error("Erro ao repetir orçamento");
+    }
+  };
+
   const handleSaveAllBudgets = async () => {
     try {
       const categoriesToEdit = editingType === "income" ? incomeCategories : expenseCategories;
@@ -218,8 +264,8 @@ export default function Budgets() {
         {/* Header */}
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold">Orçamentos</h1>
-            <p className="text-muted-foreground">Defina e acompanhe seus orçamentos mensais</p>
+          <h1 className="text-3xl font-bold">Orçado x Real</h1>
+          <p className="text-muted-foreground">Defina e acompanhe seus orçamentos mensais</p>
           </div>
           <button
             onClick={handleExportXLSX}
@@ -418,15 +464,25 @@ export default function Budgets() {
                 <div className="flex-1">
                   <p className="font-medium text-sm">{cat.name}</p>
                 </div>
-                <Input
-                  type="number"
-                  placeholder="0.00"
-                  value={budgetValues[cat.id] || ""}
-                  onChange={(e) => setBudgetValues({ ...budgetValues, [cat.id]: e.target.value })}
-                  className="w-32 text-right"
-                  step="0.01"
-                  min="0"
-                />
+                <div className="flex gap-2 items-center">
+                  <Input
+                    type="number"
+                    placeholder="0.00"
+                    value={budgetValues[cat.id] || ""}
+                    onChange={(e) => setBudgetValues({ ...budgetValues, [cat.id]: e.target.value })}
+                    className="w-32 text-right"
+                    step="0.01"
+                    min="0"
+                  />
+                  <button
+                    onClick={() => handleRepeatFor12Months(cat.id, budgetValues[cat.id] || "")}
+                    className="p-2 border rounded-md hover:bg-gray-100 text-xs font-medium whitespace-nowrap flex items-center gap-1"
+                    title="Repetir este valor para os próximos 12 meses"
+                  >
+                    <Copy className="w-3 h-3" />
+                    Repetir 12m
+                  </button>
+                </div>
               </div>
             ))}
           </div>
