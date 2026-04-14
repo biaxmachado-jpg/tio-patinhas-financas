@@ -22,7 +22,10 @@ export const appRouter = router({
         name: z.string().min(1).optional(),
         email: z.string().email().optional(),
         profilePhoto: z.string().optional(), // Base64 encoded image
-      }))
+      }).refine(
+        (data) => data.name || data.email || data.profilePhoto,
+        { message: "At least one field (name, email, or profilePhoto) must be provided" }
+      ))
       .mutation(({ ctx, input }) => db.updateUserProfile(ctx.user.id, input)),
   }),
 

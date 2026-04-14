@@ -27,6 +27,7 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
   const [lightness, setLightness] = useState(50);
   const [hexInput, setHexInput] = useState(value.replace("#", ""));
   const gradientRef = useRef<HTMLDivElement>(null);
+  const isInitializedRef = useRef(false);
 
   // Convert HSL to Hex
   const hslToHex = (h: number, s: number, l: number): string => {
@@ -73,40 +74,49 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
     return [h * 360, s * 100, l * 100];
   };
 
-  // Memoize onChange to prevent infinite loops
-  const memoizedOnChange = useCallback(onChange, [onChange]);
-
-  // Sync HSL with hex input
+  // Initialize from external value prop
   useEffect(() => {
-    if (hexInput.length === 6 && /^[0-9a-fA-F]{6}$/.test(hexInput)) {
-      const [h, s, l] = hexToHsl(hexInput);
-      setHue(h);
-      setSaturation(s);
-      setLightness(l);
-      memoizedOnChange(`#${hexInput}`);
-    }
-  }, [hexInput, memoizedOnChange]);
-
-  // Update color when HSL changes
-  useEffect(() => {
-    const hex = hslToHex(hue, saturation, lightness);
-    setHexInput(hex.replace("#", ""));
-    memoizedOnChange(hex);
-  }, [hue, saturation, lightness, memoizedOnChange]);
-
-  // Sync with external value prop
-  useEffect(() => {
-    if (value && value.length === 7 && value.startsWith("#")) {
+    if (!isInitializedRef.current && value && value.length === 7 && value.startsWith("#")) {
       const hex = value.replace("#", "");
-      if (hex !== hexInput && /^[0-9a-fA-F]{6}$/.test(hex)) {
+      if (/^[0-9a-fA-F]{6}$/.test(hex)) {
         setHexInput(hex);
         const [h, s, l] = hexToHsl(hex);
         setHue(h);
         setSaturation(s);
         setLightness(l);
+        isInitializedRef.current = true;
       }
     }
   }, [value]);
+
+  // Update hex input when HSL changes (but don't call onChange to avoid loops)
+  useEffect(() => {
+    if (isInitializedRef.current) {
+      const hex = hslToHex(hue, saturation, lightness);
+      setHexInput(hex.replace("#", ""));
+    }
+  }, [hue, saturation, lightness]);
+
+  // Call onChange when color changes (debounced via separate effect)
+  useEffect(() => {
+    if (isInitializedRef.current) {
+      const hex = hslToHex(hue, saturation, lightness);
+      onChange(hex);
+    }
+  }, [hue, saturation, lightness, onChange]);
+
+  // Handle hex input changes
+  const handleHexInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toUpperCase();
+    setHexInput(value);
+
+    if (value.length === 6 && /^[0-9A-F]{6}$/.test(value)) {
+      const [h, s, l] = hexToHsl(value);
+      setHue(h);
+      setSaturation(s);
+      setLightness(l);
+    }
+  };
 
   // Handle gradient click
   const handleGradientClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -196,31 +206,29 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
           className="w-full h-2 rounded-lg appearance-none cursor-pointer"
           style={{
             background: `linear-gradient(to right, 
-              hsl(0, 0%, 0%), 
+              hsl(${hue}, ${saturation}%, 0%), 
               hsl(${hue}, ${saturation}%, 50%), 
-              hsl(0, 0%, 100%))`,
+              hsl(${hue}, ${saturation}%, 100%))`,
           }}
         />
       </div>
 
       {/* Hex Input */}
       <div className="space-y-2">
-        <label className="text-xs font-medium text-muted-foreground">Código Hex</label>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground font-mono">#</span>
-          <Input
-            type="text"
-            placeholder="3b82f6"
-            value={hexInput}
-            onChange={(e) => {
-              const hex = e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 6);
-              setHexInput(hex);
-            }}
-            maxLength={6}
-            className="w-full font-mono text-sm"
-          />
+        <label className="text-xs font-medium text-muted-foreground">Código HEX</label>
+        <div className="flex gap-2">
+          <div className="flex-1 relative">
+            <Input
+              type="text"
+              value={hexInput}
+              onChange={handleHexInputChange}
+              placeholder="FFFFFF"
+              maxLength={6}
+              className="font-mono text-sm"
+            />
+          </div>
           <div
-            className="w-10 h-10 rounded border border-border shadow-sm flex-shrink-0"
+            className="w-10 h-10 rounded border border-border"
             style={{ backgroundColor: currentColor }}
           />
         </div>
@@ -229,19 +237,19 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
       {/* Preset Colors */}
       <div className="space-y-2">
         <label className="text-xs font-medium text-muted-foreground">Cores Rápidas</label>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-6 gap-2">
           {PRESET_COLORS.map((color) => (
             <button
               key={color}
-              type="button"
               onClick={() => {
-                setHexInput(color.replace("#", ""));
+                const hex = color.replace("#", "");
+                setHexInput(hex);
+                const [h, s, l] = hexToHsl(hex);
+                setHue(h);
+                setSaturation(s);
+                setLightness(l);
               }}
-              className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${
-                currentColor.toLowerCase() === color.toLowerCase()
-                  ? "border-foreground scale-110 shadow-lg"
-                  : "border-transparent"
-              }`}
+              className="w-full h-8 rounded border-2 border-border hover:border-primary transition-colors"
               style={{ backgroundColor: color }}
               title={color}
             />

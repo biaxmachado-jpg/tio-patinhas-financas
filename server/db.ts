@@ -578,6 +578,11 @@ export async function updateUserProfile(userId: number, data: { name?: string; e
   }
 
   try {
+    // Validate that at least one field is provided
+    if (!data.name && !data.email && !data.profilePhoto) {
+      throw new Error("At least one field (name, email, or profilePhoto) must be provided");
+    }
+
     const result = await db.update(users)
       .set({
         ...(data.name && { name: data.name }),

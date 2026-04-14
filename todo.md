@@ -228,7 +228,7 @@
 - [x] Criar procedure tRPC para atualizar dados do usuário
 - [x] Adicionar seção "Minhas Contas" com listagem de contas bancárias e cartões de crédito
 - [x] Escrever testes para updateProfile (4 testes passando)
-- [ ] Melhorar tratamento de erro quando nenhum campo é fornecido (retornar erro de validação claro em vez de erro interno)
+- [x] Melhorar tratamento de erro quando nenhum campo é fornecido (retornar erro de validação claro em vez de erro interno) - Adicionado refine ao schema
 
 
 ## Limpeza do Banco de Dados
