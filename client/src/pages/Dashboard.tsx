@@ -1,4 +1,3 @@
-import { trpc } from "@/lib/trpc";
 import { formatBRL } from "@/lib/currency";
 import {
   BarChart,
@@ -15,14 +14,14 @@ import {
   LabelList,
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TrendingUp, TrendingDown, Wallet, ChevronLeft, ChevronRight } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
+import { trpc } from "@/lib/trpc";
 
 const RADIAN = Math.PI / 180;
 const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
@@ -40,40 +39,32 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
 export default function Dashboard() {
   const { user } = useAuth();
   const now = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-
-  // Buscar stats do mês selecionado
-  const { data: stats, isLoading } = trpc.dashboard.stats.useQuery({
-    month: selectedMonth,
-    year: selectedYear,
-  });
+  
+  // Inicializar com o primeiro dia do mês atual até hoje
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const [startDate, setStartDate] = useState(firstDayOfMonth);
+  const [endDate, setEndDate] = useState(now);
 
   const { data: bankAccounts } = trpc.bankAccounts.list.useQuery();
   const { data: categories } = trpc.categories.list.useQuery();
 
-  // Buscar transações apenas do mês selecionado
-  const { startOfMonth, endOfMonth } = useMemo(() => ({
-    startOfMonth: new Date(selectedYear, selectedMonth - 1, 1),
-    endOfMonth: new Date(selectedYear, selectedMonth, 0, 23, 59, 59),
-  }), [selectedMonth, selectedYear]);
-
+  // Buscar transações do período selecionado
   const { data: transactions } = trpc.transactions.list.useQuery({
-    startDate: startOfMonth,
-    endDate: endOfMonth,
+    startDate: startDate,
+    endDate: endDate,
   });
 
-  // Buscar transacoes de cartao do mes selecionado
+  // Buscar transacoes de cartao do período selecionado
   const { data: creditCardTransactions } = trpc.creditCardTransactions.list.useQuery({
-    startDate: startOfMonth,
-    endDate: endOfMonth,
+    startDate: startDate,
+    endDate: endDate,
   });
   const { data: creditCards } = trpc.creditCards.list.useQuery();
 
   // Usar transacoes de cartao ja filtradas
   const currentMonthCCTransactions = creditCardTransactions || [];
 
-  // Calcular receitas e despesas do mês selecionado
+  // Calcular receitas e despesas do período selecionado
   const currentMonthIncome = (transactions || [])
     .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
@@ -101,7 +92,7 @@ export default function Dashboard() {
     { name: "Despesas", value: totalExpenses, color: "#ef4444" },
   ];
 
-  // Breakdown de despesas por categoria (mês corrente)
+  // Breakdown de despesas por categoria (período selecionado)
   const categoryBreakdown = (() => {
     const grouped: Record<string, { value: number; color: string }> = {};
 
@@ -150,69 +141,44 @@ export default function Dashboard() {
 
   if (!user) return null;
 
-  const totalBalance = parseFloat(stats?.totalBalance || "0");
-  const selectedDate = new Date(selectedYear, selectedMonth - 1, 1);
-  const monthLabel = format(selectedDate, "MMMM 'de' yyyy", { locale: ptBR });
+  // Calcular saldo total das contas
+  const totalBalance = (bankAccounts || [])
+    .reduce((sum, acc) => sum + parseFloat(acc.balance || "0"), 0);
+  
+  const dateRangeLabel = `${format(startDate, "dd/MM/yyyy")} a ${format(endDate, "dd/MM/yyyy")}`;
 
   return (
     <DashboardLayout>
 
       <div className="flex flex-col gap-4 mb-6">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              if (selectedMonth === 1) {
-                setSelectedMonth(12);
-                setSelectedYear(selectedYear - 1);
-              } else {
-                setSelectedMonth(selectedMonth - 1);
-              }
-            }}
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <label className="text-sm font-medium text-foreground">Data Início:</label>
+          <input
+            type="date"
+            value={format(startDate, "yyyy-MM-dd")}
+            onChange={(e) => setStartDate(new Date(e.target.value))}
+            className="px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm"
+          />
           
-          <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                <SelectItem key={month} value={month.toString()}>
-                  {new Date(selectedYear, month - 1).toLocaleDateString('pt-BR', { month: 'long' })}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
-            <SelectTrigger className="w-24">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((year) => (
-                <SelectItem key={year} value={year.toString()}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
+          <label className="text-sm font-medium text-foreground">Data Fim:</label>
+          <input
+            type="date"
+            value={format(endDate, "yyyy-MM-dd")}
+            onChange={(e) => setEndDate(new Date(e.target.value))}
+            className="px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm"
+          />
+          
           <Button
             variant="outline"
             size="sm"
             onClick={() => {
-              if (selectedMonth === 12) {
-                setSelectedMonth(1);
-                setSelectedYear(selectedYear + 1);
-              } else {
-                setSelectedMonth(selectedMonth + 1);
-              }
+              const today = new Date();
+              setStartDate(new Date(today.getFullYear(), today.getMonth(), 1));
+              setEndDate(today);
             }}
+            className="ml-auto sm:ml-0"
           >
-            <ChevronRight className="w-4 h-4" />
+            Mês Atual
           </Button>
         </div>
       </div>
@@ -226,7 +192,7 @@ export default function Dashboard() {
             {format(now, "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })}
           </p>
           <p className="text-xs text-muted-foreground italic">
-            Dados referentes a {monthLabel}
+            Dados referentes ao período: {dateRangeLabel}
           </p>
         </div>
 
@@ -237,94 +203,70 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <p className="stat-label text-xs md:text-sm">Saldo Total</p>
-                {isLoading ? (
-                  <Skeleton className="h-8 w-24 mt-2" />
-                ) : (
-                  <p className="stat-value text-lg md:text-2xl font-bold">
-                    {formatBRL(totalBalance)}
-                  </p>
-                )}
+                <p className="stat-value text-lg md:text-2xl font-bold">
+                  {formatBRL(totalBalance)}
+                </p>
               </div>
               <Wallet className="w-6 h-6 md:w-8 md:h-8 text-primary/50 flex-shrink-0 ml-2" />
             </div>
           </div>
 
-          {/* Receitas do mês */}
+          {/* Receitas */}
           <div className="stat-card">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="stat-label text-xs md:text-sm">Receitas ({monthLabel})</p>
-                {isLoading ? (
-                  <Skeleton className="h-8 w-24 mt-2" />
-                ) : (
-                  <p className="stat-value text-lg md:text-2xl font-bold text-green-600">
-                    {formatBRL(totalIncome)}
-                  </p>
-                )}
+                <p className="stat-label text-xs md:text-sm">Receitas ({format(startDate, "MMM/yy", { locale: ptBR })})</p>
+                <p className="stat-value text-lg md:text-2xl font-bold text-green-600">
+                  {formatBRL(totalIncome)}
+                </p>
               </div>
               <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-green-600/50 flex-shrink-0 ml-2" />
             </div>
           </div>
 
-          {/* Despesas do mês */}
+          {/* Despesas */}
           <div className="stat-card">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="stat-label text-xs md:text-sm">Despesas ({monthLabel})</p>
-                {isLoading ? (
-                  <Skeleton className="h-8 w-24 mt-2" />
-                ) : (
-                  <p className="stat-value text-lg md:text-2xl font-bold text-red-600">
-                    {formatBRL(totalExpenses)}
-                  </p>
-                )}
+                <p className="stat-label text-xs md:text-sm">Despesas ({format(startDate, "MMM/yy", { locale: ptBR })})</p>
+                <p className="stat-value text-lg md:text-2xl font-bold text-red-600">
+                  {formatBRL(totalExpenses)}
+                </p>
               </div>
               <TrendingDown className="w-6 h-6 md:w-8 md:h-8 text-red-600/50 flex-shrink-0 ml-2" />
             </div>
           </div>
         </div>
 
-        {/* Gráficos */}
+        {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-          {/* Receitas vs Despesas */}
-          <div className="bg-card text-card-foreground rounded-lg border border-border shadow-sm p-4 md:p-6">
-            <h3 className="text-sm md:text-base font-semibold text-foreground mb-4">
-              Receitas vs Despesas — {monthLabel}
-            </h3>
-            {isLoading ? (
-              <Skeleton className="h-56 w-full" />
-            ) : (
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={chartData} margin={{ top: 20, right: 10, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={12} />
-                  <YAxis stroke="var(--muted-foreground)" fontSize={11} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                    <LabelList
-                      dataKey="value"
-                      position="top"
-                      formatter={(v: number) => formatBRL(v)}
-                      style={{ fontSize: 10, fill: "#555" }}
-                    />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
+          {/* Bar Chart - Receitas vs Despesas */}
+          <div className="chart-card">
+            <h2 className="text-lg md:text-xl font-semibold mb-4 text-foreground">
+              Receitas vs Despesas — {dateRangeLabel}
+            </h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="name" stroke="var(--muted-foreground)" />
+                <YAxis stroke="var(--muted-foreground)" />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="value" fill="#8884d8" radius={[8, 8, 0, 0]}>
+                  {chartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
 
-          {/* Despesas por Categoria */}
-          <div className="bg-card text-card-foreground rounded-lg border border-border shadow-sm p-4 md:p-6">
-            <h3 className="text-sm md:text-base font-semibold text-foreground mb-4">
-              Despesas por Categoria — {monthLabel}
-            </h3>
-            {isLoading ? (
-              <Skeleton className="h-56 w-full" />
-            ) : categoryBreakdown.length > 0 ? (
-              <ResponsiveContainer width="100%" height={220}>
+          {/* Pie Chart - Despesas por Categoria */}
+          {categoryBreakdown.length > 0 && (
+            <div className="chart-card">
+              <h2 className="text-lg md:text-xl font-semibold mb-4 text-foreground">
+                Despesas por Categoria — {dateRangeLabel}
+              </h2>
+              <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
                     data={categoryBreakdown}
@@ -332,47 +274,32 @@ export default function Dashboard() {
                     cy="50%"
                     labelLine={false}
                     label={renderCustomizedLabel}
-                    outerRadius={75}
+                    outerRadius={80}
+                    fill="#8884d8"
                     dataKey="value"
                   >
                     {categoryBreakdown.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend
-                    formatter={(value, entry: any) => (
-                      <span style={{ color: entry.color, fontSize: 10 }}>
-                        {value}: {formatBRL(entry.payload.value)}
-                      </span>
-                    )}
-                    wrapperStyle={{ fontSize: 10 }}
-                  />
+                  <Tooltip formatter={(value) => formatBRL(value as number)} />
+                  <Legend />
                 </PieChart>
               </ResponsiveContainer>
-            ) : (
-              <div className="h-56 flex items-center justify-center text-muted-foreground text-sm">
-                Nenhuma despesa registrada neste mês
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
-        {/* Contas Bancárias */}
+        {/* Bank Accounts */}
         {bankAccounts && bankAccounts.length > 0 && (
-          <div className="bg-card text-card-foreground rounded-lg border border-border shadow-sm p-4 md:p-6 space-y-4">
-            <h3 className="text-sm md:text-base font-semibold text-foreground">Contas Bancárias</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="chart-card">
+            <h2 className="text-lg md:text-xl font-semibold mb-4 text-foreground">Contas Bancárias</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               {bankAccounts.map((account) => (
-                <div
-                  key={account.id}
-                  className="p-3 rounded-lg border border-border bg-muted/50 hover:bg-muted transition-colors"
-                >
-                  <p className="text-xs text-muted-foreground font-medium truncate">{account.name}</p>
-                  <p className="text-sm md:text-base font-bold text-foreground mt-1">
-                    {formatBRL(parseFloat(account.balance || "0"))}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5 truncate">{account.bank}</p>
+                <div key={account.id} className="p-4 border border-border rounded-lg bg-card">
+                  <p className="text-sm text-muted-foreground mb-1">{account.name}</p>
+                  <p className="text-lg font-bold text-foreground">{formatBRL(account.balance)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{account.bank}</p>
                 </div>
               ))}
             </div>

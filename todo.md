@@ -744,3 +744,11 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Criar função getCreditCardTransactionsByDate que filtra por DATE - Implementado em server/db.ts
 - [x] Atualizar creditCardTransactions.list para usar a nova função - Implementado em server/routers.ts
 - [x] Adicionar testes para validar a correção - 2 testes adicionados em server/db.creditcard.test.ts
+
+
+## Alteração: Filtro de Data na Visão Geral
+
+- [x] Remover seletores de mês/ano do Dashboard - Removido
+- [x] Implementar filtro de data de início e data fim - Implementado em Dashboard.tsx
+- [x] Adicionar inputs de data (date picker) - Inputs HTML5 date adicionados
+- [x] Testar filtro com diferentes períodos - Testado com sucesso (10/04 a 30/04)
