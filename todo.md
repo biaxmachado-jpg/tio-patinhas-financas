@@ -886,3 +886,17 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [ ] Criar mutation para atualizar ordem das categorias
 - [ ] Salvar ordem das categorias no banco de dados ao soltar
 - [ ] Testar drag and drop de categorias
+
+
+## Feature: Redesenho da Aba "Visão Geral" com Tabelas e Gráficos
+
+- [x] Criar queries para agregar despesas por categoria (total por categoria)
+- [x] Criar queries para agregar receitas por categoria (total por categoria)
+- [x] Redesenhar Home.tsx com bloco de Despesas:
+  - Tabela com linha a linha dos valores totais de cada categoria
+  - Gráfico de pizza mostrando % de cada categoria
+- [x] Redesenhar Home.tsx com bloco de Receita:
+  - Tabela com linha a linha dos valores totais de cada categoria
+  - Gráfico de pizza mostrando % de cada categoria
+- [x] Testar layout responsivo em desktop e mobile
+- [x] Testar gráficos de pizza e tabelas

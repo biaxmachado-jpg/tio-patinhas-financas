@@ -1,24 +1,15 @@
 import { formatBRL } from "@/lib/currency";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
-  Legend,
-  LabelList,
+  ResponsiveContainer,
 } from "recharts";
-import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
@@ -44,7 +35,6 @@ export default function Dashboard() {
   const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const [startDate, setStartDate] = useState(firstDayOfMonth);
   const [endDate, setEndDate] = useState(now);
-  const [showTransferModal, setShowTransferModal] = useState(false);
 
   const { data: bankAccounts } = trpc.bankAccounts.list.useQuery();
   const { data: categories } = trpc.categories.list.useQuery();
@@ -60,9 +50,7 @@ export default function Dashboard() {
     startDate: startDate,
     endDate: endDate,
   });
-  const { data: creditCards } = trpc.creditCards.list.useQuery();
 
-  // Usar transacoes de cartao ja filtradas
   const currentMonthCCTransactions = creditCardTransactions || [];
 
   // Calcular receitas e despesas do período selecionado (SEM TRANSF. ENTRE CONTAS)
@@ -99,12 +87,6 @@ export default function Dashboard() {
   const totalIncome = currentMonthIncome + currentMonthCCRefunds;
   const totalExpenses = currentMonthExpenseBank + currentMonthCCExpenses;
 
-  // Dados para o gráfico de barras Receitas vs Despesas
-  const chartData = [
-    { name: "Receitas", value: totalIncome, color: "#22c55e" },
-    { name: "Despesas", value: totalExpenses, color: "#ef4444" },
-  ];
-
   // Calcular transferências entre contas - Receitas e Despesas
   const transferIncome = (transactions || [])
     .filter((t) => {
@@ -122,31 +104,27 @@ export default function Dashboard() {
 
   const transferBetweenAccounts = transferIncome + transferExpense;
 
-  // Breakdown de despesas por categoria (período selecionado) - SEM transferências
-  const categoryBreakdown = (() => {
+  // Breakdown de despesas por categoria
+  const expensesByCategory = (() => {
     const grouped: Record<string, { value: number; color: string }> = {};
 
-    // Despesas de conta bancária
     (transactions || [])
       .filter((t) => t.type === "expense")
       .forEach((t) => {
         const cat = categories?.find((c) => c.id === t.categoryId);
         const name = cat?.name || "Sem categoria";
         const color = cat?.color || "#ef4444";
-        // Pular transferências entre contas
         if (name === "TRANSF. ENTRE CONTAS") return;
         if (!grouped[name]) grouped[name] = { value: 0, color };
         grouped[name].value += Math.abs(parseFloat(t.amount));
       });
 
-    // Gastos de cartão de crédito
     currentMonthCCTransactions
       .filter((t) => parseFloat(t.amount) > 0)
       .forEach((t) => {
         const cat = categories?.find((c) => c.id === t.categoryId);
         const name = cat?.name || "Sem categoria";
         const color = cat?.color || "#ef4444";
-        // Pular transferências entre contas
         if (name === "TRANSF. ENTRE CONTAS") return;
         if (!grouped[name]) grouped[name] = { value: 0, color };
         grouped[name].value += parseFloat(t.amount);
@@ -158,24 +136,40 @@ export default function Dashboard() {
       .sort((a, b) => b.value - a.value);
   })();
 
-  // Tooltip customizado
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-lg text-xs">
-          <p className="font-semibold mb-1">{label || payload[0]?.name}</p>
-          <p className="font-bold" style={{ color: payload[0]?.payload?.color || "#333" }}>
-            {formatBRL(payload[0]?.value)}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+  // Breakdown de receitas por categoria
+  const incomeByCategory = (() => {
+    const grouped: Record<string, { value: number; color: string }> = {};
+
+    (transactions || [])
+      .filter((t) => t.type === "income")
+      .forEach((t) => {
+        const cat = categories?.find((c) => c.id === t.categoryId);
+        const name = cat?.name || "Sem categoria";
+        const color = cat?.color || "#22c55e";
+        if (name === "TRANSF. ENTRE CONTAS") return;
+        if (!grouped[name]) grouped[name] = { value: 0, color };
+        grouped[name].value += Math.abs(parseFloat(t.amount));
+      });
+
+    currentMonthCCTransactions
+      .filter((t) => parseFloat(t.amount) < 0)
+      .forEach((t) => {
+        const cat = categories?.find((c) => c.id === t.categoryId);
+        const name = cat?.name || "Sem categoria";
+        const color = cat?.color || "#22c55e";
+        if (name === "TRANSF. ENTRE CONTAS") return;
+        if (!grouped[name]) grouped[name] = { value: 0, color };
+        grouped[name].value += Math.abs(parseFloat(t.amount));
+      });
+
+    return Object.entries(grouped)
+      .map(([name, data]) => ({ name, value: data.value, color: data.color }))
+      .filter((c) => c.value > 0)
+      .sort((a, b) => b.value - a.value);
+  })();
 
   if (!user) return null;
 
-  // Calcular saldo total das contas
   const totalBalance = (bankAccounts || [])
     .reduce((sum, acc) => sum + parseFloat(acc.balance || "0"), 0);
   
@@ -183,7 +177,6 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
           <label className="text-sm font-medium text-foreground">Data Início:</label>
@@ -216,6 +209,7 @@ export default function Dashboard() {
           </Button>
         </div>
       </div>
+
       <div className="space-y-4 md:space-y-6">
         {/* Header */}
         <div className="space-y-1">
@@ -232,7 +226,6 @@ export default function Dashboard() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-          {/* Saldo Total */}
           <div className="stat-card">
             <div className="flex items-center justify-between">
               <div className="flex-1">
@@ -245,7 +238,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Receitas */}
           <div className="stat-card">
             <div className="flex items-center justify-between">
               <div className="flex-1">
@@ -258,7 +250,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Despesas */}
           <div className="stat-card">
             <div className="flex items-center justify-between">
               <div className="flex-1">
@@ -272,151 +263,140 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Transferências entre Contas - Entre Receitas e Despesas */}
+        {/* BLOCO DE DESPESAS */}
+        {totalExpenses > 0 && (
+          <div className="chart-card">
+            <h2 className="text-lg md:text-xl font-semibold mb-6 text-foreground">Despesas por Categoria — {dateRangeLabel}</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Tabela de Despesas */}
+              <div className="lg:col-span-2">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left py-2 px-3 font-semibold text-foreground">Categoria</th>
+                        <th className="text-right py-2 px-3 font-semibold text-foreground">Valor</th>
+                        <th className="text-right py-2 px-3 font-semibold text-foreground">%</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {expensesByCategory.map((item) => (
+                        <tr key={item.name} className="border-b border-border/50 hover:bg-muted/50">
+                          <td className="py-3 px-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
+                              <span className="text-foreground">{item.name}</span>
+                            </div>
+                          </td>
+                          <td className="text-right py-3 px-3 font-semibold text-foreground">{formatBRL(item.value)}</td>
+                          <td className="text-right py-3 px-3 text-muted-foreground">{((item.value / totalExpenses) * 100).toFixed(1)}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Gráfico de Pizza de Despesas */}
+              <div className="flex items-center justify-center">
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={expensesByCategory}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={renderCustomizedLabel}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {expensesByCategory.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* BLOCO DE RECEITAS */}
+        {totalIncome > 0 && (
+          <div className="chart-card">
+            <h2 className="text-lg md:text-xl font-semibold mb-6 text-foreground">Receitas por Categoria — {dateRangeLabel}</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Tabela de Receitas */}
+              <div className="lg:col-span-2">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left py-2 px-3 font-semibold text-foreground">Categoria</th>
+                        <th className="text-right py-2 px-3 font-semibold text-foreground">Valor</th>
+                        <th className="text-right py-2 px-3 font-semibold text-foreground">%</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {incomeByCategory.map((item) => (
+                        <tr key={item.name} className="border-b border-border/50 hover:bg-muted/50">
+                          <td className="py-3 px-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
+                              <span className="text-foreground">{item.name}</span>
+                            </div>
+                          </td>
+                          <td className="text-right py-3 px-3 font-semibold text-foreground">{formatBRL(item.value)}</td>
+                          <td className="text-right py-3 px-3 text-muted-foreground">{((item.value / totalIncome) * 100).toFixed(1)}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Gráfico de Pizza de Receitas */}
+              <div className="flex items-center justify-center">
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={incomeByCategory}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={renderCustomizedLabel}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {incomeByCategory.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* CARD DE TRANSFERÊNCIAS */}
         {transferBetweenAccounts > 0 && (
           <div className="chart-card">
             <h2 className="text-lg md:text-xl font-semibold mb-4 text-foreground">Transferência entre Contas — {dateRangeLabel}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Transferências Recebidas (Receita) */}
               <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border border-green-200 dark:border-green-700">
                 <p className="text-xs md:text-sm text-green-600 dark:text-green-400 mb-2">Transferências Recebidas</p>
                 <p className="text-2xl md:text-3xl font-bold text-green-700 dark:text-green-300">
                   {formatBRL(transferIncome)}
                 </p>
               </div>
-              {/* Transferências Enviadas (Despesa) */}
               <div className="p-4 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 rounded-lg border border-red-200 dark:border-red-700">
                 <p className="text-xs md:text-sm text-red-600 dark:text-red-400 mb-2">Transferências Enviadas</p>
                 <p className="text-2xl md:text-3xl font-bold text-red-700 dark:text-red-300">
                   {formatBRL(transferExpense)}
                 </p>
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              className="w-full mt-4"
-              onClick={() => setShowTransferModal(true)}
-            >
-              Ver Detalhes
-            </Button>
-          </div>
-        )}
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-          {/* Bar Chart - Receitas vs Despesas */}
-          <div className="chart-card">
-            <h2 className="text-lg md:text-xl font-semibold mb-4 text-foreground">
-              Receitas vs Despesas — {dateRangeLabel}
-            </h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="name" stroke="var(--muted-foreground)" />
-                <YAxis stroke="var(--muted-foreground)" />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="value" fill="#8884d8" radius={[8, 8, 0, 0]}>
-                  {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Pie Chart - Despesas por Categoria */}
-          {categoryBreakdown.length > 0 && (
-            <div className="chart-card">
-              <h2 className="text-lg md:text-xl font-semibold mb-4 text-foreground">
-                Despesas por Categoria — {dateRangeLabel}
-              </h2>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={categoryBreakdown}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={renderCustomizedLabel}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {categoryBreakdown.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => formatBRL(value as number)} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-
-        {/* Bank Accounts */}
-        {bankAccounts && bankAccounts.length > 0 && (
-          <div className="chart-card">
-            <h2 className="text-lg md:text-xl font-semibold mb-4 text-foreground">Contas Bancárias</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-              {bankAccounts.map((account) => (
-                <div key={account.id} className="p-4 border border-border rounded-lg bg-card">
-                  <p className="text-sm text-muted-foreground mb-1">{account.name}</p>
-                  <p className="text-lg font-bold text-foreground">{formatBRL(account.balance)}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{account.bank}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Modal de Histórico de Transferências */}
-        {showTransferModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-background rounded-lg shadow-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-              <div className="sticky top-0 bg-background border-b border-border p-4 flex justify-between items-center">
-                <h3 className="text-lg font-semibold">Histórico de Transferências</h3>
-                <button
-                  onClick={() => setShowTransferModal(false)}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="p-4">
-                <div className="space-y-3">
-                  {(transactions || [])
-                    .filter((t) => {
-                      const cat = categories?.find((c) => c.id === t.categoryId);
-                      return cat?.name === "TRANSF. ENTRE CONTAS";
-                    })
-                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                    .map((transaction) => {
-                      const cat = categories?.find((c) => c.id === transaction.categoryId);
-                      const isIncome = transaction.type === "income";
-                      return (
-                        <div
-                          key={transaction.id}
-                          className="p-3 border border-border rounded-lg flex justify-between items-center hover:bg-muted/50 transition"
-                        >
-                          <div className="flex-1">
-                            <p className="font-medium text-foreground">{cat?.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {format(new Date(transaction.date), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                            </p>
-                            {transaction.description && (
-                              <p className="text-xs text-muted-foreground mt-1">{transaction.description}</p>
-                            )}
-                          </div>
-                          <div className={`text-right font-semibold ${
-                            isIncome ? "text-green-600" : "text-red-600"
-                          }`}>
-                            {isIncome ? "+" : "-"} {formatBRL(Math.abs(parseFloat(transaction.amount)))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
               </div>
             </div>
           </div>
