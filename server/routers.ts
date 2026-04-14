@@ -46,7 +46,7 @@ export const appRouter = router({
         name: z.string().min(1),
         type: z.enum(["income", "expense"]),
         color: z.string().regex(/^#[0-9A-F]{6}$/i),
-        icon: z.string().min(1),
+        icon: z.string().default("tag"),
       }))
       .mutation(({ ctx, input }) => db.createCategory(ctx.user.id, input)),
     
@@ -55,7 +55,6 @@ export const appRouter = router({
         id: z.number(),
         name: z.string().optional(),
         color: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
-        icon: z.string().optional(),
       }))
       .mutation(({ ctx, input }) => {
         const { id, ...data } = input;

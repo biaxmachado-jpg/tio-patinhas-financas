@@ -869,3 +869,20 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Testar ícones aparecem corretamente para cada tipo
 - [x] Tornar campo "Tipo" editável (remover disabled)
 - [x] Testar mudança de tipo e verificar se ícone atualiza
+
+
+## Bug: Seção de Transferências Não Aparece na Página de Categorias
+
+- [ ] Verificar se há categorias de transferência no banco de dados
+- [ ] Garantir que a seção "Transferências entre Contas" aparece na página
+- [ ] Testar exibição da seção de transferências
+
+
+## Feature: Drag and Drop para Reorganizar Categorias
+
+- [ ] Instalar biblioteca de drag and drop (react-beautiful-dnd ou similar)
+- [ ] Implementar drag and drop na lista de categorias
+- [ ] Adicionar campo `order` na tabela de categorias (se não existir)
+- [ ] Criar mutation para atualizar ordem das categorias
+- [ ] Salvar ordem das categorias no banco de dados ao soltar
+- [ ] Testar drag and drop de categorias

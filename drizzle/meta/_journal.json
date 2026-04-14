@@ -50,6 +50,13 @@
       "when": 1776196628141,
       "tag": "0006_chubby_eternity",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1776199210186,
+      "tag": "0007_cloudy_longshot",
+      "breakpoints": true
     }
   ]
 }
