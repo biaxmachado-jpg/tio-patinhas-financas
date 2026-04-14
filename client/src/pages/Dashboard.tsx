@@ -53,8 +53,10 @@ export default function Dashboard() {
   const { data: categories } = trpc.categories.list.useQuery();
 
   // Buscar transações apenas do mês selecionado
-  const startOfMonth = new Date(selectedYear, selectedMonth - 1, 1);
-  const endOfMonth = new Date(selectedYear, selectedMonth, 0, 23, 59, 59);
+  const { startOfMonth, endOfMonth } = useMemo(() => ({
+    startOfMonth: new Date(selectedYear, selectedMonth - 1, 1),
+    endOfMonth: new Date(selectedYear, selectedMonth, 0, 23, 59, 59),
+  }), [selectedMonth, selectedYear]);
 
   const { data: transactions } = trpc.transactions.list.useQuery({
     startDate: startOfMonth,
@@ -71,7 +73,7 @@ export default function Dashboard() {
     return d.getMonth() === selectedMonth - 1 && d.getFullYear() === selectedYear;
   }) || [];
 
-  // Calcular receitas e despesas do mês corrente
+  // Calcular receitas e despesas do mês selecionado
   const currentMonthIncome = (transactions || [])
     .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
@@ -149,7 +151,8 @@ export default function Dashboard() {
   if (!user) return null;
 
   const totalBalance = parseFloat(stats?.totalBalance || "0");
-  const monthLabel = format(now, "MMMM 'de' yyyy", { locale: ptBR });
+  const selectedDate = new Date(selectedYear, selectedMonth - 1, 1);
+  const monthLabel = format(selectedDate, "MMMM 'de' yyyy", { locale: ptBR });
 
   return (
     <DashboardLayout>

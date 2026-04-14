@@ -709,3 +709,4 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Filtrar dados da Visão Geral para apenas o mês corrente - Já implementado em Dashboard.tsx
 - [x] Remover dados acumulados do Dashboard - Já implementado
 - [x] Atualizar gráficos para mostrar apenas mês atual - Já implementado
+- [x] Adicionar filtro de mês/ano na Visão Geral - Implementado com seletores e navegação
