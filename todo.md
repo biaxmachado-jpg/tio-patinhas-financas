@@ -805,3 +805,10 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Implementar lógica de comparação de valores antigos vs novos - recordProfileChange implementado em server/db.ts
 - [x] Criar UI para exibir histórico na página de perfil - ProfileHistorySection implementado com cards
 - [x] Testar registro e exibição de alterações - Seção visível e funcional na página de perfil
+
+
+## Bug: Tabela profileHistory Não Existe
+
+- [x] Criar tabela profileHistory no banco de dados - Criada automaticamente no startup do servidor
+- [x] Testar se o erro de query foi corrigido - Erro corrigido, página carrega sem problemas
+- [x] Verificar se o histórico de alterações funciona corretamente - Seção visível e funcional

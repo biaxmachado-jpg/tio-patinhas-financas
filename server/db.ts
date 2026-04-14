@@ -38,6 +38,24 @@ export async function getDb() {
         _pool = mysql.createPool(process.env.DATABASE_URL);
       }
       _db = drizzle(_pool, { mode: 'default', schema: { users, categories, bankAccounts, transactions, budgets, categorizationRules, creditCards, creditCardTransactions, monthlyBalances, profileHistory } });
+      
+      // Ensure profileHistory table exists
+      try {
+        await _pool.execute(`
+          CREATE TABLE IF NOT EXISTS \`profileHistory\` (
+            \`id\` int AUTO_INCREMENT NOT NULL,
+            \`userId\` int NOT NULL,
+            \`fieldName\` varchar(100) NOT NULL,
+            \`oldValue\` text,
+            \`newValue\` text,
+            \`changedAt\` timestamp NOT NULL DEFAULT (now()),
+            \`createdAt\` timestamp NOT NULL DEFAULT (now()),
+            CONSTRAINT \`profileHistory_id\` PRIMARY KEY(\`id\`)
+          )
+        `);
+      } catch (tableError) {
+        console.warn("[Database] Could not create profileHistory table:", tableError);
+      }
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
