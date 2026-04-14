@@ -908,3 +908,17 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Corrigir filtro de datas no Dashboard para mostrar SOMENTE o mês selecionado
 - [x] Verificar se as transações estão sendo filtradas corretamente por data
 - [x] Testar valores corretos após correção
+
+
+## Feature: Trocar "Navigation" por "TIO PATINHAS" no DashboardLayout
+
+- [x] Encontrar onde está escrito "Navigation" no DashboardLayout
+- [x] Trocar por "TIO PATINHAS"
+- [x] Testar no navegador
+
+
+## Feature: Adicionar Favicon do Tio Patinhas
+
+- [x] Copiar imagem do Tio Patinhas para a pasta public
+- [x] Adicionar link de favicon no index.html
+- [x] Testar favicon no navegador
