@@ -254,6 +254,33 @@ export default function Categories() {
                   />
                 </div>
 
+                <div>
+                  <Label htmlFor="icon">Ícone</Label>
+                  <Select value={formData.icon} onValueChange={(value) => setFormData({ ...formData, icon: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="tag">🏷️ Tag</SelectItem>
+                      <SelectItem value="dollar">💰 Dólar</SelectItem>
+                      <SelectItem value="trending-up">📈 Tendência Alta</SelectItem>
+                      <SelectItem value="trending-down">📉 Tendência Baixa</SelectItem>
+                      <SelectItem value="shopping-cart">🛒 Compras</SelectItem>
+                      <SelectItem value="home">🏠 Casa</SelectItem>
+                      <SelectItem value="car">🚗 Carro</SelectItem>
+                      <SelectItem value="utensils">🍽️ Alimentação</SelectItem>
+                      <SelectItem value="heart">❤️ Saúde</SelectItem>
+                      <SelectItem value="book">📚 Educação</SelectItem>
+                      <SelectItem value="zap">⚡ Energia</SelectItem>
+                      <SelectItem value="wifi">📡 Internet</SelectItem>
+                      <SelectItem value="smartphone">📱 Telefone</SelectItem>
+                      <SelectItem value="gift">🎁 Presentes</SelectItem>
+                      <SelectItem value="plane">✈️ Viagem</SelectItem>
+                      <SelectItem value="briefcase">💼 Trabalho</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <Button type="submit" className="w-full">
                   {editingId ? "Atualizar" : "Criar"} Categoria
                 </Button>
@@ -405,6 +432,28 @@ export default function Categories() {
   );
 }
 
+function getIconEmoji(iconName: string): string {
+  const iconMap: { [key: string]: string } = {
+    tag: "🏷️",
+    dollar: "💰",
+    "trending-up": "📈",
+    "trending-down": "📉",
+    "shopping-cart": "🛒",
+    home: "🏠",
+    car: "🚗",
+    utensils: "🍽️",
+    heart: "❤️",
+    book: "📚",
+    zap: "⚡",
+    wifi: "📡",
+    smartphone: "📱",
+    gift: "🎁",
+    plane: "✈️",
+    briefcase: "💼",
+  };
+  return iconMap[iconName] || "🏷️";
+}
+
 function CategoryCard({
   category,
   rules,
@@ -425,7 +474,10 @@ function CategoryCard({
             style={{ backgroundColor: category.color }}
           />
           <div>
-            <p className="font-medium text-foreground">{category.name}</p>
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{getIconEmoji(category.icon)}</span>
+              <p className="font-medium text-foreground">{category.name}</p>
+            </div>
             <p className="text-sm text-muted-foreground">
               {category.type === "income" ? "Receita" : category.type === "expense" ? "Despesa" : "Transferência"}
             </p>

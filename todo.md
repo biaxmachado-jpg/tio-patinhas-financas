@@ -847,3 +847,12 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Campo "Tipo" desabilitado na edição (não pode ser alterado após criação)
 - [x] Testar dialog de nova categoria
 - [x] Testar dialog de edição de categoria
+
+
+## Feature: Seletor de Ícones para Categorias
+
+- [x] Adicionar seletor de ícones no dialog de nova/edição de categoria
+- [x] Exibir ícone ao lado do nome da categoria na lista
+- [x] Usar ícones do lucide-react (Tag, DollarSign, TrendingUp, etc.)
+- [x] Testar seletor de ícones
+- [x] Testar exibição de ícones na lista de categorias
