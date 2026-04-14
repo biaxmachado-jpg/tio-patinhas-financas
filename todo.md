@@ -789,3 +789,10 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Filtrar transações de TRANSF. ENTRE CONTAS no modal - Implementado
 - [x] Exibir origem, destino, data e valor de cada transferência - Implementado com descrição
 - [x] Testar abertura e visualização do modal - Testado com sucesso
+
+
+## Bug: Erro na Aba "Editar Perfil"
+
+- [x] Corrigir erro "Cannot read property 'split' of undefined" na página de perfil - Corrigido com useEffect
+- [x] Investigar qual campo está causando o erro - Loop infinito no useState
+- [x] Testar edição de perfil após correção - Funcionando perfeitamente

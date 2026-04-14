@@ -613,9 +613,18 @@ export default function Profile() {
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
-    name: user?.name || "",
-    email: user?.email || "",
+    name: "",
+    email: "",
   });
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || "",
+        email: user.email || "",
+      });
+    }
+  }, [user?.id]);
 
   const updateProfileMutation = trpc.auth.updateProfile.useMutation({
     onSuccess: () => {
