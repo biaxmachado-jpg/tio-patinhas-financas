@@ -82,7 +82,7 @@ export default function BankAccounts() {
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>{editingId ? "Editar Conta" : "Nova Conta Bancária"}</DialogTitle>
+                <DialogTitle>Nova Conta Bancária</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -114,19 +114,17 @@ export default function BankAccounts() {
                     onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
                   />
                 </div>
-                {!editingId && (
-                  <div>
-                    <Label htmlFor="initialBalance">Saldo Inicial (Opcional)</Label>
-                    <Input
-                      id="initialBalance"
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={formData.initialBalance}
-                      onChange={(e) => setFormData({ ...formData, initialBalance: e.target.value || "0.00" })}
-                    />
-                  </div>
-                )}
+                <div>
+                  <Label htmlFor="initialBalance">Saldo Inicial (Opcional)</Label>
+                  <Input
+                    id="initialBalance"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={formData.initialBalance}
+                    onChange={(e) => setFormData({ ...formData, initialBalance: e.target.value || "0.00" })}
+                  />
+                </div>
 
                 {/* Seletor de Cor */}
                 <div>
@@ -183,7 +181,7 @@ export default function BankAccounts() {
                 </div>
 
                 <Button type="submit" className="w-full">
-                  {editingId ? "Atualizar" : "Criar"} Conta
+                  Criar Conta
                 </Button>
               </form>
             </DialogContent>
