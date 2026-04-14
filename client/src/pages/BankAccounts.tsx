@@ -149,20 +149,36 @@ export default function BankAccounts() {
                       ))}
                     </div>
                     {/* Input de cor personalizada */}
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-10 h-10 rounded-lg border border-border shadow-sm flex-shrink-0"
-                        style={{ backgroundColor: formData.color }}
-                      />
-                      <Input
-                        type="color"
-                        value={formData.color}
-                        onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                        className="w-full h-10 cursor-pointer"
-                      />
-                      <span className="text-xs text-muted-foreground font-mono whitespace-nowrap">
-                        {formData.color}
-                      </span>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-lg border border-border shadow-sm flex-shrink-0"
+                          style={{ backgroundColor: formData.color }}
+                        />
+                        <Input
+                          type="color"
+                          value={formData.color}
+                          onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                          className="w-full h-10 cursor-pointer"
+                        />
+                      </div>
+                      {/* Input de codigo hex */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground font-mono">#</span>
+                        <Input
+                          type="text"
+                          placeholder="3b82f6"
+                          value={formData.color.replace('#', '')}
+                          onChange={(e) => {
+                            const hex = e.target.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
+                            if (hex.length > 0) {
+                              setFormData({ ...formData, color: '#' + hex });
+                            }
+                          }}
+                          maxLength={6}
+                          className="w-full font-mono text-sm"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>

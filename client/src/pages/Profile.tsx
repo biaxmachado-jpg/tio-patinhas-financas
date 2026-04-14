@@ -109,18 +109,38 @@ function EditBankAccountDialog({
           </div>
           <div>
             <label className="text-sm font-medium">Cor</label>
-            <div className="flex gap-2 flex-wrap">
-              {PRESET_COLORS.map((color) => (
-                <button
-                  key={color}
-                  className="w-8 h-8 rounded border-2 transition-all"
-                  style={{
-                    backgroundColor: color,
-                    borderColor: formData.color === color ? "#000" : "transparent",
+            <div className="space-y-3">
+              {/* Paleta de cores */}
+              <div className="flex gap-2 flex-wrap">
+                {PRESET_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    className="w-8 h-8 rounded border-2 transition-all"
+                    style={{
+                      backgroundColor: color,
+                      borderColor: formData.color === color ? "#000" : "transparent",
+                    }}
+                    onClick={() => setFormData({ ...formData, color })}
+                  />
+                ))}
+              </div>
+              {/* Input de codigo hex */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground font-mono">#</span>
+                <Input
+                  type="text"
+                  placeholder="3b82f6"
+                  value={formData.color.replace('#', '')}
+                  onChange={(e) => {
+                    const hex = e.target.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
+                    if (hex.length > 0) {
+                      setFormData({ ...formData, color: '#' + hex });
+                    }
                   }}
-                  onClick={() => setFormData({ ...formData, color })}
+                  maxLength={6}
+                  className="w-full font-mono text-sm"
                 />
-              ))}
+              </div>
             </div>
           </div>
         </div>

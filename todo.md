@@ -663,3 +663,11 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Adicionar seletor de cores em "Meu Perfil"
 - [ ] Remover diálogo de edição de cartões de crédito (deixar só visualização)
 - [ ] Adicionar edição de cartões em "Meu Perfil"
+
+
+## Nova Funcionalidade: Seletor de Cores Customizável
+
+- [x] Atualizar seletor de cores em BankAccounts para entrada de hex customizável
+- [x] Atualizar seletor de cores em Profile para entrada de hex customizável
+- [x] Adicionar validação de código hex (filtra caracteres inválidos)
+- [x] Adicionar preview de cor em tempo real (atualiza enquanto digita)
