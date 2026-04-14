@@ -3,7 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Mail, User, LogOut, Save, X, CreditCard, Wallet, Edit2, Trash2, Upload } from "lucide-react";
+import { formatBRL } from "@/lib/currency";
 import { useState, useRef } from "react";
+import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import {
   Dialog,
@@ -206,6 +208,7 @@ function MinhasContas() {
   const [deletingCreditCardId, setDeletingCreditCardId] = useState<number | null>(null);
   const deleteBankAccountMutation = trpc.bankAccounts.delete.useMutation();
   const deleteCreditCardMutation = trpc.creditCards.delete.useMutation();
+  const [, navigate] = useLocation();
 
   const handleEditBankAccount = (account: BankAccount) => {
     setEditingBankAccount(account);
@@ -254,43 +257,71 @@ function MinhasContas() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Contas Bancárias */}
       <div>
-        <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
           <Wallet className="w-5 h-5" />
           Contas Bancárias
         </h3>
         {bankAccounts && bankAccounts.length > 0 ? (
-          <div className="space-y-2">
-            {bankAccounts.map((account: BankAccount) => (
-              <div key={account.id} className="p-3 border rounded-lg hover:bg-muted transition-colors flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-foreground">{account.name}</p>
-                  <p className="text-sm text-gray-500">{account.bank}</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEditBankAccount(account)}
-                    className="flex items-center gap-1"
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {bankAccounts.map((account: BankAccount) => {
+              const cardColor = (account as any).color || "#3b82f6";
+              return (
+                <div
+                  key={account.id}
+                  className="rounded-lg overflow-hidden border border-border shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => navigate(`/contas/${account.id}`)}
+                >
+                  {/* Header colorido */}
+                  <div
+                    className="p-4 text-white"
+                    style={{ backgroundColor: cardColor }}
                   >
-                    <Edit2 className="w-4 h-4" />
-                    Editar
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-red-600 hover:text-red-700"
-                    onClick={() => setDeletingBankAccountId(account.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Excluir
-                  </Button>
+                    <div className="flex items-start justify-between">
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <h3 className="font-semibold text-base">{account.name}</h3>
+                        <p className="text-sm text-white/80">{account.bank}</p>
+                      </div>
+                      <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-white hover:bg-white/20 h-8 w-8 p-0"
+                          onClick={() => handleEditBankAccount(account)}
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-white hover:bg-white/20 h-8 w-8 p-0"
+                          onClick={() => setDeletingBankAccountId(account.id)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Conteúdo */}
+                  <div className="p-4 bg-card">
+                    {account.accountNumber && (
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Conta: {account.accountNumber}
+                      </p>
+                    )}
+                    <div>
+                      <p className="text-xs text-muted-foreground">Saldo</p>
+                      <p className="text-xl md:text-2xl font-bold text-foreground mt-0.5">
+                        {formatBRL(parseFloat((account as any).balance || "0"))}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <p className="text-gray-500">Nenhuma conta bancária cadastrada</p>
@@ -299,12 +330,12 @@ function MinhasContas() {
 
       {/* Cartões de Crédito */}
       <div>
-        <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
           <CreditCard className="w-5 h-5" />
           Cartões de Crédito
         </h3>
         {creditCards && creditCards.length > 0 ? (
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {creditCards.map((card: CreditCardType) => (
               <div key={card.id} className="p-3 border rounded-lg hover:bg-muted transition-colors flex items-center justify-between">
                 <div>
