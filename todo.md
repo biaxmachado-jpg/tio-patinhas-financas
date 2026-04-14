@@ -661,8 +661,24 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Adicionar toda edição (nome, banco, número, cor) em "Meu Perfil"
 - [x] Adicionar botão Deletar em "Meu Perfil"
 - [x] Adicionar seletor de cores em "Meu Perfil"
-- [ ] Remover diálogo de edição de cartões de crédito (deixar só visualização)
-- [ ] Adicionar edição de cartões em "Meu Perfil"
+- [x] Remover diálogo de edição de cartões de crédito (deixar só visualização)
+- [x] Adicionar edição de cartões em "Meu Perfil"
+
+## Próximas Tarefas - Color Picker Visual
+
+- [x] Implementar color picker visual com gradiente interativo
+- [x] Adicionar seletor de matiz (hue) com espectro completo
+- [x] Adicionar seletor de saturação
+- [x] Adicionar seletor de brilho
+- [x] Adicionar entrada de código hex com validação
+- [x] Adicionar 12 cores rápidas pré-definidas
+- [x] Implementar conversão automática HSL ↔ Hex
+- [x] Integrar color picker em BankAccounts.tsx
+- [x] Integrar color picker em Profile.tsx
+- [x] Testar color picker em CreditCards.tsx
+- [x] Mover edição de cartões para Profile.tsx (deixar CreditCards.tsx só visualização)
+- [x] Adicionar coluna "Conta/Cartão" nas transações (entre Origem e Valor) - Já implementado em Income.tsx e Expenses.tsx
+- [x] Criar checkpoint final com todas as melhorias
 
 
 ## Nova Funcionalidade: Seletor de Cores Customizável

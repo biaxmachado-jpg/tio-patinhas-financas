@@ -2,9 +2,9 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mail, User, LogOut, Save, X, CreditCard, Wallet, Edit2, Trash2, Upload } from "lucide-react";
+import { Mail, User, LogOut, Save, X, CreditCard, Wallet, Edit2, Trash2, Upload, Palette, ChevronRight } from "lucide-react";
 import { formatBRL } from "@/lib/currency";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { ColorPicker } from "@/components/ColorPicker";
@@ -26,6 +26,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface BankAccount {
   id: number;
@@ -144,19 +151,47 @@ function EditCreditCardDialog({
   open,
   onOpenChange,
   onSave,
+  onDelete,
 }: {
   card: CreditCardType | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (data: any) => void;
+  onDelete: (id: number) => void;
 }) {
   const [formData, setFormData] = useState({
-    name: card?.name || "",
-    flag: card?.flag || "",
-    lastFourDigits: card?.lastFourDigits || "",
-    expiryDate: card?.expiryDate || "",
-    limit: card?.limit || 0,
+    name: "",
+    brand: "Visa",
+    lastFourDigits: "",
+    limit: "0.00",
+    dueDay: "10",
+    closingDay: "1",
+    color: "#1434CB",
   });
+
+  // Sincronizar formData quando card muda
+  useEffect(() => {
+    if (card) {
+      setFormData({
+        name: card?.name || "",
+        brand: card?.brand || "Visa",
+        lastFourDigits: card?.lastFourDigits || "",
+        limit: card?.limit?.toString() || "0.00",
+        dueDay: card?.dueDay?.toString() || "10",
+        closingDay: card?.closingDay?.toString() || "1",
+        color: (card as any)?.color || "#1434CB",
+      });
+    }
+  }, [card?.id, open]);
+
+  const CARD_BRANDS = [
+    { value: "Visa", label: "Visa" },
+    { value: "Mastercard", label: "Mastercard" },
+    { value: "Elo", label: "Elo" },
+    { value: "American Express", label: "American Express" },
+    { value: "Hipercard", label: "Hipercard" },
+    { value: "Discover", label: "Discover" },
+  ];
 
   const handleSave = () => {
     onSave(formData);
@@ -165,7 +200,7 @@ function EditCreditCardDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Cartão de Crédito</DialogTitle>
           <DialogDescription>Atualize os dados do seu cartão de crédito</DialogDescription>
@@ -181,49 +216,93 @@ function EditCreditCardDialog({
           </div>
           <div>
             <label className="text-sm font-medium">Bandeira</label>
-            <Input
-              value={formData.flag}
-              onChange={(e) => setFormData({ ...formData, flag: e.target.value })}
-              placeholder="Ex: Mastercard, Visa"
-            />
+            <Select value={formData.brand} onValueChange={(value) => setFormData({ ...formData, brand: value })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CARD_BRANDS.map((brand) => (
+                  <SelectItem key={brand.value} value={brand.value}>
+                    {brand.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label className="text-sm font-medium">4 Últimos Dígitos</label>
             <Input
               value={formData.lastFourDigits}
-              onChange={(e) => setFormData({ ...formData, lastFourDigits: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, lastFourDigits: e.target.value.slice(0, 4) })}
               placeholder="Ex: 8631"
               maxLength={4}
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium">Vencimento (MM/YY)</label>
-            <Input
-              value={formData.expiryDate}
-              onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-              placeholder="Ex: 12/25"
             />
           </div>
           <div>
             <label className="text-sm font-medium">Limite (R$)</label>
             <Input
               type="number"
+              step="0.01"
               value={formData.limit}
-              onChange={(e) => setFormData({ ...formData, limit: parseFloat(e.target.value) })}
-              placeholder="Ex: 5000"
+              onChange={(e) => setFormData({ ...formData, limit: e.target.value })}
+              placeholder="0.00"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium">Dia Vencimento</label>
+              <Input
+                type="number"
+                min="1"
+                max="31"
+                value={formData.dueDay}
+                onChange={(e) => setFormData({ ...formData, dueDay: e.target.value })}
+                placeholder="10"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Dia Fechamento</label>
+              <Input
+                type="number"
+                min="1"
+                max="31"
+                value={formData.closingDay}
+                onChange={(e) => setFormData({ ...formData, closingDay: e.target.value })}
+                placeholder="1"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Cor</label>
+            <ColorPicker
+              value={formData.color}
+              onChange={(color) => setFormData({ ...formData, color })}
             />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
+        <DialogFooter className="flex gap-2 justify-between">
+          <Button
+            variant="destructive"
+            onClick={() => {
+              if (card?.id) onDelete(card.id);
+              onOpenChange(false);
+            }}
+          >
+            <Trash2 className="w-4 h-4 mr-1" />
+            Deletar
           </Button>
-          <Button onClick={handleSave}>Salvar</Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSave}>Salvar</Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
 
 function MinhasContas() {
   const { data: bankAccounts, isLoading: bankLoading, refetch: refetchBankAccounts } = trpc.bankAccounts.list.useQuery();
@@ -267,9 +346,26 @@ function MinhasContas() {
     }
   };
 
-  const handleSaveCreditCard = (data: any) => {
-    console.log("Salvando cartão de crédito:", data);
-    // TODO: Implementar mutation tRPC para salvar
+  const updateCreditCardMutation = trpc.creditCards.update.useMutation();
+
+  const handleSaveCreditCard = async (data: any) => {
+    try {
+      if (editingCreditCard?.id) {
+        await updateCreditCardMutation.mutateAsync({
+          id: editingCreditCard.id,
+          name: data.name,
+          brand: data.brand,
+          lastFourDigits: data.lastFourDigits,
+          limit: data.limit,
+          dueDay: parseInt(data.dueDay),
+          closingDay: parseInt(data.closingDay),
+          color: data.color,
+        });
+        refetchCreditCards();
+      }
+    } catch (error) {
+      console.error("Erro ao salvar cartão:", error);
+    }
   };
 
   const handleDeleteBankAccount = async (id: number) => {
@@ -371,34 +467,63 @@ function MinhasContas() {
         </h3>
         {creditCards && creditCards.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {creditCards.map((card: CreditCardType) => (
-              <div key={card.id} className="p-3 border rounded-lg hover:bg-muted transition-colors flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-foreground">{card.name}</p>
-                  <p className="text-sm text-gray-500">Últimos dígitos: {card.lastFourDigits || 'N/A'}</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEditCreditCard(card)}
-                    className="flex items-center gap-1"
+            {creditCards.map((card: CreditCardType) => {
+              const cardColor = (card as any).color || "#1434CB";
+              return (
+                <div
+                  key={card.id}
+                  className="rounded-lg overflow-hidden border border-border shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => navigate(`/cartoes/${card.id}`)}
+                >
+                  {/* Header colorido */}
+                  <div
+                    className="p-4 text-white"
+                    style={{ backgroundColor: cardColor }}
                   >
-                    <Edit2 className="w-4 h-4" />
-                    Editar
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-red-600 hover:text-red-700"
-                    onClick={() => setDeletingCreditCardId(card.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Excluir
-                  </Button>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-semibold text-base">{card.name}</h3>
+                        <p className="text-sm text-white/80">{card.brand || 'Cartão'}</p>
+                        {card.lastFourDigits && (
+                          <p className="text-xs text-white/60 mt-0.5">****{card.lastFourDigits}</p>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-white hover:bg-white/20 h-8 w-8 p-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditCreditCard(card);
+                        }}
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Conteúdo */}
+                  <div className="p-4 bg-card">
+                    <div className="mb-2">
+                      <p className="text-xs text-muted-foreground">Limite</p>
+                      <p className="text-lg md:text-xl font-bold text-foreground mt-0.5">
+                        {formatBRL(parseFloat((card as any).limit || "0"))}
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <p className="text-muted-foreground">Vencimento</p>
+                        <p className="font-semibold">{card.dueDay || '-'}º</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Fechamento</p>
+                        <p className="font-semibold">{card.closingDay || '-'}º</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <p className="text-gray-500">Nenhum cartão de crédito cadastrado</p>
@@ -426,6 +551,15 @@ function MinhasContas() {
         open={cardDialogOpen}
         onOpenChange={setCardDialogOpen}
         onSave={handleSaveCreditCard}
+        onDelete={async (id) => {
+          try {
+            await deleteCreditCardMutation.mutateAsync({ id });
+            setCardDialogOpen(false);
+            refetchCreditCards();
+          } catch (error) {
+            console.error("Erro ao deletar:", error);
+          }
+        }}
       />
 
       {/* Alert Dialog para Exclusão de Conta Bancária */}
