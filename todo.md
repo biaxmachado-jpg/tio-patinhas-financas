@@ -109,7 +109,7 @@
 - [x] Escrever testes unitarios para procedures tRPC (32 testes passando)
 - [x] Escrever testes para updateProfile (4 testes passando)
 - [x] Escrever testes para cálculos de saldo bancário (7 testes passando)
-- [ ] Adicionar teste de integração frontend/backend para salvar nome/email no perfil
+- [x] Adicionar teste de integração frontend/backend para salvar nome/email no perfil - Testes passando (4/4)
 - [ ] Escrever testes para parsers de PDF e OFX (opcional)
 - [ ] Escrever testes para motor de categorizacao automatica (opcional)
 - [ ] Testar fluxo completo de importacao de extratos (opcional)
@@ -487,7 +487,7 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [ ] Implementar reclassificação de transações em lote
 
 ### Testes Avançados (Opcional)
-- [ ] Adicionar teste de integração frontend/backend para salvar nome/email no perfil
+- [x] Adicionar teste de integração frontend/backend para salvar nome/email no perfil - Testes passando (4/4)
 - [ ] Escrever testes para parsers de PDF e OFX
 - [ ] Escrever testes para motor de categorização automática
 - [ ] Testar fluxo completo de importação de extratos

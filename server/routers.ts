@@ -175,6 +175,7 @@ export const appRouter = router({
       .input(z.object({
         id: z.number(),
         categoryId: z.number().optional(),
+        type: z.enum(["income", "expense"]).optional(),
         description: z.string().optional(),
         amount: z.string().optional(),
         date: z.date().optional(),

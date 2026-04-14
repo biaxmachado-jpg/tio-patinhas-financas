@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, Edit2, Palette } from "lucide-react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -42,6 +42,11 @@ export default function BankAccounts() {
 
   const { data: accounts, refetch } = trpc.bankAccounts.list.useQuery();
   const createMutation = trpc.bankAccounts.create.useMutation();
+
+  // Memoize color change handler to prevent infinite loops in ColorPicker
+  const handleColorChange = useCallback((color: string) => {
+    setFormData(prev => ({ ...prev, color }));
+  }, []);
 
   if (!user) return null;
 
@@ -135,7 +140,7 @@ export default function BankAccounts() {
                   </Label>
                   <ColorPicker
                     value={formData.color}
-                    onChange={(color) => setFormData({ ...formData, color })}
+                    onChange={handleColorChange}
                   />
                 </div>
 
