@@ -333,8 +333,28 @@ export const appRouter = router({
   // ============= CREDIT CARD TRANSACTIONS =============
   creditCardTransactions: router({
     list: protectedProcedure
-      .input(z.object({ cardId: z.number().optional() }).optional())
-      .query(({ ctx, input }) => db.getCreditCardTransactions(ctx.user.id, input?.cardId)),
+      .input(z.object({ 
+        cardId: z.number().optional(),
+        startDate: z.date().optional(),
+        endDate: z.date().optional(),
+      }).optional())
+      .query(({ ctx, input }) => {
+        if (input?.startDate && input?.endDate) {
+          const startMonth = input.startDate.getMonth() + 1;
+          const startYear = input.startDate.getFullYear();
+          const endMonth = input.endDate.getMonth() + 1;
+          const endYear = input.endDate.getFullYear();
+          
+          // Se for o mesmo mês, retornar transações desse mês
+          if (startMonth === endMonth && startYear === endYear) {
+            return db.getCreditCardTransactionsByMonth(ctx.user.id, input?.cardId || 0, startMonth, startYear);
+          }
+          
+          // Caso contrário, retornar todas as transações (sem filtro de data)
+          return db.getCreditCardTransactions(ctx.user.id, input?.cardId);
+        }
+        return db.getCreditCardTransactions(ctx.user.id, input?.cardId);
+      }),
     
     get: protectedProcedure
       .input(z.object({ id: z.number() }))

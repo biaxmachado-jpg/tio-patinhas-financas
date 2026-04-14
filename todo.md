@@ -726,3 +726,11 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Corrigir cálculo de Despesas para mostrar apenas do mês selecionado (não acumulado) - Corrigido filtro de creditCardTransactions
 - [x] Atualizar label dos cards para refletir apenas o mês selecionado - Já estava correto
 - [x] Testar filtro com diferentes meses - Testado com sucesso
+
+
+## Correção: Usar DUEDATE para Transações de Cartão de Crédito
+
+- [x] Verificar se creditCardTransactions tem campo DUEDATE - Confirmado em schema.ts linha 173
+- [x] Atualizar query de creditCardTransactions para filtrar por DUEDATE ao invés de DATE - Implementado em server/routers.ts
+- [x] Atualizar Dashboard.tsx para usar DUEDATE ao filtrar transações de cartão - Query agora usa getCreditCardTransactionsByMonth
+- [x] Testar filtro com diferentes meses usando DUEDATE - Testado com sucesso
