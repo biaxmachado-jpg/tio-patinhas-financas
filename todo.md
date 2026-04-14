@@ -752,3 +752,10 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Implementar filtro de data de início e data fim - Implementado em Dashboard.tsx
 - [x] Adicionar inputs de data (date picker) - Inputs HTML5 date adicionados
 - [x] Testar filtro com diferentes períodos - Testado com sucesso (10/04 a 30/04)
+
+
+## Alteração: Separar Transferências entre Contas no Dashboard
+
+- [x] Remover categoria "Transferência entre contas" do gráfico de despesas por categoria - Implementado
+- [x] Criar card separado para mostrar total de transferências - Implementado com estilo azul
+- [x] Testar visualização do novo card - Testado com sucesso

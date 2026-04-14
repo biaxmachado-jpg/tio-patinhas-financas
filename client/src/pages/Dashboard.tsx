@@ -92,7 +92,15 @@ export default function Dashboard() {
     { name: "Despesas", value: totalExpenses, color: "#ef4444" },
   ];
 
-  // Breakdown de despesas por categoria (período selecionado)
+  // Calcular total de transferências entre contas
+  const transferBetweenAccounts = (transactions || [])
+    .filter((t) => {
+      const cat = categories?.find((c) => c.id === t.categoryId);
+      return cat?.name === "TRANSF. ENTRE CONTAS";
+    })
+    .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
+
+  // Breakdown de despesas por categoria (período selecionado) - SEM transferências
   const categoryBreakdown = (() => {
     const grouped: Record<string, { value: number; color: string }> = {};
 
@@ -103,6 +111,8 @@ export default function Dashboard() {
         const cat = categories?.find((c) => c.id === t.categoryId);
         const name = cat?.name || "Sem categoria";
         const color = cat?.color || "#ef4444";
+        // Pular transferências entre contas
+        if (name === "TRANSF. ENTRE CONTAS") return;
         if (!grouped[name]) grouped[name] = { value: 0, color };
         grouped[name].value += Math.abs(parseFloat(t.amount));
       });
@@ -114,6 +124,8 @@ export default function Dashboard() {
         const cat = categories?.find((c) => c.id === t.categoryId);
         const name = cat?.name || "Sem categoria";
         const color = cat?.color || "#ef4444";
+        // Pular transferências entre contas
+        if (name === "TRANSF. ENTRE CONTAS") return;
         if (!grouped[name]) grouped[name] = { value: 0, color };
         grouped[name].value += parseFloat(t.amount);
       });
@@ -289,6 +301,19 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+
+        {/* Transferências entre Contas */}
+        {transferBetweenAccounts > 0 && (
+          <div className="chart-card">
+            <h2 className="text-lg md:text-xl font-semibold mb-4 text-foreground">Transferência entre Contas — {dateRangeLabel}</h2>
+            <div className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-700">
+              <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">Total Transferido</p>
+              <p className="text-3xl md:text-4xl font-bold text-blue-700 dark:text-blue-300">
+                {formatBRL(transferBetweenAccounts)}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Bank Accounts */}
         {bankAccounts && bankAccounts.length > 0 && (
