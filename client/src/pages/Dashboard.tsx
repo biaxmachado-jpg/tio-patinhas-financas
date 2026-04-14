@@ -64,23 +64,35 @@ export default function Dashboard() {
   // Usar transacoes de cartao ja filtradas
   const currentMonthCCTransactions = creditCardTransactions || [];
 
-  // Calcular receitas e despesas do período selecionado
+  // Calcular receitas e despesas do período selecionado (SEM TRANSF. ENTRE CONTAS)
   const currentMonthIncome = (transactions || [])
-    .filter((t) => t.type === "income")
+    .filter((t) => {
+      const cat = categories?.find((c) => c.id === t.categoryId);
+      return t.type === "income" && cat?.name !== "TRANSF. ENTRE CONTAS";
+    })
     .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
 
   const currentMonthExpenseBank = (transactions || [])
-    .filter((t) => t.type === "expense")
+    .filter((t) => {
+      const cat = categories?.find((c) => c.id === t.categoryId);
+      return t.type === "expense" && cat?.name !== "TRANSF. ENTRE CONTAS";
+    })
     .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
 
-  // Estornos de cartão (negativos = receita)
+  // Estornos de cartão (negativos = receita) - SEM TRANSF. ENTRE CONTAS
   const currentMonthCCRefunds = currentMonthCCTransactions
-    .filter((t) => parseFloat(t.amount) < 0)
+    .filter((t) => {
+      const cat = categories?.find((c) => c.id === t.categoryId);
+      return parseFloat(t.amount) < 0 && cat?.name !== "TRANSF. ENTRE CONTAS";
+    })
     .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
 
-  // Gastos de cartão (positivos = despesa)
+  // Gastos de cartão (positivos = despesa) - SEM TRANSF. ENTRE CONTAS
   const currentMonthCCExpenses = currentMonthCCTransactions
-    .filter((t) => parseFloat(t.amount) > 0)
+    .filter((t) => {
+      const cat = categories?.find((c) => c.id === t.categoryId);
+      return parseFloat(t.amount) > 0 && cat?.name !== "TRANSF. ENTRE CONTAS";
+    })
     .reduce((sum, t) => sum + parseFloat(t.amount), 0);
 
   const totalIncome = currentMonthIncome + currentMonthCCRefunds;

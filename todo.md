@@ -759,3 +759,10 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Remover categoria "Transferência entre contas" do gráfico de despesas por categoria - Implementado
 - [x] Criar card separado para mostrar total de transferências - Implementado com estilo azul
 - [x] Testar visualização do novo card - Testado com sucesso
+
+
+## Alteração: Remover TRANSF. ENTRE CONTAS dos Totais de Receitas e Despesas
+
+- [x] Remover valores de "TRANSF. ENTRE CONTAS" do totalIncome - Implementado
+- [x] Remover valores de "TRANSF. ENTRE CONTAS" do totalExpenses - Implementado
+- [x] Testar se os totais estão corretos - Testado com sucesso (Despesas: R$ 706.108,19)
