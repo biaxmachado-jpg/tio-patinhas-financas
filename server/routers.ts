@@ -4,6 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
+import { storagePut } from "./storage";
 
 export const appRouter = router({
   system: systemRouter,
@@ -26,7 +27,28 @@ export const appRouter = router({
         (data) => data.name || data.email || data.profilePhoto,
         { message: "At least one field (name, email, or profilePhoto) must be provided" }
       ))
-      .mutation(({ ctx, input }) => db.updateUserProfile(ctx.user.id, input)),
+      .mutation(async ({ ctx, input }) => {
+        let processedInput = { ...input };
+        
+        if (input.profilePhoto) {
+          try {
+            const base64Data = input.profilePhoto;
+            const base64String = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
+            const buffer = Buffer.from(base64String, 'base64');
+            const { url } = await storagePut(
+              `users/${ctx.user.id}/profile-photo-${Date.now()}.jpg`,
+              buffer,
+              'image/jpeg'
+            );
+            processedInput.profilePhoto = url;
+          } catch (error) {
+            console.error('Erro ao fazer upload de foto:', error);
+            throw new Error('Falha ao fazer upload de foto');
+          }
+        }
+        
+        return db.updateUserProfile(ctx.user.id, processedInput);
+      }),
     
     getProfileHistory: protectedProcedure
       .input(z.object({ limit: z.number().min(1).max(100).optional() }).optional())

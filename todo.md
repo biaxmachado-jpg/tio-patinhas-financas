@@ -922,3 +922,25 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Copiar imagem do Tio Patinhas para a pasta public
 - [x] Adicionar link de favicon no index.html
 - [x] Testar favicon no navegador
+
+
+## Bug: Upload de Fotos no Perfil Não Está Funcionando
+
+- [ ] Investigar problema de upload de fotos no perfil
+- [ ] Debugar erro no frontend ou backend
+- [ ] Corrigir funcionalidade de upload
+- [ ] Testar upload de foto após correção
+
+
+## Feature: Padronizar Tamanho dos Cards de Categorias
+
+- [x] Reduzir altura dos cards de categorias
+- [x] Remover espaço em branco excessivo
+- [x] Manter cards em coluna única (um embaixo do outro)
+- [x] Testar layout em desktop e mobile
+
+## Bug: Upload de Fotos no Perfil (Continuação)
+
+- [x] Corrigir procedure auth.updateProfile para fazer upload para S3
+- [ ] Testar upload de foto no perfil
+- [ ] Verificar se foto aparece no avatar após upload

@@ -429,7 +429,7 @@ function CategoryCard({
   deletingRuleId,
 }: any) {
   return (
-    <Card className="p-4">
+    <Card className="p-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div
@@ -466,7 +466,7 @@ function CategoryCard({
       </div>
 
       {rules && rules.length > 0 && (
-        <div className="mt-4 pt-4 border-t">
+          <div className="mt-2 pt-2 border-t">
           <button
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
             onClick={() => setExpandedRules(expandedRules === category.id ? null : category.id)}
@@ -480,7 +480,7 @@ function CategoryCard({
           </button>
 
           {expandedRules === category.id && (
-            <div className="mt-3 space-y-2">
+            <div className="mt-2 space-y-1">
               {rules.map((rule: any) => (
                 <div key={rule.id} className="flex items-center justify-between text-sm p-2 bg-muted rounded">
                   <span>{rule.keywords}</span>
