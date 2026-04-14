@@ -38,7 +38,7 @@ const menuItems = [
   { icon: CreditCard, label: "Cartões de Crédito", path: "/cartoes" },
   { icon: TrendingDown, label: "Despesas", path: "/despesas" },
   { icon: TrendingUp, label: "Receitas", path: "/receitas" },
-  { icon: Target, label: "Orçamentos", path: "/orcamentos" },
+  { icon: Target, label: "Orçado x Real", path: "/orcamentos" },
   { icon: Upload, label: "Importar OFX", path: "/importar-ofx" },
   { icon: Database, label: "Banco de Dados", path: "/banco-de-dados" },
 ]

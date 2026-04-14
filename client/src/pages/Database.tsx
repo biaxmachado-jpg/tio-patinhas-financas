@@ -31,6 +31,11 @@ export default function Database() {
     },
   ];
 
+  const handleOpenDatabase = () => {
+    // Abre o painel de banco de dados da Manus em uma nova aba
+    window.open("https://manus.im/dashboard/database", "_blank");
+  };
+
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-4xl mx-auto space-y-8">
@@ -56,7 +61,7 @@ export default function Database() {
                   </CardDescription>
                 </div>
               </div>
-              <Button>
+              <Button onClick={handleOpenDatabase}>
                 <DatabaseIcon />
                 Database
                 <span className="text-xs ml-1">↗</span>
