@@ -652,3 +652,14 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Corrigir: Adicionado mode: 'default' ao Drizzle
 - [x] Testar: Todos os testes passando (43/44)
 - [x] Validar: Servidor retornando JSON válido em vez de HTML de erro
+
+
+## Nova Funcionalidade: Reorganizar Edição de Contas
+
+- [ ] Remover diálogo de edição da página "Contas Bancárias" (deixar só visualização)
+- [ ] Remover botões Editar/Excluir dos cards em "Contas Bancárias"
+- [ ] Adicionar toda edição (nome, banco, número, cor) em "Meu Perfil"
+- [ ] Adicionar botão Deletar em "Meu Perfil"
+- [ ] Adicionar seletor de cores em "Meu Perfil"
+- [ ] Remover diálogo de edição de cartões de crédito (deixar só visualização)
+- [ ] Adicionar edição de cartões em "Meu Perfil"

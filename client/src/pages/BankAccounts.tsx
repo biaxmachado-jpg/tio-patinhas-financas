@@ -31,7 +31,6 @@ export default function BankAccounts() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const [open, setOpen] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     bank: "",
@@ -42,8 +41,6 @@ export default function BankAccounts() {
 
   const { data: accounts, refetch } = trpc.bankAccounts.list.useQuery();
   const createMutation = trpc.bankAccounts.create.useMutation();
-  const updateMutation = trpc.bankAccounts.update.useMutation();
-  const deleteMutation = trpc.bankAccounts.delete.useMutation();
 
   if (!user) return null;
 
@@ -51,41 +48,19 @@ export default function BankAccounts() {
     e.preventDefault();
 
     try {
-      if (editingId) {
-        await updateMutation.mutateAsync({
-          id: editingId,
-          name: formData.name,
-          bank: formData.bank,
-          accountNumber: formData.accountNumber,
-          color: formData.color,
-        });
-        toast.success("Conta atualizada com sucesso!");
-      } else {
-        await createMutation.mutateAsync({
-          name: formData.name,
-          bank: formData.bank,
-          accountNumber: formData.accountNumber,
-          initialBalance: formData.initialBalance,
-          color: formData.color,
-        });
-        toast.success("Conta criada com sucesso!");
-      }
+      await createMutation.mutateAsync({
+        name: formData.name,
+        bank: formData.bank,
+        accountNumber: formData.accountNumber,
+        initialBalance: formData.initialBalance,
+        color: formData.color,
+      });
+      toast.success("Conta criada com sucesso!");
       setOpen(false);
-      setEditingId(null);
       setFormData({ name: "", bank: "", accountNumber: "", initialBalance: "0.00", color: "#3b82f6" });
       refetch();
     } catch (error) {
       toast.error("Erro ao salvar conta");
-    }
-  };
-
-  const handleDelete = async (id: number) => {
-    try {
-      await deleteMutation.mutateAsync({ id });
-      toast.success("Conta deletada com sucesso!");
-      refetch();
-    } catch (error) {
-      toast.error("Erro ao deletar conta");
     }
   };
 
@@ -226,45 +201,13 @@ export default function BankAccounts() {
                 onClick={() => navigate(`/contas/${account.id}`)}
               >
                 {/* Header colorido */}
-                <div
-                  className="p-4 text-white"
-                  style={{ backgroundColor: cardColor }}
-                >
-                  <div className="flex items-start justify-between">
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <h3 className="font-semibold text-base">{account.name}</h3>
-                      <p className="text-sm text-white/80">{account.bank}</p>
-                    </div>
-                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-white hover:bg-white/20 h-8 w-8 p-0"
-                        onClick={() => {
-                          setFormData({
-                            name: account.name,
-                            bank: account.bank,
-                            accountNumber: account.accountNumber || "",
-                            initialBalance: account.balance,
-                            color: (account as any).color || "#3b82f6",
-                          });
-                          setEditingId(account.id);
-                          setOpen(true);
-                        }}
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-white hover:bg-white/20 h-8 w-8 p-0"
-                        onClick={() => handleDelete(account.id)}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
+                  <div
+                    className="p-4 text-white"
+                    style={{ backgroundColor: cardColor }}
+                  >
+                    <h3 className="font-semibold text-base">{account.name}</h3>
+                    <p className="text-sm text-white/80">{account.bank}</p>
                   </div>
-                </div>
 
                 {/* Conteúdo */}
                 <div className="p-4 bg-card">

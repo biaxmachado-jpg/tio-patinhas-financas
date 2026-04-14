@@ -50,17 +50,25 @@ function EditBankAccountDialog({
   open,
   onOpenChange,
   onSave,
+  onDelete,
 }: {
   account: BankAccount | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (data: any) => void;
+  onDelete: (id: number) => void;
 }) {
   const [formData, setFormData] = useState({
     name: account?.name || "",
     bank: account?.bank || "",
     accountNumber: account?.accountNumber || "",
+    color: (account as any)?.color || "#3b82f6",
   });
+
+  const PRESET_COLORS = [
+    "#3b82f6", "#6366f1", "#8b5cf6", "#ec4899", "#ef4444", "#f97316",
+    "#eab308", "#22c55e", "#14b8a6", "#06b6d4", "#64748b", "#78716c",
+  ];
 
   const handleSave = () => {
     onSave(formData);
@@ -69,7 +77,7 @@ function EditBankAccountDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Editar Conta Bancária</DialogTitle>
           <DialogDescription>Atualize os dados da sua conta bancária</DialogDescription>
@@ -99,12 +107,40 @@ function EditBankAccountDialog({
               placeholder="Ex: 123456-7"
             />
           </div>
+          <div>
+            <label className="text-sm font-medium">Cor</label>
+            <div className="flex gap-2 flex-wrap">
+              {PRESET_COLORS.map((color) => (
+                <button
+                  key={color}
+                  className="w-8 h-8 rounded border-2 transition-all"
+                  style={{
+                    backgroundColor: color,
+                    borderColor: formData.color === color ? "#000" : "transparent",
+                  }}
+                  onClick={() => setFormData({ ...formData, color })}
+                />
+              ))}
+            </div>
+          </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
+        <DialogFooter className="flex gap-2 justify-between">
+          <Button
+            variant="destructive"
+            onClick={() => {
+              if (account?.id) onDelete(account.id);
+              onOpenChange(false);
+            }}
+          >
+            <Trash2 className="w-4 h-4 mr-1" />
+            Deletar
           </Button>
-          <Button onClick={handleSave}>Salvar</Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSave}>Salvar</Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -220,9 +256,23 @@ function MinhasContas() {
     setCardDialogOpen(true);
   };
 
-  const handleSaveBankAccount = (data: any) => {
-    console.log("Salvando conta bancária:", data);
-    // TODO: Implementar mutation tRPC para salvar
+  const updateBankAccountMutation = trpc.bankAccounts.update.useMutation();
+
+  const handleSaveBankAccount = async (data: any) => {
+    try {
+      if (editingBankAccount?.id) {
+        await updateBankAccountMutation.mutateAsync({
+          id: editingBankAccount.id,
+          name: data.name,
+          bank: data.bank,
+          accountNumber: data.accountNumber,
+          color: data.color,
+        });
+        refetchBankAccounts();
+      }
+    } catch (error) {
+      console.error("Erro ao salvar conta:", error);
+    }
   };
 
   const handleSaveCreditCard = (data: any) => {
@@ -280,28 +330,21 @@ function MinhasContas() {
                     style={{ backgroundColor: cardColor }}
                   >
                     <div className="flex items-start justify-between">
-                      <div onClick={(e) => e.stopPropagation()}>
+                      <div>
                         <h3 className="font-semibold text-base">{account.name}</h3>
                         <p className="text-sm text-white/80">{account.bank}</p>
                       </div>
-                      <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-white hover:bg-white/20 h-8 w-8 p-0"
-                          onClick={() => handleEditBankAccount(account)}
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-white hover:bg-white/20 h-8 w-8 p-0"
-                          onClick={() => setDeletingBankAccountId(account.id)}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-white hover:bg-white/20 h-8 w-8 p-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditBankAccount(account);
+                        }}
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </Button>
                     </div>
                   </div>
 
@@ -376,6 +419,15 @@ function MinhasContas() {
         open={bankDialogOpen}
         onOpenChange={setBankDialogOpen}
         onSave={handleSaveBankAccount}
+        onDelete={async (id) => {
+          try {
+            await deleteBankAccountMutation.mutateAsync({ id });
+            setBankDialogOpen(false);
+            refetchBankAccounts();
+          } catch (error) {
+            console.error("Erro ao deletar:", error);
+          }
+        }}
       />
       <EditCreditCardDialog
         card={editingCreditCard}
