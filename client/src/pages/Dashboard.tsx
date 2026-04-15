@@ -57,7 +57,7 @@ export default function Dashboard() {
         txDate.getMonth() + 1 === selectedMonth &&
         txDate.getFullYear() === selectedYear &&
         t.type === "income" &&
-        cat?.name !== "TRANSF. ENTRE CONTAS"
+        !cat?.name?.includes("TRANSF. ENTRE CONTAS")
       );
     })
     .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
@@ -70,7 +70,7 @@ export default function Dashboard() {
         txDate.getMonth() + 1 === selectedMonth &&
         txDate.getFullYear() === selectedYear &&
         t.type === "expense" &&
-        cat?.name !== "TRANSF. ENTRE CONTAS"
+        !cat?.name?.includes("TRANSF. ENTRE CONTAS")
       );
     })
     .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
@@ -103,7 +103,7 @@ export default function Dashboard() {
         txDate.getMonth() + 1 === selectedMonth &&
         txDate.getFullYear() === selectedYear &&
         t.type === "income" &&
-        cat?.name === "TRANSF. ENTRE CONTAS"
+        cat?.name?.includes("TRANSF. ENTRE CONTAS")
       );
     })
     .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
@@ -116,7 +116,7 @@ export default function Dashboard() {
         txDate.getMonth() + 1 === selectedMonth &&
         txDate.getFullYear() === selectedYear &&
         t.type === "expense" &&
-        cat?.name === "TRANSF. ENTRE CONTAS"
+        cat?.name?.includes("TRANSF. ENTRE CONTAS")
       );
     })
     .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
@@ -140,7 +140,7 @@ export default function Dashboard() {
         const cat = categories?.find((c) => c.id === t.categoryId);
         const name = cat?.name || "Sem categoria";
         const color = cat?.color || "#ef4444";
-        if (name === "TRANSF. ENTRE CONTAS") return;
+        if (name?.includes("TRANSF. ENTRE CONTAS")) return;
         if (!grouped[name]) grouped[name] = { value: 0, color };
         grouped[name].value += Math.abs(parseFloat(t.amount));
       });
@@ -151,7 +151,7 @@ export default function Dashboard() {
         const cat = categories?.find((c) => c.id === t.categoryId);
         const name = cat?.name || "Sem categoria";
         const color = cat?.color || "#ef4444";
-        if (name === "TRANSF. ENTRE CONTAS") return;
+        if (name?.includes("TRANSF. ENTRE CONTAS")) return;
         if (!grouped[name]) grouped[name] = { value: 0, color };
         grouped[name].value += parseFloat(t.amount);
       });
@@ -179,7 +179,7 @@ export default function Dashboard() {
         const cat = categories?.find((c) => c.id === t.categoryId);
         const name = cat?.name || "Sem categoria";
         const color = cat?.color || "#22c55e";
-        if (name === "TRANSF. ENTRE CONTAS") return;
+        if (name?.includes("TRANSF. ENTRE CONTAS")) return;
         if (!grouped[name]) grouped[name] = { value: 0, color };
         grouped[name].value += Math.abs(parseFloat(t.amount));
       });
@@ -190,7 +190,7 @@ export default function Dashboard() {
         const cat = categories?.find((c) => c.id === t.categoryId);
         const name = cat?.name || "Sem categoria";
         const color = cat?.color || "#22c55e";
-        if (name === "TRANSF. ENTRE CONTAS") return;
+        if (name?.includes("TRANSF. ENTRE CONTAS")) return;
         if (!grouped[name]) grouped[name] = { value: 0, color };
         grouped[name].value += Math.abs(parseFloat(t.amount));
       });

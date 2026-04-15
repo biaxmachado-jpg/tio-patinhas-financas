@@ -988,4 +988,4 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 
 - [x] Bug: Botão "Criar Transação" não funciona - Corrigido: mutation movida para nível do componente
 
-- [x] Remover "TRANSF. ENTRE CONTAS" de Despesas e Receitas na aba Visão Geral - Já estava implementado: card separado aparece quando há transferências
+- [x] Remover "TRANSF. ENTRE CONTAS" de Despesas e Receitas na aba Visão Geral - Criar card separado para transferências (CORRIGIDO: filtro alterado de comparação exata para .includes() para funcionar com prefixos numéricos - testado em Março/2026 e Abril/2026)
