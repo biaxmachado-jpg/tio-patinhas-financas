@@ -960,3 +960,8 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Testar reordenação de categorias de receitas - PAUSADO conforme solicitado
 - [x] Verificar se ordem persiste após recarregar página - PAUSADO conforme solicitado
 - [x] Substituir letras por ícones de receita/despesa na página de Orçamentos - Implementado
+
+
+## Bugs Reportados
+
+- [ ] Bug: Edição de categoria em transação não salva - Clica em editar, atribui categoria, salva mas não guarda

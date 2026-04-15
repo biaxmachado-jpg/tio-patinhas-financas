@@ -219,10 +219,10 @@ export default function CreditCardDetail() {
         updateData.description = value;
       }
 
-      // await updateTransactionMutation.mutateAsync(updateData);
-      // setEditingField(null);
-      // setEditingValue("");
-      // transactionsQuery.refetch();
+      await updateCreditCardTransactionMutation.mutateAsync(updateData);
+      setEditingField(null);
+      setEditingValue("");
+      transactionsQuery.refetch();
       toast.success("Transação atualizada com sucesso!");
     } catch (error) {
       console.error("Erro ao atualizar transação:", error);
