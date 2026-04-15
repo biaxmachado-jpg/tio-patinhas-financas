@@ -967,3 +967,5 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Bug: Edição de categoria em transação não salva - Corrigido: adicionado dialog com mutation para atualizar categoria + conversão de tipos
 
 - [x] Bug: Erro ao criar regra de categorização - Corrigido: adicionado campo `enabled: true` ao payload
+
+- [x] Adicionar filtro de categoria na página de Despesas - Implementado com dropdown, botão limpar e atualização em tempo real dos gráficos

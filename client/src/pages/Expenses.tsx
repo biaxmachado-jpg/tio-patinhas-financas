@@ -43,6 +43,7 @@ export default function Expenses() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [editingExpense, setEditingExpense] = useState<any>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [filterCategoryId, setFilterCategoryId] = useState<number | null>(null);
 
   const transactionsQuery = trpc.transactions.list.useQuery({});
   const categoriesQuery = trpc.categories.list.useQuery();
@@ -65,7 +66,8 @@ export default function Expenses() {
         if (
           txDate.getMonth() + 1 === selectedMonth &&
           txDate.getFullYear() === selectedYear &&
-          tx.type === "expense"
+          tx.type === "expense" &&
+          (!filterCategoryId || tx.categoryId === filterCategoryId)
         ) {
           allExpenses.push({
             id: `bank-${tx.id}`,
@@ -81,29 +83,33 @@ export default function Expenses() {
     }
 
     return allExpenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [transactionsQuery.data, selectedMonth, selectedYear]);
+  }, [transactionsQuery.data, selectedMonth, selectedYear, filterCategoryId]);
 
-  // Calcular totais por categoria com cores
+  // Calcular totais por categoria com cores (respeitando filtro)
   const expensesByCategory = useMemo(() => {
-    const grouped: Record<string, { value: number; color: string }> = {};
+    const grouped: Record<string, { value: number; color: string; id: number }> = {};
 
     expenses.forEach((exp) => {
       const category = categoriesQuery.data?.find((c: any) => c.id === exp.categoryId);
       const catName = category?.name || "Sem categoria";
       const catColor = category?.color || "#ef4444";
+      const catId = category?.id || 0;
 
       if (!grouped[catName]) {
-        grouped[catName] = { value: 0, color: catColor };
+        grouped[catName] = { value: 0, color: catColor, id: catId };
       }
       grouped[catName].value += exp.amount;
     });
 
     return Object.entries(grouped)
-      .map(([name, data]) => ({ name, value: data.value, color: data.color }))
+      .map(([name, data]) => ({ name, value: data.value, color: data.color, id: data.id }))
       .sort((a, b) => b.value - a.value);
   }, [expenses, categoriesQuery.data]);
 
   const totalExpenses = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+  const filterCategoryName = filterCategoryId
+    ? categoriesQuery.data?.find((c: any) => c.id === filterCategoryId)?.name
+    : null;
 
   const months = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -224,8 +230,36 @@ export default function Expenses() {
             <ChevronRight className="w-4 h-4" />
           </Button>
 
+          <div className="flex items-center gap-2 md:gap-3">
+            <Select value={filterCategoryId?.toString() || "all"} onValueChange={(v) => setFilterCategoryId(v === "all" ? null : parseInt(v, 10))}>
+              <SelectTrigger className="w-32 md:w-40 h-8 text-xs md:text-sm">
+                <SelectValue placeholder="Todas as categorias" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as categorias</SelectItem>
+                {categoriesQuery.data?.map((cat: any) => (
+                  <SelectItem key={cat.id} value={cat.id.toString()}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {filterCategoryId && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setFilterCategoryId(null)}
+                className="h-8 px-2 text-xs"
+              >
+                Limpar
+              </Button>
+            )}
+          </div>
+
           <div className="ml-auto">
-            <p className="text-xs text-muted-foreground">Total do período</p>
+            <p className="text-xs text-muted-foreground">
+              {filterCategoryName ? `Total - ${filterCategoryName}` : "Total do período"}
+            </p>
             <p className="text-lg md:text-2xl font-bold text-red-600">{formatBRL(totalExpenses)}</p>
           </div>
         </div>
