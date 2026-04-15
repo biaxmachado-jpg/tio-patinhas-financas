@@ -1047,3 +1047,19 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Verificar se o arquivo está sendo convertido para base64 corretamente - readAsArrayBuffer era usado para todos
 - [x] Corrigir a conversão de arquivo para string antes de enviar - Agora usa readAsText para PDF/OFX/TXT
 - [x] Testar o upload de PDF novamente - TESTADO E FUNCIONANDO! Arquivo bradesco2026.pdf importado com sucesso
+
+
+## Bug: PDF de Fatura do Cartão Desaparece - Transações Não São Extraídas
+
+- [ ] Investigar a função importFile no backend
+- [ ] Verificar se o PDF está sendo salvo no banco
+- [ ] Implementar parsing real do PDF para extrair transações
+- [ ] Salvar transações extraídas no banco de dados
+- [ ] Testar o upload de PDF novamente
+
+
+## Feature: Remover Saldo Final dos Cards de Contas Bancárias
+
+- [x] Modificar BankAccounts.tsx para remover exibição do saldo final nos cards - REMOVIDO
+- [x] Manter apenas: nome da conta, banco e número da conta - MANTIDO
+- [x] Testar a visualização dos cards - TESTADO E FUNCIONANDO!

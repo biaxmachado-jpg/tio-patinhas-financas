@@ -959,17 +959,66 @@ export async function importFile(userId: number, data: {
         throw new Error("Cartão não encontrado");
       }
 
-      // For now, return a success message
-      // In a real implementation, you would:
-      // 1. Parse the file based on fileType (PDF, OFX, XLSX)
-      // 2. Extract transactions from the file
-      // 3. Create transactions in the database
-      // 4. Return the number of transactions imported
+      // Parse file and extract transactions
+      let extractedTransactions: Array<{date: Date; description: string; amount: string; type: "income" | "expense"}> = [];
+      
+      if (data.fileType === "application/pdf" || data.fileName.endsWith(".pdf")) {
+        // For PDF, extract text and look for transaction patterns
+        // Simple pattern: look for lines with dates and amounts
+        const lines = data.fileContent.split('\n');
+        const datePattern = /(\d{1,2}\/(\d{1,2}|\d{4}))/g;
+        const amountPattern = /R\$\s*([\d.,]+)/g;
+        
+        lines.forEach(line => {
+          // Try to extract date and amount from each line
+          const dateMatch = line.match(datePattern);
+          const amountMatch = line.match(amountPattern);
+          
+          if (dateMatch && amountMatch) {
+            try {
+              const dateStr = dateMatch[0];
+              const amountStr = amountMatch[0].replace('R$ ', '').replace('.', '').replace(',', '.');
+              const date = new Date(dateStr);
+              
+              if (!isNaN(date.getTime())) {
+                extractedTransactions.push({
+                  date,
+                  description: line.substring(0, 50),
+                  amount: amountStr,
+                  type: "expense"
+                });
+              }
+            } catch (e) {
+              // Skip invalid entries
+            }
+          }
+        });
+      }
+      
+      // Create transactions in database
+      let transactionsCreated = 0;
+      for (const tx of extractedTransactions) {
+        try {
+          await db.insert(creditCardTransactions).values({
+            cardId: data.entityId,
+            userId,
+            date: tx.date,
+            description: tx.description,
+            amount: tx.amount,
+            type: tx.type,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+          transactionsCreated++;
+        } catch (e) {
+          // Continue with next transaction
+        }
+      }
 
       return {
         success: true,
-        message: "Arquivo importado com sucesso",
-        transactionsImported: 0,
+        message: `Arquivo importado com sucesso. ${transactionsCreated} transações criadas.`,
+        transactionsImported: transactionsCreated,
         fileName: data.fileName,
       };
     } else if (data.entityType === "bankAccount") {
@@ -981,17 +1030,63 @@ export async function importFile(userId: number, data: {
         throw new Error("Conta bancária não encontrada");
       }
 
-      // For now, return a success message
-      // In a real implementation, you would:
-      // 1. Parse the file based on fileType (PDF, OFX, XLSX)
-      // 2. Extract transactions from the file
-      // 3. Create transactions in the database
-      // 4. Return the number of transactions imported
+      // Parse file and extract transactions (similar logic as credit card)
+      let extractedTransactions: Array<{date: Date; description: string; amount: string; type: "income" | "expense"}> = [];
+      
+      if (data.fileType === "application/pdf" || data.fileName.endsWith(".pdf")) {
+        const lines = data.fileContent.split('\n');
+        const datePattern = /(\d{1,2}\/(\d{1,2}|\d{4}))/g;
+        const amountPattern = /R\$\s*([\d.,]+)/g;
+        
+        lines.forEach(line => {
+          const dateMatch = line.match(datePattern);
+          const amountMatch = line.match(amountPattern);
+          
+          if (dateMatch && amountMatch) {
+            try {
+              const dateStr = dateMatch[0];
+              const amountStr = amountMatch[0].replace('R$ ', '').replace('.', '').replace(',', '.');
+              const date = new Date(dateStr);
+              
+              if (!isNaN(date.getTime())) {
+                extractedTransactions.push({
+                  date,
+                  description: line.substring(0, 50),
+                  amount: amountStr,
+                  type: "expense"
+                });
+              }
+            } catch (e) {
+              // Skip invalid entries
+            }
+          }
+        });
+      }
+      
+      // Create transactions in database
+      let transactionsCreated = 0;
+      for (const tx of extractedTransactions) {
+        try {
+          await db.insert(transactions).values({
+            accountId: data.entityId,
+            userId,
+            date: tx.date,
+            description: tx.description,
+            amount: tx.amount,
+            type: tx.type,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+          transactionsCreated++;
+        } catch (e) {
+          // Continue with next transaction
+        }
+      }
 
       return {
         success: true,
-        message: "Arquivo importado com sucesso",
-        transactionsImported: 0,
+        message: `Arquivo importado com sucesso. ${transactionsCreated} transações criadas.`,
+        transactionsImported: transactionsCreated,
         fileName: data.fileName,
       };
     } else {
