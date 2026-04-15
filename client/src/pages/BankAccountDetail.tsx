@@ -945,7 +945,7 @@ export default function BankAccountDetail() {
           <AlertDialogHeader>
             <AlertDialogTitle>Aplicar Regras de Categorização</AlertDialogTitle>
             <AlertDialogDescription>
-              Deseja aplicar as regras de categorização automática a todas as transações desta conta? As transações serão categorizadas com base nas palavras-chave das regras.
+              Deseja aplicar as regras de categorização automática a <strong>TODAS as transações</strong> desta conta (não apenas as do mês atual)? As transações serão categorizadas com base nas palavras-chave das regras.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogAction onClick={() => {

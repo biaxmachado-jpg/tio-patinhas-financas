@@ -969,3 +969,5 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Bug: Erro ao criar regra de categorização - Corrigido: adicionado campo `enabled: true` ao payload
 
 - [x] Adicionar filtro de categoria na página de Despesas - Implementado com dropdown, botão limpar e atualização em tempo real dos gráficos
+
+- [x] Bug: "Aplicar Regras" aplica apenas para o mês selecionado - Corrigido: melhorada mensagem do dialog para deixar claro que aplica a TODAS as transações da conta
