@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ChevronLeft, ChevronRight, TrendingDown, Edit2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, TrendingDown } from "lucide-react";
 import { toast } from "sonner";
 import {
   BarChart,
@@ -378,15 +378,13 @@ export default function Expenses() {
                         {exp.description}
                       </td>
                       <td className="py-2 px-2 md:px-3">
-                        <button
-                          onClick={() => handleEditExpense(exp)}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium text-white whitespace-nowrap hover:opacity-80 transition-opacity"
+                        {/* REGRA: Abas de Despesas e Receitas são apenas visualização. Edição é feita em Contas Bancárias e Cartões de Crédito */}
+                        <div
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium text-white whitespace-nowrap"
                           style={{ backgroundColor: category?.color || "#ef4444" }}
-                          title="Clique para editar categoria"
                         >
                           {category?.name || "Sem categoria"}
-                          <Edit2 className="w-3 h-3" />
-                        </button>
+                        </div>
                       </td>
                       <td className="py-2 px-2 md:px-3 text-xs text-muted-foreground whitespace-nowrap">
                         {exp.source}

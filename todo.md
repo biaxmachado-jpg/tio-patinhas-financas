@@ -981,3 +981,5 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Bug: Erro "sql is not defined" na página /cartoes/1 - Corrigido: adicionado import de sql do drizzle-orm
 
 - [x] Permitir editar tipo e valor de transação na página de Contas Bancárias - Implementado com conversão automática de valor
+
+- [x] Remover ícone de editar (lápis) da aba Despesas - Abas de Despesas e Receitas são apenas visualização (REGRA documentada no código)
