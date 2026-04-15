@@ -972,5 +972,5 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 
 - [x] Bug: "Aplicar Regras" aplica apenas para o mês selecionado - Corrigido: melhorada mensagem do dialog para deixar claro que aplica a TODAS as transações da conta
 
-- [ ] Adicionar opção de período específico ao "Aplicar Regras"
+- [x] Adicionar opção de período específico ao "Aplicar Regras" - Implementado com radio buttons e campos de data
 - [x] Mover botão "+  Nova Transação" para embaixo, ao lado de "Filtros Avançados" - Implementado
