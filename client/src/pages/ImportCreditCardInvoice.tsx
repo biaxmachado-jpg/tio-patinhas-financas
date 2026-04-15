@@ -47,7 +47,13 @@ export default function ImportCreditCardInvoice() {
       reader.onload = async (event) => {
         try {
           const arrayBuffer = event.target?.result as ArrayBuffer;
-          const base64 = Buffer.from(arrayBuffer).toString("base64");
+          // Convert ArrayBuffer to base64 using browser API
+          const uint8Array = new Uint8Array(arrayBuffer);
+          let binaryString = '';
+          for (let i = 0; i < uint8Array.length; i++) {
+            binaryString += String.fromCharCode(uint8Array[i]);
+          }
+          const base64 = btoa(binaryString);
 
           await importMutation.mutateAsync({
             cardId: parseInt(cardId || "0"),
@@ -69,6 +75,10 @@ export default function ImportCreditCardInvoice() {
         }
       };
       reader.readAsArrayBuffer(file);
+      reader.onerror = () => {
+        toast.error("Erro ao ler o arquivo");
+        setIsLoading(false);
+      };
     } catch (error) {
       toast.error("Erro ao ler o arquivo");
       setIsLoading(false);

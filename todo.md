@@ -1006,3 +1006,10 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Criar a página ImportCreditCardInvoice.tsx - CRIADA com interface completa de upload
 - [x] Implementar upload de PDF e parsing de transações - Implementada função básica no db.ts
 - [x] Testar a funcionalidade de importação - TESTADO E FUNCIONANDO! Página exibe corretamente
+
+
+## Bug: Erro "Buffer is not defined" ao fazer upload de PDF
+
+- [x] Identificar que Buffer nao existe no navegador - E um objeto do Node.js
+- [x] Substituir Buffer.from() pela API nativa do navegador - Usar Uint8Array + btoa()
+- [x] Testar o upload com PDF de teste - FUNCIONANDO! Arquivo enviado com sucesso
