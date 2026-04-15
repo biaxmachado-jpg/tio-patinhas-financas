@@ -4,7 +4,9 @@ import { formatBRL } from "@/lib/currency";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, TrendingDown } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ChevronLeft, ChevronRight, TrendingDown, Edit2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   BarChart,
   Bar,
@@ -39,10 +41,14 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
 export default function Expenses() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [editingExpense, setEditingExpense] = useState<any>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
 
   const transactionsQuery = trpc.transactions.list.useQuery({});
   const categoriesQuery = trpc.categories.list.useQuery();
   const bankAccountsQuery = trpc.bankAccounts.list.useQuery();
+  const creditCardsQuery = trpc.creditCards.list.useQuery();
+  const updateTransactionMutation = trpc.transactions.update.useMutation();
 
   // Combinar e filtrar despesas:
   // - transactions com type = "expense" (valores negativos)
@@ -122,6 +128,34 @@ export default function Expenses() {
       setSelectedYear(selectedYear + 1);
     } else {
       setSelectedMonth(selectedMonth + 1);
+    }
+  };
+
+  const handleEditExpense = (exp: any) => {
+    setEditingExpense(exp);
+    setSelectedCategoryId(exp.categoryId || null);
+  };
+
+  const handleSaveCategory = async () => {
+    if (!editingExpense || !selectedCategoryId) {
+      toast.error("Selecione uma categoria");
+      return;
+    }
+
+    try {
+      const txId = parseInt(editingExpense.id.replace("bank-", ""), 10);
+      await updateTransactionMutation.mutateAsync({
+        id: txId,
+        categoryId: parseInt(selectedCategoryId, 10),
+      });
+      
+      toast.success("Categoria atualizada com sucesso!");
+      setEditingExpense(null);
+      setSelectedCategoryId(null);
+      transactionsQuery.refetch();
+    } catch (error) {
+      toast.error("Erro ao atualizar categoria");
+      console.error(error);
     }
   };
 
@@ -310,12 +344,15 @@ export default function Expenses() {
                         {exp.description}
                       </td>
                       <td className="py-2 px-2 md:px-3">
-                        <span
-                          className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-white whitespace-nowrap"
+                        <button
+                          onClick={() => handleEditExpense(exp)}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium text-white whitespace-nowrap hover:opacity-80 transition-opacity"
                           style={{ backgroundColor: category?.color || "#ef4444" }}
+                          title="Clique para editar categoria"
                         >
                           {category?.name || "Sem categoria"}
-                        </span>
+                          <Edit2 className="w-3 h-3" />
+                        </button>
                       </td>
                       <td className="py-2 px-2 md:px-3 text-xs text-muted-foreground whitespace-nowrap">
                         {exp.source}
@@ -348,6 +385,44 @@ export default function Expenses() {
           </div>
         )}
       </Card>
+
+      {/* Dialog de Edição de Categoria */}
+      <Dialog open={!!editingExpense} onOpenChange={(open) => !open && setEditingExpense(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Categoria</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm font-medium mb-2">Transação</p>
+              <p className="text-sm text-muted-foreground">{editingExpense?.description}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Categoria</label>
+              <Select value={selectedCategoryId?.toString() || ""} onValueChange={(v) => setSelectedCategoryId(parseInt(v, 10))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categoriesQuery.data?.map((cat: any) => (
+                    <SelectItem key={cat.id} value={cat.id.toString()}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingExpense(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveCategory} disabled={updateTransactionMutation.isPending}>
+              {updateTransactionMutation.isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

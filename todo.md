@@ -964,6 +964,6 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 
 ## Bugs Reportados
 
-- [ ] Bug: Edição de categoria em transação não salva - Clica em editar, atribui categoria, salva mas não guarda
+- [x] Bug: Edição de categoria em transação não salva - Corrigido: adicionado dialog com mutation para atualizar categoria + conversão de tipos
 
-- [ ] Bug: Erro ao criar regra de categorização - Toast "Erro ao criar regra" aparece ao tentar criar
+- [x] Bug: Erro ao criar regra de categorização - Corrigido: adicionado campo `enabled: true` ao payload
