@@ -1,4 +1,4 @@
-import { eq, and, desc, asc, gte, lte, sql } from "drizzle-orm";
+import { eq, desc, and, or, like, gte, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { 
@@ -341,7 +341,7 @@ export async function deleteCategorizationRule(id: number, userId: number) {
  * Apply categorization rules to all transactions in a bank account
  * Returns the number of transactions that were categorized
  */
-export async function applyCategorizationRulesToAccount(userId: number, accountId: number) {
+export async function applyCategorizationRulesToAccount(userId: number, accountId: number, startDate?: string, endDate?: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
@@ -359,14 +359,25 @@ export async function applyCategorizationRulesToAccount(userId: number, accountI
     return 0; // No rules to apply
   }
   
-  // Get all transactions for the account
+  // Build where conditions for transactions
+  const whereConditions: any[] = [
+    eq(transactions.userId, userId),
+    eq(transactions.accountId, accountId)
+  ];
+  
+  // Add date filters if provided
+  if (startDate) {
+    whereConditions.push(gte(transactions.date, new Date(startDate)));
+  }
+  if (endDate) {
+    whereConditions.push(lte(transactions.date, new Date(endDate)));
+  }
+  
+  // Get transactions for the account (with optional date filtering)
   const accountTransactions = await db
     .select()
     .from(transactions)
-    .where(and(
-      eq(transactions.userId, userId),
-      eq(transactions.accountId, accountId)
-    ));
+    .where(and(...whereConditions));
   
   let categorizedCount = 0;
   

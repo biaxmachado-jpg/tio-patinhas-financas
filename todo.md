@@ -971,3 +971,6 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Adicionar filtro de categoria na página de Despesas - Implementado com dropdown, botão limpar e atualização em tempo real dos gráficos
 
 - [x] Bug: "Aplicar Regras" aplica apenas para o mês selecionado - Corrigido: melhorada mensagem do dialog para deixar claro que aplica a TODAS as transações da conta
+
+- [ ] Adicionar opção de período específico ao "Aplicar Regras"
+- [x] Mover botão "+  Nova Transação" para embaixo, ao lado de "Filtros Avançados" - Implementado

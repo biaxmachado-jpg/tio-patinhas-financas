@@ -218,8 +218,12 @@ export const appRouter = router({
       .mutation(({ ctx, input }) => db.deleteTransaction(input.id, ctx.user.id)),
     
     applyRules: protectedProcedure
-      .input(z.object({ accountId: z.number() }))
-      .mutation(({ ctx, input }) => db.applyCategorizationRulesToAccount(ctx.user.id, input.accountId)),
+      .input(z.object({ 
+        accountId: z.number(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+      }))
+      .mutation(({ ctx, input }) => db.applyCategorizationRulesToAccount(ctx.user.id, input.accountId, input.startDate, input.endDate)),
   }),
 
   // ============= BUDGETS =============

@@ -1,4 +1,3 @@
-import { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { getBankTheme } from "@shared/bank-colors";
@@ -13,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useState, useRef, useEffect, useMemo } from "react";
 
 export default function BankAccountDetail() {
   // All useState hooks must come first
@@ -50,6 +50,9 @@ export default function BankAccountDetail() {
   const [incomeFilterStartDate, setIncomeFilterStartDate] = useState<string>("");
   const [incomeFilterEndDate, setIncomeFilterEndDate] = useState<string>("");
   const [showApplyRulesConfirmation, setShowApplyRulesConfirmation] = useState(false);
+  const [applyRulesMode, setApplyRulesMode] = useState<'all' | 'period'>('all');
+  const [applyRulesStartDate, setApplyRulesStartDate] = useState<string>("");
+  const [applyRulesEndDate, setApplyRulesEndDate] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // All tRPC queries
@@ -376,15 +379,7 @@ export default function BankAccountDetail() {
               <Wand2 className="w-4 h-4 mr-2" />
               {applyRulesMutation.isPending ? "Aplicando..." : "Aplicar Regras"}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowNewTransactionDialog(true)}
-              className="text-white border-white hover:bg-white/20"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Nova Transação
-            </Button>
+
           </div>
         </div>
 
@@ -619,6 +614,14 @@ export default function BankAccountDetail() {
             >
               <Filter className="w-4 h-4 mr-2" />
               Filtros Avançados
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowNewTransactionDialog(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Nova Transação
             </Button>
           </div>
         </div>
@@ -939,24 +942,95 @@ export default function BankAccountDetail() {
         </DialogContent>
       </Dialog>
 
-      {/* Apply Categorization Rules Confirmation Dialog */}
-      <AlertDialog open={showApplyRulesConfirmation} onOpenChange={setShowApplyRulesConfirmation}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Aplicar Regras de Categorização</AlertDialogTitle>
-            <AlertDialogDescription>
-              Deseja aplicar as regras de categorização automática a <strong>TODAS as transações</strong> desta conta (não apenas as do mês atual)? As transações serão categorizadas com base nas palavras-chave das regras.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogAction onClick={() => {
-            applyRulesMutation.mutate({ accountId: parseInt(accountId || "0") });
-            setShowApplyRulesConfirmation(false);
-          }}>
-            Aplicar
-          </AlertDialogAction>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Apply Categorization Rules Dialog */}
+      <Dialog open={showApplyRulesConfirmation} onOpenChange={setShowApplyRulesConfirmation}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Aplicar Regras de Categorização</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Aplicar regras a:</label>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    id="all-transactions"
+                    name="apply-mode"
+                    value="all"
+                    checked={applyRulesMode === 'all'}
+                    onChange={(e) => setApplyRulesMode(e.target.value as 'all' | 'period')}
+                    className="w-4 h-4"
+                  />
+                  <label htmlFor="all-transactions" className="text-sm cursor-pointer">
+                    Todas as transações da conta
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    id="period-transactions"
+                    name="apply-mode"
+                    value="period"
+                    checked={applyRulesMode === 'period'}
+                    onChange={(e) => setApplyRulesMode(e.target.value as 'all' | 'period')}
+                    className="w-4 h-4"
+                  />
+                  <label htmlFor="period-transactions" className="text-sm cursor-pointer">
+                    Período específico
+                  </label>
+                </div>
+              </div>
+            </div>
+            
+            {applyRulesMode === 'period' && (
+              <div className="space-y-3 p-3 bg-muted rounded-md">
+                <div>
+                  <label className="text-sm font-medium">Data inicial</label>
+                  <Input
+                    type="date"
+                    value={applyRulesStartDate}
+                    onChange={(e) => setApplyRulesStartDate(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Data final</label>
+                  <Input
+                    type="date"
+                    value={applyRulesEndDate}
+                    onChange={(e) => setApplyRulesEndDate(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setShowApplyRulesConfirmation(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                const payload: any = { accountId: parseInt(accountId || "0") };
+                if (applyRulesMode === 'period') {
+                  if (applyRulesStartDate) payload.startDate = applyRulesStartDate;
+                  if (applyRulesEndDate) payload.endDate = applyRulesEndDate;
+                }
+                applyRulesMutation.mutate(payload);
+                setShowApplyRulesConfirmation(false);
+                setApplyRulesMode('all');
+                setApplyRulesStartDate('');
+                setApplyRulesEndDate('');
+              }}
+              disabled={applyRulesMode === 'period' && (!applyRulesStartDate || !applyRulesEndDate)}
+            >
+              Aplicar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
