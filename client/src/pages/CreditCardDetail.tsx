@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Upload, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, AlertCircle, Edit2, Plus, X, Check, RefreshCw, Loader2 } from "lucide-react";
+import { Upload, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, AlertCircle, Edit2, Plus, X, Check, RefreshCw, Loader2, Wand2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -342,12 +342,12 @@ export default function CreditCardDetail() {
                 {isRecategorizing ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Recategorizando...
+                    Aplicando...
                   </>
                 ) : (
                   <>
-                    <RefreshCw className="w-4 h-4" />
-                    Reclassificar
+                    <Wand2 className="w-4 h-4" />
+                    Aplicar Regras
                   </>
                 )}
               </Button>

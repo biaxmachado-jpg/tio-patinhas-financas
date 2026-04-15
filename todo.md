@@ -974,3 +974,5 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 
 - [x] Adicionar opção de período específico ao "Aplicar Regras" - Implementado com radio buttons e campos de data
 - [x] Mover botão "+  Nova Transação" para embaixo, ao lado de "Filtros Avançados" - Implementado
+
+- [x] Renomear botão "Reclassificar" para "Aplicar Regras" na página de cartão de crédito - Implementado com ícone Wand2
