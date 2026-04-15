@@ -44,7 +44,6 @@ export default function Expenses() {
   const [editingExpense, setEditingExpense] = useState<any>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [filterCategoryId, setFilterCategoryId] = useState<number | null>(null);
-  const [selectedType, setSelectedType] = useState<"expense" | "income" | null>(null);
 
   const transactionsQuery = trpc.transactions.list.useQuery({});
   const categoriesQuery = trpc.categories.list.useQuery();
@@ -141,27 +140,19 @@ export default function Expenses() {
   const handleEditExpense = (exp: any) => {
     setEditingExpense(exp);
     setSelectedCategoryId(exp.categoryId || null);
-    // Determinar o tipo baseado no valor
-    setSelectedType(exp.amount < 0 ? "expense" : "income");
   };
 
   const handleSaveCategory = async () => {
-    if (!editingExpense || !selectedCategoryId || !selectedType) {
-      toast.error("Selecione uma categoria e tipo");
+    if (!editingExpense || !selectedCategoryId) {
+      toast.error("Selecione uma categoria");
       return;
     }
 
     try {
       const txId = parseInt(editingExpense.id.replace("bank-", ""), 10);
-      // Converter valor para positivo ou negativo baseado no tipo
-      const absoluteAmount = Math.abs(editingExpense.amount);
-      const newAmount = selectedType === "expense" ? -absoluteAmount : absoluteAmount;
-      
       await updateTransactionMutation.mutateAsync({
         id: txId,
         categoryId: parseInt(selectedCategoryId, 10),
-        type: selectedType,
-        amount: newAmount.toString(),
       });
       
       toast.success("Categoria atualizada com sucesso!");
@@ -439,18 +430,6 @@ export default function Expenses() {
             <div>
               <p className="text-sm font-medium mb-2">Transação</p>
               <p className="text-sm text-muted-foreground">{editingExpense?.description}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Tipo</label>
-              <Select value={selectedType || ""} onValueChange={(v) => setSelectedType(v as "expense" | "income")}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="expense">Saída (Despesa)</SelectItem>
-                  <SelectItem value="income">Entrada (Receita)</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
             <div>
               <label className="text-sm font-medium mb-2 block">Categoria</label>
