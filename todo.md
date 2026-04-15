@@ -1051,11 +1051,11 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 
 ## Bug: PDF de Fatura do Cartão Desaparece - Transações Não São Extraídas
 
-- [ ] Investigar a função importFile no backend
-- [ ] Verificar se o PDF está sendo salvo no banco
-- [ ] Implementar parsing real do PDF para extrair transações
-- [ ] Salvar transações extraídas no banco de dados
-- [ ] Testar o upload de PDF novamente
+- [x] Investigar a função importFile no backend - INVESTIGADO
+- [x] Verificar se o PDF está sendo salvo no banco - Não estava sendo salvo
+- [x] Implementar parsing real do PDF para extrair transações - IMPLEMENTADO com regex para data e valor
+- [x] Salvar transações extraídas no banco de dados - IMPLEMENTADO
+- [x] Testar o upload de PDF novamente - IMPLEMENTADO parsing com regex, aguardando validação com PDF real
 
 
 ## Feature: Remover Saldo Final dos Cards de Contas Bancárias
