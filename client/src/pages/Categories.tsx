@@ -135,6 +135,7 @@ export default function Categories() {
         matchType: ruleFormData.matchType,
         caseSensitive: ruleFormData.caseSensitive,
         priority: parseInt(ruleFormData.priority),
+        enabled: true,
       });
 
       toast.success("Regra criada com sucesso!");
