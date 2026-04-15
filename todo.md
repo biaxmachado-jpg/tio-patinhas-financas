@@ -989,3 +989,12 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Bug: Botão "Criar Transação" não funciona - Corrigido: mutation movida para nível do componente
 
 - [x] Remover "TRANSF. ENTRE CONTAS" de Despesas e Receitas na aba Visão Geral - Criar card separado para transferências (CORRIGIDO: filtro alterado de comparação exata para .includes() para funcionar com prefixos numéricos - testado em Março/2026 e Abril/2026)
+
+
+## Bug: Botão "+  Novo Cartão" Não Funciona
+
+- [x] Investigar por que o botão "+  Novo Cartão" na página de Cartões de Crédito não abre o dialog - CORRIGIDO
+- [x] Verificar se o handler de clique está configurado corretamente - Estava faltando o DialogContent
+- [x] Verificar se há erros no console do navegador - Erro 400 era por tipo de dado incorreto
+- [x] Corrigir o bug - Adicionado CreateCreditCardDialog com formulário completo e corrigido tipo de limit
+- [x] Testar a funcionalidade após correção - TESTADO E FUNCIONANDO! Novo cartão Nubank Roxo criado com sucesso

@@ -72,6 +72,7 @@ export default function CreditCards() {
               <span className="sm:hidden">Novo</span>
             </Button>
           </DialogTrigger>
+          <CreateCreditCardDialog open={open} onOpenChange={handleOpenChange} onSuccess={() => cardsQuery.refetch()} />
         </Dialog>
       </div>
 
@@ -155,5 +156,162 @@ export default function CreditCards() {
         </Card>
       )}
     </div>
+  );
+}
+
+function CreateCreditCardDialog({ open, onOpenChange, onSuccess }: any) {
+  const [formData, setFormData] = useState({
+    name: "",
+    brand: "Visa",
+    lastFourDigits: "",
+    limit: "",
+    dueDay: "10",
+    closingDay: "5",
+    color: "#1434CB",
+  });
+  const [selectedColor, setSelectedColor] = useState("#1434CB");
+  const createMutation = trpc.creditCards.create.useMutation();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await createMutation.mutateAsync({
+        name: formData.name,
+        brand: formData.brand,
+        lastFourDigits: formData.lastFourDigits,
+        limit: formData.limit, // Enviar como string conforme esperado pelo schema
+        dueDay: parseInt(formData.dueDay),
+        closingDay: parseInt(formData.closingDay),
+        color: selectedColor,
+      });
+      toast.success("Cartão criado com sucesso!");
+      setFormData({
+        name: "",
+        brand: "Visa",
+        lastFourDigits: "",
+        limit: "",
+        dueDay: "10",
+        closingDay: "5",
+        color: "#1434CB",
+      });
+      setSelectedColor("#1434CB");
+      onOpenChange(false);
+      onSuccess();
+    } catch (error) {
+      toast.error("Erro ao criar cartão");
+    }
+  };
+
+  return (
+    <DialogContent className="max-w-md">
+      <DialogHeader>
+        <DialogTitle>Novo Cartão de Crédito</DialogTitle>
+      </DialogHeader>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Label htmlFor="name">Nome do Cartão</Label>
+          <Input
+            id="name"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="Ex: Master Black Itaú"
+            required
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="brand">Bandeira</Label>
+          <Select value={formData.brand} onValueChange={(value) => setFormData({ ...formData, brand: value })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CARD_BRANDS.map((brand) => (
+                <SelectItem key={brand.value} value={brand.value}>
+                  {brand.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label htmlFor="lastFourDigits">4 Últimos Dígitos</Label>
+          <Input
+            id="lastFourDigits"
+            value={formData.lastFourDigits}
+            onChange={(e) => setFormData({ ...formData, lastFourDigits: e.target.value.slice(0, 4) })}
+            placeholder="Ex: 8631"
+            maxLength={4}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="limit">Limite (R$)</Label>
+          <Input
+            id="limit"
+            type="number"
+            step="0.01"
+            value={formData.limit}
+            onChange={(e) => setFormData({ ...formData, limit: e.target.value })}
+            placeholder="Ex: 10000"
+            required
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="dueDay">Dia de Vencimento</Label>
+            <Input
+              id="dueDay"
+              type="number"
+              min="1"
+              max="31"
+              value={formData.dueDay}
+              onChange={(e) => setFormData({ ...formData, dueDay: e.target.value })}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="closingDay">Dia de Fechamento</Label>
+            <Input
+              id="closingDay"
+              type="number"
+              min="1"
+              max="31"
+              value={formData.closingDay}
+              onChange={(e) => setFormData({ ...formData, closingDay: e.target.value })}
+              required
+            />
+          </div>
+        </div>
+
+        <div>
+          <Label>Cor do Cartão</Label>
+          <div className="flex gap-2 flex-wrap">
+            {PRESET_COLORS.map((color) => (
+              <button
+                key={color}
+                type="button"
+                className={`w-8 h-8 rounded border-2 ${
+                  selectedColor === color ? "border-foreground" : "border-transparent"
+                }`}
+                style={{ backgroundColor: color }}
+                onClick={() => setSelectedColor(color)}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="flex gap-2 justify-end">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={createMutation.isPending}>
+            {createMutation.isPending ? "Criando..." : "Criar Cartão"}
+          </Button>
+        </div>
+      </form>
+    </DialogContent>
   );
 }
