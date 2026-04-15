@@ -114,6 +114,25 @@ export default function BankAccountDetail() {
     },
   });
 
+  const createTransactionMutation = trpc.transactions.create.useMutation({
+    onSuccess: () => {
+      toast.success("Transação criada com sucesso");
+      setShowNewTransactionDialog(false);
+      setNewTransactionData({
+        description: '',
+        categoryId: '',
+        amount: '',
+        date: format(new Date(), 'yyyy-MM-dd'),
+        notes: '',
+      });
+      transactionsQuery.refetch();
+    },
+    onError: (error) => {
+      console.error("Erro ao criar transação:", error);
+      toast.error("Erro ao criar transação");
+    },
+  });
+
   const updateMonthlyBalanceMutation = trpc.bankAccounts.updateMonthlyBalance.useMutation({
     onSuccess: () => {
       toast.success("Saldo inicial atualizado com sucesso");
@@ -315,25 +334,7 @@ export default function BankAccountDetail() {
     }
 
     try {
-      const createMutation = trpc.transactions.create.useMutation({
-        onSuccess: () => {
-          toast.success("Transação criada com sucesso");
-          setShowNewTransactionDialog(false);
-          setNewTransactionData({
-            description: '',
-            categoryId: '',
-            amount: '',
-            date: format(new Date(), 'yyyy-MM-dd'),
-            notes: '',
-          });
-          transactionsQuery.refetch();
-        },
-        onError: () => {
-          toast.error("Erro ao criar transação");
-        },
-      });
-
-      await createMutation.mutateAsync({
+      await createTransactionMutation.mutateAsync({
         accountId: parseInt(accountId || "0"),
         categoryId: parseInt(newTransactionData.categoryId),
         type: newTransactionType,
