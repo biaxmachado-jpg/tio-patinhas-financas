@@ -987,3 +987,5 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Bug: Soma de Saídas do Mês está incorreta - Corrigido: adicionado Math.abs() para lidar com valores negativos corretamente
 
 - [x] Bug: Botão "Criar Transação" não funciona - Corrigido: mutation movida para nível do componente
+
+- [x] Remover "TRANSF. ENTRE CONTAS" de Despesas e Receitas na aba Visão Geral - Já estava implementado: card separado aparece quando há transferências
