@@ -280,11 +280,14 @@ export default function BankAccountDetail() {
       if (field === 'category') {
         updateData.categoryId = parseInt(value);
       } else if (field === 'amount') {
-        updateData.amount = convertBRLToNumber(value);
+        updateData.amount = convertBRLToNumber(value).toString();
       } else if (field === 'description') {
         updateData.description = value;
       } else if (field === 'type') {
         updateData.type = value as 'income' | 'expense';
+        // Converter valor para positivo ou negativo conforme o tipo
+        const absoluteAmount = Math.abs(transaction.amount);
+        updateData.amount = (value === 'expense' ? -absoluteAmount : absoluteAmount).toString();
       }
 
       await updateTransactionMutation.mutateAsync(updateData);
@@ -880,6 +883,24 @@ export default function BankAccountDetail() {
                   }}
                   placeholder="Descrição da transação"
                 />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Tipo</label>
+                <Select
+                  value={editingField === 'type' ? editingValue : (selectedTransaction.amount > 0 ? 'income' : 'expense')}
+                  onValueChange={(value) => {
+                    setEditingField('type');
+                    setEditingValue(value);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="income">Entrada (Receita)</SelectItem>
+                    <SelectItem value="expense">Saída (Despesa)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="text-sm font-medium mb-1 block">Valor</label>
