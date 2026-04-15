@@ -979,3 +979,5 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Adicionar botão "+  Nova Transação" ao lado de "Editar Fatura" na página de cartão de crédito - Implementado
 
 - [x] Bug: Erro "sql is not defined" na página /cartoes/1 - Corrigido: adicionado import de sql do drizzle-orm
+
+- [x] Permitir editar tipo de transação (Entrada/Saída) na página de Despesas - Implementado com conversão automática de valor
