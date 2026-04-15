@@ -1023,3 +1023,11 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Remover rotas antigas e imports duplicados - REMOVIDAS ImportarOFX, ImportCreditCardOFX, ImportBankAccountOFX
 - [x] Testar em ambos os contextos (cartões e contas) - TESTADO E FUNCIONANDO!
 - [x] Validar aceitação de PDF, OFX, TXT, XLSX e XLS - VALIDADO com máximo 10MB
+
+
+## Bug: Erro "No procedure found on path transactions.list"
+
+- [x] Investigar onde transactions.list está sendo chamado - Encontrado em 7 páginas
+- [x] Verificar se a procedure existe no routers.ts - Existia mas estava sendo sobrescrita
+- [x] Criar ou corrigir a procedure transactions.list - Consolidados dois routers duplicados em um único
+- [x] Testar a correção na pré-visualização - TESTADO E FUNCIONANDO! Página /contas/60003 carrega sem erros

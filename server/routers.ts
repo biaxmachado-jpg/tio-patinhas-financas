@@ -224,6 +224,14 @@ export const appRouter = router({
         endDate: z.string().optional(),
       }))
       .mutation(({ ctx, input }) => db.applyCategorizationRulesToAccount(ctx.user.id, input.accountId, input.startDate, input.endDate)),
+    
+    importFromOFX: protectedProcedure
+      .input(z.object({
+        accountId: z.number(),
+        ofxContent: z.string(),
+        fileName: z.string(),
+      }))
+      .mutation(({ ctx, input }) => db.importTransactionsFromOFX(ctx.user.id, input)),
   }),
 
   // ============= BUDGETS =============
@@ -447,16 +455,7 @@ export const appRouter = router({
       .mutation(({ ctx, input }) => db.importFile(ctx.user.id, input)),
   }),
 
-  // ============= TRANSACTIONS =============
-  transactions: router({
-    importFromOFX: protectedProcedure
-      .input(z.object({
-        accountId: z.number(),
-        ofxContent: z.string(),
-        fileName: z.string(),
-      }))
-      .mutation(({ ctx, input }) => db.importTransactionsFromOFX(ctx.user.id, input)),
-  }),
+
 
    // ============= DASHBOARD =============
   dashboard: router({
