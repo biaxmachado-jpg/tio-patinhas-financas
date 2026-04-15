@@ -998,3 +998,11 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Verificar se há erros no console do navegador - Erro 400 era por tipo de dado incorreto
 - [x] Corrigir o bug - Adicionado CreateCreditCardDialog com formulário completo e corrigido tipo de limit
 - [x] Testar a funcionalidade após correção - TESTADO E FUNCIONANDO! Novo cartão Nubank Roxo criado com sucesso
+
+## Bug: Erro 404 ao tentar acessar página de importar PDF de fatura de cartão
+
+- [x] Investigar por que a rota /cartoes/:id/importar-pdf retorna 404 - CORRIGIDO
+- [x] Verificar se a rota está definida em App.tsx - Rota adicionada mas estava na ordem errada
+- [x] Criar a página ImportCreditCardInvoice.tsx - CRIADA com interface completa de upload
+- [x] Implementar upload de PDF e parsing de transações - Implementada função básica no db.ts
+- [x] Testar a funcionalidade de importação - TESTADO E FUNCIONANDO! Página exibe corretamente

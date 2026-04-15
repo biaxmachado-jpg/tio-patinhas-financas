@@ -13,6 +13,7 @@ import Transactions from "./pages/Transactions";
 import Budgets from "./pages/Budgets";
 import CreditCards from "./pages/CreditCards";
 import CreditCardDetail from "./pages/CreditCardDetail";
+import ImportCreditCardInvoice from "./pages/ImportCreditCardInvoice";
 import Profile from "./pages/Profile";
 import Database from "./pages/Database";
 import ImportarOFX from "./pages/ImportarOFX";
@@ -65,6 +66,11 @@ function Router() {
       <Route path="/cartoes">
         <DashboardLayout>
           <CreditCards />
+        </DashboardLayout>
+      </Route>
+      <Route path="/cartoes/:cardId/importar-pdf">
+        <DashboardLayout>
+          <ImportCreditCardInvoice />
         </DashboardLayout>
       </Route>
       <Route path="/cartoes/:cardId">

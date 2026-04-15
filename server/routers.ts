@@ -416,6 +416,14 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(({ ctx, input }) => db.deleteCreditCardTransaction(input.id, ctx.user.id)),
+    
+    importFromPDF: protectedProcedure
+      .input(z.object({
+        cardId: z.number(),
+        pdfBase64: z.string(),
+        fileName: z.string(),
+      }))
+      .mutation(({ ctx, input }) => db.importCreditCardTransactionsFromPDF(ctx.user.id, input)),
   }),
 
    // ============= DASHBOARD =============
