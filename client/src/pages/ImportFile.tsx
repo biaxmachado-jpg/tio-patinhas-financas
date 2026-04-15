@@ -63,13 +63,15 @@ export default function ImportFile() {
     setIsLoading(true);
     try {
       const reader = new FileReader();
+      
+      const isExcelFile = file.name.endsWith(".xlsx") || file.name.endsWith(".xls");
+      
       reader.onload = async (event) => {
         try {
           let fileContent: string;
           
-          // Handle different file types
-          if (file.name.endsWith(".xlsx") || file.name.endsWith(".xls")) {
-            // For Excel files, we'll send as base64
+          if (isExcelFile) {
+            // For Excel files, convert ArrayBuffer to base64
             const arrayBuffer = event.target?.result as ArrayBuffer;
             const uint8Array = new Uint8Array(arrayBuffer);
             let binaryString = '';
@@ -78,7 +80,7 @@ export default function ImportFile() {
             }
             fileContent = btoa(binaryString);
           } else {
-            // For text-based files (PDF, OFX, TXT)
+            // For text-based files (PDF, OFX, TXT), result is already a string
             fileContent = event.target?.result as string;
           }
 
@@ -113,8 +115,12 @@ export default function ImportFile() {
         setIsLoading(false);
       };
 
-      // Use readAsArrayBuffer for all files to handle binary data
-      reader.readAsArrayBuffer(file);
+      // Use readAsText for text files, readAsArrayBuffer for binary files
+      if (isExcelFile) {
+        reader.readAsArrayBuffer(file);
+      } else {
+        reader.readAsText(file);
+      }
     } catch (error) {
       toast.error("Erro ao ler o arquivo");
       setIsLoading(false);

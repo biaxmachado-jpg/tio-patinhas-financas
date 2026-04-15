@@ -1031,3 +1031,19 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Verificar se a procedure existe no routers.ts - Existia mas estava sendo sobrescrita
 - [x] Criar ou corrigir a procedure transactions.list - Consolidados dois routers duplicados em um único
 - [x] Testar a correção na pré-visualização - TESTADO E FUNCIONANDO! Página /contas/60003 carrega sem erros
+
+
+## Feature: Mostrar Saldo Final nos Cards de Contas Bancárias
+
+- [ ] Investigar a estrutura dos cards de contas em BankAccounts.tsx
+- [ ] Modificar o layout dos cards para destacar o saldo final (atual) de cada conta
+- [ ] Testar a visualização dos cards na pré-visualização
+- [ ] Verificar se o saldo está sendo calculado corretamente
+
+
+## Bug: Erro ao fazer upload de PDF de fatura de cartão - "Invalid input: expected string, received object"
+
+- [x] Investigar o erro de validação no ImportFile.tsx - ENCONTRADO
+- [x] Verificar se o arquivo está sendo convertido para base64 corretamente - readAsArrayBuffer era usado para todos
+- [x] Corrigir a conversão de arquivo para string antes de enviar - Agora usa readAsText para PDF/OFX/TXT
+- [x] Testar o upload de PDF novamente - TESTADO E FUNCIONANDO! Arquivo bradesco2026.pdf importado com sucesso
