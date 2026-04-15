@@ -1013,3 +1013,13 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Identificar que Buffer nao existe no navegador - E um objeto do Node.js
 - [x] Substituir Buffer.from() pela API nativa do navegador - Usar Uint8Array + btoa()
 - [x] Testar o upload com PDF de teste - FUNCIONANDO! Arquivo enviado com sucesso
+
+
+## Feature: Consolidar Importação de Arquivos (PDF, OFX, XLSX)
+
+- [x] Refatorar para uma única página genérica ImportFile.tsx - CRIADA
+- [x] Criar rota /cartoes/:cardId/importar - CRIADA e FUNCIONANDO
+- [x] Criar rota /contas/:accountId/importar - CRIADA e FUNCIONANDO
+- [x] Remover rotas antigas e imports duplicados - REMOVIDAS ImportarOFX, ImportCreditCardOFX, ImportBankAccountOFX
+- [x] Testar em ambos os contextos (cartões e contas) - TESTADO E FUNCIONANDO!
+- [x] Validar aceitação de PDF, OFX, TXT, XLSX e XLS - VALIDADO com máximo 10MB

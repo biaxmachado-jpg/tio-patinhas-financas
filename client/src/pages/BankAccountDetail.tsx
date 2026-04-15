@@ -278,7 +278,7 @@ export default function BankAccountDetail() {
   const monthName = format(new Date(selectedYear, selectedMonth - 1), "MMMM", { locale: ptBR });
 
   const handleImportClick = () => {
-    navigate(`/contas/${accountId}/importar-pdf`);
+    navigate(`/contas/${accountId}/importar`);
   };
 
   const handleClearFilters = () => {

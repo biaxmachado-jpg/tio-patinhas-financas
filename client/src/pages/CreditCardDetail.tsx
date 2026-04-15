@@ -322,17 +322,10 @@ export default function CreditCardDetail() {
             <div className="flex gap-2">
               <Button 
                 className="gap-2 bg-white text-gray-900 hover:bg-gray-100"
-                onClick={() => navigate(`/cartoes/${cardId}/importar-ofx`)}
+                onClick={() => navigate(`/cartoes/${cardId}/importar`)}
               >
                 <Upload className="w-4 h-4" />
-                Importar OFX
-              </Button>
-              <Button 
-                className="gap-2 bg-white text-gray-900 hover:bg-gray-100"
-                onClick={() => navigate(`/cartoes/${cardId}/importar-pdf`)}
-              >
-                <Upload className="w-4 h-4" />
-                Importar PDF
+                Importar
               </Button>
               <Button 
                 className="gap-2 bg-white text-gray-900 hover:bg-gray-100"

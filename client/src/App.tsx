@@ -13,10 +13,9 @@ import Transactions from "./pages/Transactions";
 import Budgets from "./pages/Budgets";
 import CreditCards from "./pages/CreditCards";
 import CreditCardDetail from "./pages/CreditCardDetail";
-import ImportCreditCardInvoice from "./pages/ImportCreditCardInvoice";
+import ImportFile from "./pages/ImportFile";
 import Profile from "./pages/Profile";
 import Database from "./pages/Database";
-import ImportarOFX from "./pages/ImportarOFX";
 import Expenses from "./pages/Expenses";
 import Income from "./pages/Income";
 
@@ -53,11 +52,6 @@ function Router() {
           <Income />
         </DashboardLayout>
       </Route>
-      <Route path="/importar-ofx">
-        <DashboardLayout>
-          <ImportarOFX />
-        </DashboardLayout>
-      </Route>
       <Route path="/orcamentos">
         <DashboardLayout>
           <Budgets />
@@ -68,9 +62,9 @@ function Router() {
           <CreditCards />
         </DashboardLayout>
       </Route>
-      <Route path="/cartoes/:cardId/importar-pdf">
+      <Route path="/cartoes/:cardId/importar">
         <DashboardLayout>
-          <ImportCreditCardInvoice />
+          <ImportFile />
         </DashboardLayout>
       </Route>
       <Route path="/cartoes/:cardId">
@@ -78,14 +72,14 @@ function Router() {
           <CreditCardDetail />
         </DashboardLayout>
       </Route>
-      <Route path="/banco-de-dados">
+      <Route path="/contas/:accountId/importar">
         <DashboardLayout>
-          <Database />
+          <ImportFile />
         </DashboardLayout>
       </Route>
-      <Route path="/perfil">
+      <Route path="/contas/:accountId">
         <DashboardLayout>
-          <Profile />
+          <BankAccountDetail />
         </DashboardLayout>
       </Route>
       <Route path="/404" component={NotFound} />

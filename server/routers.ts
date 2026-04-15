@@ -424,6 +424,38 @@ export const appRouter = router({
         fileName: z.string(),
       }))
       .mutation(({ ctx, input }) => db.importCreditCardTransactionsFromPDF(ctx.user.id, input)),
+    
+    importFromOFX: protectedProcedure
+      .input(z.object({
+        cardId: z.number(),
+        ofxContent: z.string(),
+        fileName: z.string(),
+      }))
+      .mutation(({ ctx, input }) => db.importCreditCardTransactionsFromOFX(ctx.user.id, input)),
+  }),
+
+  // ============= FILES =============
+  files: router({
+    import: protectedProcedure
+      .input(z.object({
+        entityType: z.enum(["creditCard", "bankAccount"]),
+        entityId: z.number(),
+        fileContent: z.string(),
+        fileName: z.string(),
+        fileType: z.string(),
+      }))
+      .mutation(({ ctx, input }) => db.importFile(ctx.user.id, input)),
+  }),
+
+  // ============= TRANSACTIONS =============
+  transactions: router({
+    importFromOFX: protectedProcedure
+      .input(z.object({
+        accountId: z.number(),
+        ofxContent: z.string(),
+        fileName: z.string(),
+      }))
+      .mutation(({ ctx, input }) => db.importTransactionsFromOFX(ctx.user.id, input)),
   }),
 
    // ============= DASHBOARD =============
