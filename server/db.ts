@@ -175,7 +175,60 @@ export async function deleteCategory(id: number, userId: number) {
 export async function getBankAccounts(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(bankAccounts).where(eq(bankAccounts.userId, userId)).orderBy(asc(bankAccounts.name));
+  
+  const accounts = await db.select().from(bankAccounts).where(eq(bankAccounts.userId, userId)).orderBy(asc(bankAccounts.name));
+  
+  // Calcular saldo final para cada conta (SALDO INICIAL + ENTRADAS - SAÍDAS do mês atual)
+  const currentMonth = new Date().getMonth() + 1;
+  const currentYear = new Date().getFullYear();
+  
+  const accountsWithFinalBalance = await Promise.all(
+    accounts.map(async (account) => {
+      try {
+        const txList = await db
+          .select()
+          .from(transactions)
+          .where(
+            and(
+              eq(transactions.accountId, account.id),
+              eq(transactions.userId, userId)
+            )
+          );
+        
+        // Calcular entradas e saídas do mês atual
+        let monthlyIncome = 0;
+        let monthlyExpense = 0;
+        
+        txList.forEach((tx) => {
+          const txDate = new Date(tx.date);
+          if (txDate.getMonth() + 1 === currentMonth && txDate.getFullYear() === currentYear) {
+            if (tx.type === "income") {
+              monthlyIncome += parseFloat(tx.amount || "0");
+            } else {
+              monthlyExpense += parseFloat(tx.amount || "0");
+            }
+          }
+        });
+        
+        const initialBalance = parseFloat(account.balance || "0");
+        const finalBalance = initialBalance + monthlyIncome - monthlyExpense;
+        
+        return {
+          ...account,
+          balance: account.balance,
+          finalBalance: finalBalance.toString(),
+        };
+      } catch (error) {
+        console.error(`Error calculating balance for account ${account.id}:`, error);
+        return {
+          ...account,
+          finalBalance: account.balance,
+        };
+      }
+    })
+  );
+  
+  return accountsWithFinalBalance;
 }
 
 export async function getBankAccountById(id: number, userId: number) {

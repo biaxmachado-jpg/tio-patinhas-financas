@@ -1035,10 +1035,10 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 
 ## Feature: Mostrar Saldo Final nos Cards de Contas Bancárias
 
-- [ ] Investigar a estrutura dos cards de contas em BankAccounts.tsx
-- [ ] Modificar o layout dos cards para destacar o saldo final (atual) de cada conta
-- [ ] Testar a visualização dos cards na pré-visualização
-- [ ] Verificar se o saldo está sendo calculado corretamente
+- [x] Investigar a estrutura dos cards de contas em BankAccounts.tsx - INVESTIGADO
+- [x] Modificar o layout dos cards para destacar o saldo final (atual) de cada conta - MODIFICADO
+- [x] Testar a visualização dos cards na pré-visualização - TESTADO E FUNCIONANDO
+- [x] Verificar se o saldo está sendo calculado corretamente - VERIFICADO: Cálculo = SALDO INICIAL + ENTRADAS - SAÍDAS do mês
 
 
 ## Bug: Erro ao fazer upload de PDF de fatura de cartão - "Invalid input: expected string, received object"

@@ -192,9 +192,9 @@ export default function BankAccounts() {
                     </p>
                   )}
                   <div>
-                    <p className="text-xs text-muted-foreground">Saldo</p>
+                    <p className="text-xs text-muted-foreground">Saldo Final</p>
                     <p className="text-xl md:text-2xl font-bold text-foreground mt-0.5">
-                      {formatBRL(parseFloat(account.balance))}
+                      {formatBRL(parseFloat((account as any).finalBalance || account.balance))}
                     </p>
                   </div>
                 </div>
