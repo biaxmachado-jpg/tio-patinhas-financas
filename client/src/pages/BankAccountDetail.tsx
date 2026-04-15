@@ -232,7 +232,8 @@ export default function BankAccountDetail() {
   const income = filteredTransactions.filter((t) => t.type === "income");
   const expenses = filteredTransactions.filter((t) => t.type === "expense");
   const totalIncome = income.reduce((sum: number, t: any) => sum + parseFloat(t.amount.toString()), 0);
-  const totalExpenses = expenses.reduce((sum: number, t: any) => sum + parseFloat(t.amount.toString()), 0);
+  // Use Math.abs to handle negative values correctly (e.g., -R$-92,76 should be treated as positive)
+  const totalExpenses = expenses.reduce((sum: number, t: any) => sum + Math.abs(parseFloat(t.amount.toString())), 0);
 
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);

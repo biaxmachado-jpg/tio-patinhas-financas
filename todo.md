@@ -983,3 +983,5 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Permitir editar tipo e valor de transação na página de Contas Bancárias - Implementado com conversão automática de valor
 
 - [x] Remover ícone de editar (lápis) da aba Despesas - Abas de Despesas e Receitas são apenas visualização (REGRA documentada no código)
+
+- [x] Bug: Soma de Saídas do Mês está incorreta - Corrigido: adicionado Math.abs() para lidar com valores negativos corretamente
