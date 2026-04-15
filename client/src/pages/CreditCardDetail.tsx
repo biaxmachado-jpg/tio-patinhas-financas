@@ -711,6 +711,7 @@ export default function CreditCardDetail() {
             </div>
             <Dialog open={isAddTransactionOpen} onOpenChange={setIsAddTransactionOpen}>
               <DialogTrigger asChild>
+                <div className="flex gap-2">
                   <Button 
                     variant="default"
                     size="sm"
@@ -719,6 +720,15 @@ export default function CreditCardDetail() {
                     <Edit2 className="w-4 h-4" />
                     Editar Fatura
                   </Button>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsAddTransactionOpen(true)}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nova Transação
+                  </Button>
+                </div>
               </DialogTrigger>
             </Dialog>
           </div>

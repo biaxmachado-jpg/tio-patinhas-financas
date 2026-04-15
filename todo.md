@@ -976,3 +976,4 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Mover botão "+  Nova Transação" para embaixo, ao lado de "Filtros Avançados" - Implementado
 
 - [x] Renomear botão "Reclassificar" para "Aplicar Regras" na página de cartão de crédito - Implementado com ícone Wand2
+- [x] Adicionar botão "+  Nova Transação" ao lado de "Editar Fatura" na página de cartão de crédito - Implementado
