@@ -1079,4 +1079,4 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Implementar lógica de classificação de transações (À Vista, Parceladas, Créditos)
 - [x] Atualizar CreditCardDetail para exibir transações agrupadas
 - [x] Criar testes unitários para classificação
-- [ ] Testar agrupamento com dados reais
+- [x] Testar agrupamento com dados reais
