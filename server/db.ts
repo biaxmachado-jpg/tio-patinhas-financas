@@ -583,7 +583,7 @@ export async function getCreditCardTransactionById(id: number, userId: number) {
   return result[0];
 }
 
-export async function createCreditCardTransaction(userId: number, data: { cardId: number; categoryId: number; description: string; amount: string; date: Date; dueDate?: Date; installments?: number; currentInstallment?: number; notes?: string }) {
+export async function createCreditCardTransaction(userId: number, data: { cardId: number; categoryId?: number; description: string; amount: string; date: Date; dueDate?: Date; installments?: number; currentInstallment?: number; notes?: string }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   return db.insert(creditCardTransactions).values({ userId, ...data });

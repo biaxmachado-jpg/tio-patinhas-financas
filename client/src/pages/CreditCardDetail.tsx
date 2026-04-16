@@ -767,6 +767,95 @@ export default function CreditCardDetail() {
                   </Button>
                 </div>
               </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Nova Transação</DialogTitle>
+                  <DialogDescription>Adicione uma nova transação ao cartão de crédito</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium">Descrição</label>
+                    <Input
+                      placeholder="Ex: Compra no Supermercado"
+                      value={newTransaction.description}
+                      onChange={(e) => setNewTransaction({ ...newTransaction, description: e.target.value })}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Valor (R$)</label>
+                    <Input
+                      type="number"
+                      placeholder="0,00"
+                      step="0.01"
+                      value={newTransaction.amount}
+                      onChange={(e) => setNewTransaction({ ...newTransaction, amount: e.target.value })}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Categoria</label>
+                    <Select value={newTransaction.categoryId} onValueChange={(value) => setNewTransaction({ ...newTransaction, categoryId: value })}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Selecione uma categoria" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categoriesQuery.data?.map((cat: any) => (
+                          <SelectItem key={cat.id} value={cat.id.toString()}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Parcelas</label>
+                    <Input
+                      type="number"
+                      placeholder="1"
+                      min="1"
+                      max="36"
+                      value={newTransaction.installments}
+                      onChange={(e) => setNewTransaction({ ...newTransaction, installments: e.target.value })}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div className="flex gap-2 justify-end pt-4">
+                    <Button variant="outline" onClick={() => {
+                      setIsAddTransactionOpen(false);
+                      setNewTransaction({ description: '', amount: '', categoryId: '', installments: '1' });
+                    }}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={async () => {
+                      try {
+                        if (!newTransaction.description || !newTransaction.amount || !newTransaction.categoryId) {
+                          toast.error('Preencha todos os campos');
+                          return;
+                        }
+                        await addCreditCardTransactionMutation.mutateAsync({
+                          cardId: parseInt(cardId || '0'),
+                          description: newTransaction.description,
+                          amount: newTransaction.amount,
+                          categoryId: newTransaction.categoryId ? parseInt(newTransaction.categoryId) : undefined,
+                          installments: parseInt(newTransaction.installments) || 1,
+                          date: new Date(),
+                          dueDate: billingDueDate,
+                        });
+                        setIsAddTransactionOpen(false);
+                        setNewTransaction({ description: '', amount: '', categoryId: '', installments: '1' });
+                        transactionsQuery.refetch();
+                        toast.success('Transação adicionada com sucesso!');
+                      } catch (error) {
+                        console.error('Erro ao adicionar transação:', error);
+                        toast.error('Erro ao adicionar transação');
+                      }
+                    }}>
+                      Adicionar
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
             </Dialog>
           </div>
         </div>

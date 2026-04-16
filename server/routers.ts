@@ -397,7 +397,7 @@ export const appRouter = router({
     create: protectedProcedure
       .input(z.object({
         cardId: z.number(),
-        categoryId: z.number(),
+        categoryId: z.number().optional(),
         description: z.string().min(1),
         amount: z.string(),
         date: z.date(),

@@ -1102,3 +1102,6 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Categoria "Imported" ainda aparece em algumas transações - CORRIGIDO (schema + SQL para limpar)
 
 - [x] Bug: Fevereiro 2026 mostra R$NaN para transações parceladas - CORRIGIDO (isNaN check)
+
+- [x] Bug: Classificação de "Parceladas" está incluindo transações sem parcelas - CORRIGIDO (lógica simplificada)
+- [x] Bug: Botão "+ Nova Transação" não está funcionando - CORRIGIDO (adicionado DialogContent com formulário)

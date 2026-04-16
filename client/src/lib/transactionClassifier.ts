@@ -54,28 +54,12 @@ export function classifyTransaction(
     return 'parcelada';
   }
 
-  // Rule 3: À Vista (Upfront) - single installment and within 5 days before due date
+  // Rule 3: À Vista (Upfront) - single installment
   if (transaction.installments === 1) {
-    // If no billing due date provided, classify as vista by default
-    if (!billingDueDate) {
-      return 'vista';
-    }
-
-    // Check if transaction is within 5 days before the due date
-    const transactionDate = new Date(transaction.date);
-    const daysBeforeDue = Math.floor(
-      (billingDueDate.getTime() - transactionDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    // À Vista: up to 5 days before due date
-    if (daysBeforeDue >= 0 && daysBeforeDue <= 5) {
-      return 'vista';
-    }
-
-    // Older purchases are considered parceladas
-    return 'parcelada';
+    return 'vista';
   }
 
+  // Default to vista if no other rules match
   return 'vista';
 }
 
