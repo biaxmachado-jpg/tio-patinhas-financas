@@ -6,10 +6,15 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Upload, ArrowLeft, Plus, Trash2, FileText, Loader2 } from "lucide-react";
+import { Upload, ArrowLeft, Plus, Trash2, FileText, Loader2, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import * as pdfjs from "pdfjs-dist";
+import {
+  parseFileWithBankDetection,
+  getBankInfo,
+  type BankType,
+} from "@/lib/bankDetection";
 
 type ImportType = "creditCard" | "bankAccount";
 
@@ -30,6 +35,7 @@ export default function ImportFile() {
   const [file, setFile] = useState<File | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [detectedBank, setDetectedBank] = useState<BankType | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const cardQuery = trpc.creditCards.get.useQuery(
@@ -62,6 +68,8 @@ export default function ImportFile() {
       }
       
       setFile(selectedFile);
+      setDetectedBank(null);
+      setTransactions([]);
       toast.success("Arquivo selecionado com sucesso!");
     }
   };
@@ -86,116 +94,6 @@ export default function ImportFile() {
     setTransactions(transactions.filter(tx => tx.id !== id));
   };
 
-  const parseXLSXFile = async (file: File): Promise<Transaction[]> => {
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: "array" });
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
-      
-      const extractedTransactions: Transaction[] = [];
-      
-      // Skip header row if present
-      const startRow = data[0]?.some((cell: any) => 
-        typeof cell === 'string' && (cell.toLowerCase().includes('data') || cell.toLowerCase().includes('date'))
-      ) ? 1 : 0;
-      
-      for (let i = startRow; i < data.length; i++) {
-        const row = data[i];
-        if (!row || row.length < 3) continue;
-        
-        // Try to extract date, description, and amount
-        const dateStr = row[0]?.toString().trim();
-        const description = row[1]?.toString().trim();
-        const amountStr = row[2]?.toString().trim();
-        
-        if (!dateStr || !description || !amountStr) continue;
-        
-        // Parse date
-        let date = dateStr;
-        try {
-          const parsed = new Date(dateStr);
-          if (!isNaN(parsed.getTime())) {
-            date = parsed.toISOString().split('T')[0];
-          }
-        } catch (e) {
-          // Keep original format
-        }
-        
-        // Parse amount
-        const cleanAmount = amountStr.replace(/[^0-9.,]/g, '').replace(',', '.');
-        if (isNaN(parseFloat(cleanAmount))) continue;
-        
-        extractedTransactions.push({
-          id: Date.now().toString() + Math.random(),
-          date,
-          description,
-          amount: cleanAmount,
-        });
-      }
-      
-      return extractedTransactions;
-    } catch (error) {
-      console.error('Erro ao parsear XLSX:', error);
-      throw new Error('Erro ao ler arquivo XLSX');
-    }
-  };
-
-  const parsePDFFile = async (file: File): Promise<Transaction[]> => {
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjs.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
-      const extractedTransactions: Transaction[] = [];
-      
-      // Extract text from all pages
-      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-        const page = await pdf.getPage(pageNum);
-        const textContent = await page.getTextContent();
-        const text = textContent.items.map((item: any) => item.str).join(' ');
-        
-        // Simple regex to find patterns like "DD/MM/YYYY description value"
-        const dateRegex = /\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/g;
-        const lines = text.split('\n');
-        
-        for (const line of lines) {
-          const dateMatch = line.match(/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/);
-          if (!dateMatch) continue;
-          
-          // Extract amount (look for numbers with optional decimals)
-          const amountMatch = line.match(/\d+[.,]\d{2}/);
-          if (!amountMatch) continue;
-          
-          // Extract description (text between date and amount)
-          const description = line.substring(dateMatch.index! + dateMatch[0].length, amountMatch.index).trim();
-          if (!description) continue;
-          
-          // Format date
-          const dateParts = dateMatch[0].split(/[\/\-]/);
-          let date = dateMatch[0];
-          if (dateParts.length === 3) {
-            const [day, month, year] = dateParts;
-            const fullYear = year.length === 2 ? '20' + year : year;
-            date = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-          }
-          
-          const amount = amountMatch[0].replace(',', '.');
-          
-          extractedTransactions.push({
-            id: Date.now().toString() + Math.random(),
-            date,
-            description,
-            amount,
-          });
-        }
-      }
-      
-      return extractedTransactions;
-    } catch (error) {
-      console.error('Erro ao parsear PDF:', error);
-      throw new Error('Erro ao ler arquivo PDF');
-    }
-  };
-
   const handleProcessFile = async () => {
     if (!file) {
       toast.error("Por favor, selecione um arquivo primeiro");
@@ -205,12 +103,35 @@ export default function ImportFile() {
     setIsLoading(true);
     try {
       let extractedTransactions: Transaction[] = [];
+      let bank: BankType | null = null;
       const fileExtension = file.name.split(".").pop()?.toLowerCase();
       
-      if (fileExtension === "xlsx" || fileExtension === "xls") {
-        extractedTransactions = await parseXLSXFile(file);
-      } else if (fileExtension === "pdf") {
-        extractedTransactions = await parsePDFFile(file);
+      if (fileExtension === "pdf") {
+        // For PDF, extract text and use bank detection
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjs.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+        let fullText = "";
+        
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          const textContent = await page.getTextContent();
+          const text = textContent.items.map((item: any) => item.str).join(" ");
+          fullText += text + "\n";
+        }
+        
+        const result = await parseFileWithBankDetection(fullText, "pdf");
+        extractedTransactions = result.transactions;
+        bank = result.bank;
+      } else if (fileExtension === "xlsx" || fileExtension === "xls") {
+        // For XLSX, extract text representation and use bank detection
+        const arrayBuffer = await file.arrayBuffer();
+        const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: "array" });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const csvText = XLSX.utils.sheet_to_csv(worksheet);
+        
+        const result = await parseFileWithBankDetection(csvText, "xlsx");
+        extractedTransactions = result.transactions;
+        bank = result.bank;
       } else {
         toast.error("Formato de arquivo não suportado para processamento automático");
         return;
@@ -222,8 +143,15 @@ export default function ImportFile() {
       }
       
       setTransactions(extractedTransactions);
-      toast.success(`${extractedTransactions.length} transação(ões) extraída(s) do arquivo!`);
+      setDetectedBank(bank);
+      
+      const bankInfo = bank ? getBankInfo(bank) : null;
+      const bankName = bankInfo?.name || "Banco desconhecido";
+      toast.success(
+        `${extractedTransactions.length} transação(ões) extraída(s) de ${bankName}!`
+      );
     } catch (error) {
+      console.error("Erro ao processar arquivo:", error);
       toast.error("Erro ao processar arquivo: " + (error instanceof Error ? error.message : "Erro desconhecido"));
     } finally {
       setIsLoading(false);
@@ -359,20 +287,28 @@ export default function ImportFile() {
             </div>
             
             {file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls') || file.name.endsWith('.pdf')) && (
-              <Button
-                onClick={handleProcessFile}
-                disabled={isLoading}
-                className="w-full bg-blue-600 hover:bg-blue-700"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Processando...
-                  </>
-                ) : (
-                  <>Carregar Transações do Arquivo</>
+              <div className="space-y-2">
+                <Button
+                  onClick={handleProcessFile}
+                  disabled={isLoading}
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Processando...
+                    </>
+                  ) : (
+                    <>Carregar Transações do Arquivo</>
+                  )}
+                </Button>
+                {detectedBank && (
+                  <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>Banco detectado: <strong>{getBankInfo(detectedBank).name}</strong></span>
+                  </div>
                 )}
-              </Button>
+              </div>
             )}
           </div>
         </Card>
