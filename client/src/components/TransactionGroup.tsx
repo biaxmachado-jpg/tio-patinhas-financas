@@ -216,8 +216,9 @@ export function TransactionGroup({
                       </SelectContent>
                     </Select>
                   ) : (
-                    categories?.find((c: any) => c.id === transaction.categoryId)
-                      ?.name || "-"
+                    transaction.categoryId
+                      ? categories?.find((c: any) => c.id === transaction.categoryId)?.name || "-"
+                      : <span className="text-muted-foreground italic">Sem categoria</span>
                   )}
                 </td>
                 {type === "parcelada" && (

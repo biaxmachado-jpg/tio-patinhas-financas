@@ -1080,3 +1080,10 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Atualizar CreditCardDetail para exibir transações agrupadas
 - [x] Criar testes unitários para classificação
 - [x] Testar agrupamento com dados reais
+
+
+## Correção: Remover Categoria "Imported"
+- [x] Remover categoria "Imported" da importação de transações
+- [x] Deixar transações importadas com categoryId = NULL
+- [x] Atualizar UI para exibir campo vazio quando sem categoria
+- [ ] Testar importação e categorização manual

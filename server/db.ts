@@ -1064,43 +1064,8 @@ export async function importFile(userId: number, data: {
         }
       }
       
-      // Get or create default category for imported transactions
-      let defaultCategoryId = 1; // Default category ID
-      try {
-        const existingCategory = await db.select().from(categories).where(
-          and(eq(categories.userId, userId), eq(categories.name, "Imported"))
-        ).limit(1);
-        
-        if (existingCategory.length) {
-          defaultCategoryId = existingCategory[0].id;
-        } else {
-          // Create a default "Imported" category if it doesn't exist
-          try {
-            await db.insert(categories).values({
-              userId,
-              name: "Imported",
-              type: "expense",
-              color: "#9333ea",
-              icon: "upload",
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            });
-          } catch (e) {
-            // Category might already exist, ignore
-          }
-          
-          // Get the ID of the newly created category
-          const newCategory = await db.select().from(categories).where(
-            and(eq(categories.userId, userId), eq(categories.name, "Imported"))
-          ).limit(1);
-          if (newCategory.length) {
-            defaultCategoryId = newCategory[0].id;
-          }
-        }
-      } catch (e) {
-        console.log('[importFile] Error with category:', e);
-        // Continue with default ID
-      }
+      // Leave categoryId as NULL - user will categorize manually
+      const defaultCategoryId = null;
       
       // Create transactions in database
       console.log('[importFile] Found', extractedTransactions.length, 'transactions to create');
@@ -1140,7 +1105,7 @@ export async function importFile(userId: number, data: {
           await db.insert(creditCardTransactions).values({
             cardId: data.entityId,
             userId,
-            categoryId: defaultCategoryId,
+            categoryId: defaultCategoryId as any, // NULL - user will categorize manually
             date: tx.date,
             dueDate: dueDate,
             description: tx.description,
@@ -1219,37 +1184,8 @@ export async function importFile(userId: number, data: {
         });
       }
       
-      // Get or create default category for imported transactions (for bank account imports)
-      let defaultCategoryId = 1;
-      if (db) {
-        try {
-          const existingCategory = await db.select().from(categories).where(
-            and(eq(categories.userId, userId), eq(categories.name, "Imported"))
-          ).limit(1);
-          
-          if (existingCategory.length) {
-            defaultCategoryId = existingCategory[0].id;
-          } else {
-            const result = await db.insert(categories).values({
-              userId,
-              name: "Imported",
-              type: "expense",
-              color: "#9333ea",
-              icon: "upload",
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            });
-            const newCategory = await db.select().from(categories).where(
-              and(eq(categories.userId, userId), eq(categories.name, "Imported"))
-            ).limit(1);
-            if (newCategory.length) {
-              defaultCategoryId = newCategory[0].id;
-            }
-          }
-        } catch (e) {
-          console.log('[importFile] Error creating default category:', e);
-        }
-      }
+      // Leave categoryId as NULL - user will categorize manually
+      const defaultCategoryId = null;
       
       // Create transactions in database
       let transactionsCreated = 0;
@@ -1259,7 +1195,7 @@ export async function importFile(userId: number, data: {
           await db.insert(transactions).values({
             accountId: data.entityId,
             userId,
-            categoryId: defaultCategoryId,
+            categoryId: defaultCategoryId as any, // NULL - user will categorize manually
             date: tx.date,
             description: tx.description,
             amount: tx.amount,
