@@ -1104,14 +1104,36 @@ export async function importFile(userId: number, data: {
       // Create transactions in database
       console.log('[importFile] Found', extractedTransactions.length, 'transactions to create');
       let transactionsCreated = 0;
+      
+      // Get card details to calculate correct dueDate
+      const cardDetails = card[0];
+      const closingDay = cardDetails.closingDay;
+      const dueDay = cardDetails.dueDay;
+      
       for (const tx of extractedTransactions) {
         try {
+          // Calculate dueDate based on transaction date and card's closing/due days
+          // If transaction is before closing day, it's due on dueDay of same month
+          // If transaction is on or after closing day, it's due on dueDay of next month
+          let dueDate = new Date(tx.date);
+          const txDay = tx.date.getDate();
+          const txMonth = tx.date.getMonth();
+          const txYear = tx.date.getFullYear();
+          
+          if (txDay >= closingDay) {
+            // Transaction is in next billing cycle
+            dueDate = new Date(txYear, txMonth + 1, dueDay);
+          } else {
+            // Transaction is in current billing cycle
+            dueDate = new Date(txYear, txMonth, dueDay);
+          }
+          
           await db.insert(creditCardTransactions).values({
             cardId: data.entityId,
             userId,
             categoryId: defaultCategoryId,
             date: tx.date,
-            dueDate: tx.date, // Use transaction date as due date for imported transactions
+            dueDate: dueDate,
             description: tx.description,
             amount: tx.amount,
           });
