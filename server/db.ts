@@ -24,10 +24,24 @@ import {
   type ProfileHistory,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import { createWorker } from 'tesseract.js';
+import { PDFDocument } from 'pdf-lib';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 
 let _db: any = null;
 let _pool: mysql.Pool | null = null;
 let _initAttempted = false;
+let _tesseractWorker: any = null;
+
+// Initialize Tesseract worker
+async function getTesseractWorker() {
+  if (!_tesseractWorker) {
+    _tesseractWorker = await createWorker('por'); // Portuguese language
+  }
+  return _tesseractWorker;
+}
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
@@ -967,11 +981,10 @@ export async function importFile(userId: number, data: {
       
       if (data.fileType === "application/pdf" || data.fileName.endsWith(".pdf")) {
         console.log('[importFile] Processing PDF, content length:', data.fileContent.length);
-        // For PDF, extract text and look for transaction patterns
+        
         // Decode base64 if needed
         let pdfContent = data.fileContent;
         if (!data.fileContent.startsWith('%PDF')) {
-          // Decode from base64
           try {
             const buffer = Buffer.from(data.fileContent, 'base64');
             pdfContent = buffer.toString('latin1');
@@ -980,39 +993,71 @@ export async function importFile(userId: number, data: {
             console.log('[importFile] Failed to decode base64:', e);
             pdfContent = data.fileContent;
           }
-        } else {
-          console.log('[importFile] PDF is already decoded');
         }
-        // Simple pattern: look for lines with dates and amounts
-        const lines = pdfContent.split('\n');
-        console.log('[importFile] Split into', lines.length, 'lines');
-        const datePattern = /(\d{1,2}\/(\d{1,2}|\d{4}))/g;
-        const amountPattern = /R\$\s*([\d.,]+)/g;
         
-        lines.forEach(line => {
-          // Try to extract date and amount from each line
-          const dateMatch = line.match(datePattern);
-          const amountMatch = line.match(amountPattern);
+        // Find the "Lançamentos" section
+        const lancamentosIndex = pdfContent.indexOf('Lançamentos');
+        if (lancamentosIndex !== -1) {
+          const lancamentosSection = pdfContent.substring(lancamentosIndex);
+          const lines = lancamentosSection.split('\n');
+          console.log('[importFile] Found Lançamentos section with', lines.length, 'lines');
           
-          if (dateMatch && amountMatch) {
-            try {
-              const dateStr = dateMatch[0];
-              const amountStr = amountMatch[0].replace('R$ ', '').replace('.', '').replace(',', '.');
-              const date = new Date(dateStr);
+          // Parse transactions from the Lançamentos section
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            
+            // Look for lines starting with date (DD/MM)
+            const dateMatch = line.match(/^(\d{1,2})\/(\d{1,2})\s+(.+)$/);
+            if (dateMatch) {
+              const day = dateMatch[1];
+              const month = dateMatch[2];
+              const description = dateMatch[3].trim();
               
-              if (!isNaN(date.getTime())) {
-                extractedTransactions.push({
-                  date,
-                  description: line.substring(0, 50),
-                  amount: amountStr,
-                  type: "expense"
-                });
+              // Look for amount in the same line or next lines
+              let amount = '';
+              
+              // Check if amount is in the same line
+              const amountInLine = line.match(/R\$\s*([\d.,]+)/);
+              if (amountInLine) {
+                amount = amountInLine[1];
+              } else {
+                // Look in next few lines for the amount
+                for (let j = i + 1; j < Math.min(i + 3, lines.length); j++) {
+                  const nextLine = lines[j].trim();
+                  const nextAmount = nextLine.match(/R\$\s*([\d.,]+)/);
+                  if (nextAmount) {
+                    amount = nextAmount[1];
+                    break;
+                  }
+                }
               }
-            } catch (e) {
-              // Skip invalid entries
+              
+              if (amount) {
+                try {
+                  // Create a date - use current year if not specified
+                  const currentYear = new Date().getFullYear();
+                  const dateStr = `${month}/${day}/${currentYear}`;
+                  const date = new Date(dateStr);
+                  
+                  // Convert amount format: "1.234,56" -> "1234.56"
+                  const cleanAmount = amount.replace(/\./g, '').replace(',', '.');
+                  
+                  if (!isNaN(date.getTime()) && !isNaN(parseFloat(cleanAmount))) {
+                    extractedTransactions.push({
+                      date,
+                      description: description.substring(0, 100),
+                      amount: cleanAmount,
+                      type: "expense"
+                    });
+                    console.log('[importFile] Extracted transaction:', {date: dateStr, description, amount: cleanAmount});
+                  }
+                } catch (e) {
+                  console.log('[importFile] Error parsing transaction:', e);
+                }
+              }
             }
           }
-        });
+        }
       }
       
       // Get or create default category for imported transactions

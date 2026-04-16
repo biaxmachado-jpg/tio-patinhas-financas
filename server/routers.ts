@@ -455,6 +455,13 @@ export const appRouter = router({
   }),
   
   files: router({
+    preview: protectedProcedure
+      .input(z.object({
+        fileContent: z.string(),
+        fileName: z.string(),
+        fileType: z.string(),
+      }))
+      .query(({ input }) => db.previewFileTransactions(input)),
     import: protectedProcedure
       .input(z.object({
         entityType: z.enum(["creditCard", "bankAccount"]),
