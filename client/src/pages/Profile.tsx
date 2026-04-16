@@ -130,7 +130,9 @@ function EditBankAccountDialog({
             <label className="text-sm font-medium">Cor</label>
             <ColorPicker
               value={formData.color}
-              onChange={(color) => setFormData({ ...formData, color })}
+              onChange={(color) => {
+                setFormData((prev) => ({ ...prev, color }));
+              }}
             />
           </div>
         </div>
@@ -287,7 +289,9 @@ function EditCreditCardDialog({
             <label className="text-sm font-medium">Cor</label>
             <ColorPicker
               value={formData.color}
-              onChange={(color) => setFormData({ ...formData, color })}
+              onChange={(color) => {
+                setFormData((prev) => ({ ...prev, color }));
+              }}
             />
           </div>
         </div>
@@ -690,7 +694,8 @@ export default function Profile() {
   const updateProfileMutation = trpc.auth.updateProfile.useMutation({
     onSuccess: () => {
       setIsEditing(false);
-      refresh();
+      // Don't call refresh() here - it causes infinite loop
+      // The mutation already updates the user data
     },
   });
 
