@@ -484,6 +484,7 @@ export const appRouter = router({
           type: z.enum(["income", "expense"]),
         })).optional(),
         skipDuplicates: z.boolean().optional(),
+        dueDate: z.date().optional(),
       }))
       .mutation(({ ctx, input }) => db.importFile(ctx.user.id, input)),
   }),

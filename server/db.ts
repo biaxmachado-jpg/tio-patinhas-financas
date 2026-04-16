@@ -964,6 +964,7 @@ export async function importFile(userId: number, data: {
   fileName: string; 
   fileType: string;
   transactions?: Array<{date: Date; description: string; amount: string; type: "income" | "expense"}>;
+  dueDate?: Date;
 }) {
   try {
     console.log('[importFile] Starting import for', data.entityType, 'ID:', data.entityId, 'transactions provided:', data.transactions?.length || 0);
@@ -1105,27 +1106,35 @@ export async function importFile(userId: number, data: {
       console.log('[importFile] Found', extractedTransactions.length, 'transactions to create');
       let transactionsCreated = 0;
       
-      // Get card details to calculate correct dueDate
+      // Use confirmed dueDate from import, or calculate if not provided
       const cardDetails = card[0];
       const closingDay = cardDetails.closingDay;
       const dueDay = cardDetails.dueDay;
       
       for (const tx of extractedTransactions) {
         try {
-          // Calculate dueDate based on transaction date and card's closing/due days
-          // If transaction is before closing day, it's due on dueDay of same month
-          // If transaction is on or after closing day, it's due on dueDay of next month
-          let dueDate = new Date(tx.date);
-          const txDay = tx.date.getDate();
-          const txMonth = tx.date.getMonth();
-          const txYear = tx.date.getFullYear();
+          // Use confirmed dueDate from import if provided, otherwise calculate
+          let dueDate: Date;
           
-          if (txDay >= closingDay) {
-            // Transaction is in next billing cycle
-            dueDate = new Date(txYear, txMonth + 1, dueDay);
+          if (data.dueDate) {
+            // Use the confirmed dueDate from the import dialog
+            dueDate = new Date(data.dueDate);
           } else {
-            // Transaction is in current billing cycle
-            dueDate = new Date(txYear, txMonth, dueDay);
+            // Calculate dueDate based on transaction date and card's closing/due days
+            // If transaction is before closing day, it's due on dueDay of same month
+            // If transaction is on or after closing day, it's due on dueDay of next month
+            dueDate = new Date(tx.date);
+            const txDay = tx.date.getDate();
+            const txMonth = tx.date.getMonth();
+            const txYear = tx.date.getFullYear();
+            
+            if (txDay >= closingDay) {
+              // Transaction is in next billing cycle
+              dueDate = new Date(txYear, txMonth + 1, dueDay);
+            } else {
+              // Transaction is in current billing cycle
+              dueDate = new Date(txYear, txMonth, dueDay);
+            }
           }
           
           await db.insert(creditCardTransactions).values({

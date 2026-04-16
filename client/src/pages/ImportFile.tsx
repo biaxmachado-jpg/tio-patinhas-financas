@@ -18,6 +18,7 @@ import {
 } from "@/lib/bankDetection";
 import { TransactionCategorizer, type TransactionWithCategory } from "@/components/TransactionCategorizer";
 import { DescriptionBatchEditor } from "@/components/DescriptionBatchEditor";
+import { DueDateConfirmDialog } from "@/components/DueDateConfirmDialog";
 
 type ImportType = "creditCard" | "bankAccount";
 
@@ -267,8 +268,13 @@ export default function ImportFile() {
         `${extractedTransactions.length} transação(ões) extraída(s) de ${bankName}!`
       );
       
-      // Check for duplicates
-      await checkForDuplicates(extractedTransactions);
+      // Show dueDate confirmation dialog if we have a dueDate
+      if (extractedDueDate || true) { // Always show dialog for user to confirm
+        setShowDueDateConfirm(true);
+      } else {
+        // Check for duplicates
+        await checkForDuplicates(extractedTransactions);
+      }
     } catch (error) {
       console.error("Erro ao processar arquivo:", error);
       toast.error("Erro ao processar arquivo: " + (error instanceof Error ? error.message : "Erro desconhecido"));
@@ -372,6 +378,7 @@ export default function ImportFile() {
         fileName: file?.name || "manual-import",
         fileType: file?.type || "text/plain",
         transactions: formattedTransactions,
+        dueDate: confirmedDueDate || undefined,
       });
 
       if (result.success) {
@@ -667,6 +674,26 @@ export default function ImportFile() {
           </div>
         </Card>
       </div>
+
+      {/* DueDate Confirmation Dialog */}
+      {showDueDateConfirm && (
+        <DueDateConfirmDialog
+          extractedDate={extractedDueDate}
+          bankName={detectedBank ? getBankInfo(detectedBank).name : "Banco"}
+          onConfirm={(date) => {
+            setConfirmedDueDate(date);
+            setShowDueDateConfirm(false);
+            // Proceed with duplicate check
+            checkForDuplicates(transactions);
+          }}
+          onCancel={() => {
+            setShowDueDateConfirm(false);
+            setTransactions([]);
+            setExtractedDueDate(null);
+            setFile(null);
+          }}
+        />
+      )}
     </div>
   );
 }
