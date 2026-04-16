@@ -81,6 +81,14 @@ function EditBankAccountDialog({
         accountNumber: account.accountNumber || "",
         color: (account as any)?.color || "#3b82f6",
       });
+    } else if (!open) {
+      // Reset form when dialog closes
+      setFormData({
+        name: "",
+        bank: "",
+        accountNumber: "",
+        color: "#3b82f6",
+      });
     }
   }, [account?.id, open]);
 
@@ -194,8 +202,18 @@ function EditCreditCardDialog({
         closingDay: card?.closingDay?.toString() || "1",
         color: (card as any)?.color || "#1434CB",
       });
+    } else if (!open) {
+      setFormData({
+        name: "",
+        brand: "Visa",
+        lastFourDigits: "",
+        limit: "0.00",
+        dueDay: "10",
+        closingDay: "1",
+        color: "#1434CB",
+      });
     }
-  }, [card?.id]);
+  }, [open, card?.id]);
 
   const CARD_BRANDS = [
     { value: "Visa", label: "Visa" },
