@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useParams, useLocation } from "wouter";
+import { TransactionActions } from "@/components/TransactionActions";
 
 export default function CreditCardDetail() {
   const { cardId } = useParams<{ cardId: string }>();
@@ -908,16 +909,15 @@ export default function CreditCardDetail() {
                       </Dialog>
                     </td>
                     <td className="py-3 px-2 text-center">
-                      {isEditMode && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteTransaction(transaction.id)}
-                          className="h-8 w-8 p-0 hover:bg-red-100 dark:hover:bg-red-900/30"
-                        >
-                          <X className="w-4 h-4 text-red-500" />
-                        </Button>
-                      )}
+                      <TransactionActions
+                        transactionId={transaction.id}
+                        categoryId={transaction.categoryId}
+                        description={transaction.description}
+                        dueDate={new Date(transaction.dueDate || transaction.date)}
+                        onDelete={() => transactionsQuery.refetch()}
+                        onUpdate={() => transactionsQuery.refetch()}
+                        onMove={() => transactionsQuery.refetch()}
+                      />
                     </td>
                   </tr>
                 ))}

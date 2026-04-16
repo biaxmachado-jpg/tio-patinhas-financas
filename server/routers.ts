@@ -425,6 +425,16 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(({ ctx, input }) => db.deleteCreditCardTransaction(input.id, ctx.user.id)),
     
+    moveToNextBilling: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const tx = await db.getCreditCardTransactionById(input.id, ctx.user.id);
+        if (!tx) throw new Error("Transacao nao encontrada");
+        const currentDue = new Date(tx.dueDate);
+        const nextDue = new Date(currentDue.getFullYear(), currentDue.getMonth() + 1, currentDue.getDate());
+        return db.updateCreditCardTransaction(input.id, ctx.user.id, { dueDate: nextDue });
+      }),
+    
     importFromPDF: protectedProcedure
       .input(z.object({
         cardId: z.number(),
