@@ -6,7 +6,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Upload, ArrowLeft, Plus, Trash2, FileText, Loader2, CheckCircle } from "lucide-react";
+import { Upload, ArrowLeft, Plus, Trash2, FileText, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import * as pdfjs from "pdfjs-dist";
@@ -23,6 +23,7 @@ interface Transaction {
   date: string;
   description: string;
   amount: string;
+  isDuplicate?: boolean;
 }
 
 export default function ImportFile() {
@@ -36,6 +37,8 @@ export default function ImportFile() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [detectedBank, setDetectedBank] = useState<BankType | null>(null);
+  const [duplicates, setDuplicates] = useState<any[]>([]);
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const cardQuery = trpc.creditCards.get.useQuery(
@@ -70,6 +73,8 @@ export default function ImportFile() {
       setFile(selectedFile);
       setDetectedBank(null);
       setTransactions([]);
+      setDuplicates([]);
+      setShowDuplicateWarning(false);
       toast.success("Arquivo selecionado com sucesso!");
     }
   };
@@ -107,7 +112,6 @@ export default function ImportFile() {
       const fileExtension = file.name.split(".").pop()?.toLowerCase();
       
       if (fileExtension === "pdf") {
-        // For PDF, extract text and use bank detection
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjs.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
         let fullText = "";
@@ -123,7 +127,6 @@ export default function ImportFile() {
         extractedTransactions = result.transactions;
         bank = result.bank;
       } else if (fileExtension === "xlsx" || fileExtension === "xls") {
-        // For XLSX, extract text representation and use bank detection
         const arrayBuffer = await file.arrayBuffer();
         const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: "array" });
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -150,11 +153,55 @@ export default function ImportFile() {
       toast.success(
         `${extractedTransactions.length} transação(ões) extraída(s) de ${bankName}!`
       );
+      
+      // Check for duplicates
+      await checkForDuplicates(extractedTransactions);
     } catch (error) {
       console.error("Erro ao processar arquivo:", error);
       toast.error("Erro ao processar arquivo: " + (error instanceof Error ? error.message : "Erro desconhecido"));
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const checkForDuplicates = async (txs: Transaction[]) => {
+    try {
+      // Call checkDuplicates query using the client
+      const utils = trpc.useUtils();
+      const result = await utils.files.checkDuplicates.fetch({
+        entityType: importType,
+        entityId,
+        transactions: txs.map((tx) => ({
+          date: new Date(tx.date),
+          description: tx.description,
+          amount: tx.amount,
+        })),
+      });
+
+      if (result && result.duplicates && result.duplicates.length > 0) {
+        // Mark duplicates in transaction list
+        const updatedTxs = txs.map((tx) => ({
+          ...tx,
+          isDuplicate: result.duplicates.some(
+            (dup: any) =>
+              new Date(dup.date).toISOString().split('T')[0] === tx.date &&
+              dup.description === tx.description &&
+              dup.amount === tx.amount
+          ),
+        }));
+        setTransactions(updatedTxs);
+        setDuplicates(result.duplicates);
+        setShowDuplicateWarning(true);
+        toast.warning(
+          `${result.duplicates.length} transação(ões) pode(m) ser duplicada(s). Revise antes de importar.`
+        );
+      } else {
+        setDuplicates([]);
+        setShowDuplicateWarning(false);
+      }
+    } catch (error) {
+      console.error("Erro ao verificar duplicatas:", error);
+      // Continue anyway if duplicate check fails
     }
   };
 
@@ -178,7 +225,6 @@ export default function ImportFile() {
 
     setIsLoading(true);
     try {
-      // Convert transactions to the format expected by the API
       const formattedTransactions = transactions.map(tx => ({
         date: new Date(tx.date),
         description: tx.description,
@@ -308,6 +354,15 @@ export default function ImportFile() {
                     <span>Banco detectado: <strong>{getBankInfo(detectedBank).name}</strong></span>
                   </div>
                 )}
+                {showDuplicateWarning && duplicates.length > 0 && (
+                  <div className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 p-3 rounded border border-amber-200">
+                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold">{duplicates.length} transação(ões) pode(m) ser duplicada(s)</p>
+                      <p className="text-xs mt-1">Verifique as transações marcadas abaixo antes de importar</p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -336,12 +391,18 @@ export default function ImportFile() {
                     <th className="text-left py-2 px-2">Data</th>
                     <th className="text-left py-2 px-2">Descrição</th>
                     <th className="text-right py-2 px-2">Valor</th>
+                    <th className="text-center py-2 px-2">Status</th>
                     <th className="text-center py-2 px-2">Ação</th>
                   </tr>
                 </thead>
                 <tbody>
                   {transactions.map((tx) => (
-                    <tr key={tx.id} className="border-b hover:bg-muted/50">
+                    <tr
+                      key={tx.id}
+                      className={`border-b hover:bg-muted/50 ${
+                        tx.isDuplicate ? "bg-amber-50" : ""
+                      }`}
+                    >
                       <td className="py-2 px-2">
                         <Input
                           type="date"
@@ -368,6 +429,14 @@ export default function ImportFile() {
                           className="h-8 text-right"
                           step="0.01"
                         />
+                      </td>
+                      <td className="py-2 px-2 text-center">
+                        {tx.isDuplicate && (
+                          <div className="flex items-center justify-center gap-1 text-xs text-amber-600 bg-amber-100 px-2 py-1 rounded">
+                            <AlertCircle className="h-3 w-3" />
+                            Duplicada
+                          </div>
+                        )}
                       </td>
                       <td className="py-2 px-2 text-center">
                         <Button

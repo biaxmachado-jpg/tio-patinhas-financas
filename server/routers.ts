@@ -455,6 +455,21 @@ export const appRouter = router({
   }),
   
   files: router({
+    checkDuplicates: protectedProcedure
+      .input(z.object({
+        entityType: z.enum(["creditCard", "bankAccount"]),
+        entityId: z.number(),
+        transactions: z.array(z.object({
+          date: z.date(),
+          description: z.string(),
+          amount: z.string(),
+        })),
+        dateToleranceDays: z.number().optional(),
+        descriptionSimilarityThreshold: z.number().optional(),
+        amountTolerancePercent: z.number().optional(),
+      }))
+      .query(({ ctx, input }) => db.checkDuplicatesForImport(ctx.user.id, input)),
+    
     import: protectedProcedure
       .input(z.object({
         entityType: z.enum(["creditCard", "bankAccount"]),
@@ -468,6 +483,7 @@ export const appRouter = router({
           amount: z.string(),
           type: z.enum(["income", "expense"]),
         })).optional(),
+        skipDuplicates: z.boolean().optional(),
       }))
       .mutation(({ ctx, input }) => db.importFile(ctx.user.id, input)),
   }),

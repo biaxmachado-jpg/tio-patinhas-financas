@@ -1232,3 +1232,202 @@ export async function importFile(userId: number, data: {
     throw new Error(`Erro ao importar arquivo: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
   }
 }
+
+
+// ============= DUPLICATE DETECTION HELPERS =============
+
+const normalizeText = (text: string): string => {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/[^\w\s]/g, "");
+};
+
+const normalizeAmount = (amount: string | number): number => {
+  if (typeof amount === "number") {
+    return parseFloat(amount.toFixed(2));
+  }
+  const cleaned = amount.replace(/[^0-9.,]/g, "").replace(",", ".");
+  return parseFloat(cleaned);
+};
+
+const calculateStringSimilarity = (str1: string, str2: string): number => {
+  const s1 = normalizeText(str1);
+  const s2 = normalizeText(str2);
+
+  if (s1 === s2) return 1;
+  if (s1.length === 0 || s2.length === 0) return 0;
+
+  if (s1.includes(s2) || s2.includes(s1)) {
+    return 0.9;
+  }
+
+  // Levenshtein distance
+  const matrix: number[][] = [];
+
+  for (let i = 0; i <= s2.length; i++) {
+    matrix[i] = [i];
+  }
+
+  for (let j = 0; j <= s1.length; j++) {
+    matrix[0][j] = j;
+  }
+
+  for (let i = 1; i <= s2.length; i++) {
+    for (let j = 1; j <= s1.length; j++) {
+      if (s2.charAt(i - 1) === s1.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+
+  const distance = matrix[s2.length][s1.length];
+  const maxLength = Math.max(s1.length, s2.length);
+  return 1 - distance / maxLength;
+};
+
+// ============= DUPLICATE DETECTION =============
+
+export async function checkDuplicatesForImport(
+  userId: number,
+  data: {
+    entityType: "creditCard" | "bankAccount";
+    entityId: number;
+    transactions: Array<{ date: Date; description: string; amount: string }>;
+    dateToleranceDays?: number;
+    descriptionSimilarityThreshold?: number;
+    amountTolerancePercent?: number;
+  }
+) {
+  const db = await getDb();
+  if (!db) {
+    return {
+      duplicates: [],
+      new: data.transactions.map((tx) => ({
+        ...tx,
+        isDuplicate: false,
+      })),
+    };
+  }
+
+  const dateToleranceDays = data.dateToleranceDays ?? 0;
+  const descriptionThreshold = data.descriptionSimilarityThreshold ?? 0.85;
+  const amountTolerancePercent = data.amountTolerancePercent ?? 0;
+
+  try {
+    let existingTransactions: any[] = [];
+
+    if (data.entityType === "creditCard") {
+      existingTransactions = await db
+        .select()
+        .from(creditCardTransactions)
+        .where(
+          and(
+            eq(creditCardTransactions.userId, userId),
+            eq(creditCardTransactions.cardId, data.entityId)
+          )
+        );
+    } else {
+      existingTransactions = await db
+        .select()
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.userId, userId),
+            eq(transactions.accountId, data.entityId)
+          )
+        );
+    }
+
+    // Check each new transaction for duplicates
+    const duplicates = [];
+    const newTransactions = [];
+
+    for (const newTx of data.transactions) {
+      let isDuplicate = false;
+      let matchedTransaction = null;
+
+      const newAmount = normalizeAmount(newTx.amount);
+      const newDate = new Date(newTx.date);
+
+      for (const existingTx of existingTransactions) {
+        const existingAmount = normalizeAmount(existingTx.amount);
+        const existingDate = new Date(existingTx.date);
+
+        // Check date match (with tolerance)
+        const daysDiff = Math.abs(
+          (newDate.getTime() - existingDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        if (daysDiff > dateToleranceDays) {
+          continue;
+        }
+
+        // Check amount match (with tolerance)
+        const amountDiff = Math.abs(newAmount - existingAmount);
+        const amountDiffPercent = (amountDiff / existingAmount) * 100;
+
+        if (amountDiffPercent > amountTolerancePercent) {
+          continue;
+        }
+
+        // Check description similarity
+        const descriptionSimilarity = calculateStringSimilarity(
+          newTx.description,
+          existingTx.description
+        );
+
+        if (descriptionSimilarity >= descriptionThreshold) {
+          isDuplicate = true;
+          matchedTransaction = {
+            id: existingTx.id,
+            date: existingTx.date,
+            description: existingTx.description,
+            amount: existingTx.amount,
+          };
+          break;
+        }
+      }
+
+      if (isDuplicate) {
+        duplicates.push({
+          ...newTx,
+          isDuplicate: true,
+          matchedTransaction,
+        });
+      } else {
+        newTransactions.push({
+          ...newTx,
+          isDuplicate: false,
+        });
+      }
+    }
+
+    return {
+      duplicates,
+      new: newTransactions,
+      summary: {
+        total: data.transactions.length,
+        duplicateCount: duplicates.length,
+        newCount: newTransactions.length,
+      },
+    };
+  } catch (error) {
+    console.error("[checkDuplicatesForImport] Error:", error);
+    return {
+      duplicates: [],
+      new: data.transactions.map((tx) => ({
+        ...tx,
+        isDuplicate: false,
+      })),
+      error: error instanceof Error ? error.message : "Erro desconhecido",
+    };
+  }
+}
