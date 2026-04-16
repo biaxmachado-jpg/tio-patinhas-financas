@@ -70,8 +70,8 @@ export default function ImportFile() {
         try {
           let fileContent: string;
           
-          if (isExcelFile) {
-            // For Excel files, convert ArrayBuffer to base64
+          if (isExcelFile || file.name.endsWith(".pdf")) {
+            // For Excel and PDF files, convert ArrayBuffer to base64
             const arrayBuffer = event.target?.result as ArrayBuffer;
             const uint8Array = new Uint8Array(arrayBuffer);
             let binaryString = '';
@@ -80,7 +80,7 @@ export default function ImportFile() {
             }
             fileContent = btoa(binaryString);
           } else {
-            // For text-based files (PDF, OFX, TXT), result is already a string
+            // For text-based files (OFX, TXT), result is already a string
             fileContent = event.target?.result as string;
           }
 
@@ -115,8 +115,8 @@ export default function ImportFile() {
         setIsLoading(false);
       };
 
-      // Use readAsText for text files, readAsArrayBuffer for binary files
-      if (isExcelFile) {
+      // Use readAsArrayBuffer for binary files (Excel, PDF), readAsText for text files
+      if (isExcelFile || file.name.endsWith(".pdf")) {
         reader.readAsArrayBuffer(file);
       } else {
         reader.readAsText(file);

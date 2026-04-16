@@ -45,8 +45,8 @@ export default function Transactions() {
     }
 
     try {
-      for (const id of selectedIds) {
-        const transaction = transactions?.find(t => t.id === id);
+      for (const id of Array.from(selectedIds)) {
+        const transaction = transactions?.find((t: any) => t.id === id);
         if (transaction) {
           await updateMutation.mutateAsync({
             id,
@@ -82,7 +82,7 @@ export default function Transactions() {
     if (selectedIds.size === transactions?.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(transactions?.map(t => t.id) || []));
+      setSelectedIds(new Set(transactions?.map((t: any) => t.id) || []));
     }
   };
 
@@ -177,7 +177,7 @@ export default function Transactions() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories?.filter((c) => c.type === formData.type).map((cat) => (
+                      {categories?.filter((c: any) => c.type === formData.type).map((cat: any) => (
                         <SelectItem key={cat.id} value={cat.id.toString()}>
                           {cat.name}
                         </SelectItem>
@@ -206,7 +206,7 @@ export default function Transactions() {
                     id="description"
                     placeholder="Ex: Compra no supermercado"
                     value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    onChange={(e: any) => setFormData({ ...formData, description: e.target.value })}
                     required
                   />
                 </div>
@@ -218,7 +218,7 @@ export default function Transactions() {
                     step="0.01"
                     placeholder="0.00"
                     value={formData.amount}
-                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                    onChange={(e: any) => setFormData({ ...formData, amount: e.target.value })}
                     required
                   />
                 </div>
@@ -228,7 +228,7 @@ export default function Transactions() {
                     id="date"
                     type="date"
                     value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    onChange={(e: any) => setFormData({ ...formData, date: e.target.value })}
                     required
                   />
                 </div>
@@ -238,7 +238,7 @@ export default function Transactions() {
                     id="notes"
                     placeholder="Notas adicionais (opcional)"
                     value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    onChange={(e: any) => setFormData({ ...formData, notes: e.target.value })}
                   />
                 </div>
                 <Button type="submit" className="w-full">
@@ -264,9 +264,9 @@ export default function Transactions() {
                 </tr>
               </thead>
               <tbody>
-                {transactions?.map((transaction) => {
-                  const category = categories?.find((c) => c.id === transaction.categoryId);
-                  const account = accounts?.find((a) => a.id === transaction.accountId);
+                {transactions?.map((transaction: any) => {
+                  const category = categories?.find((c: any) => c.id === transaction.categoryId);
+                  const account = accounts?.find((a: any) => a.id === transaction.accountId);
                   return (
                     <tr key={transaction.id} className="border-b border-border hover:bg-muted/50 transition-colors">
                       <td className="px-6 py-3 text-sm text-foreground">

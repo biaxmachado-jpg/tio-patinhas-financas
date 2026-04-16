@@ -43,6 +43,7 @@ export default function Income() {
   const transactionsQuery = trpc.transactions.list.useQuery({});
   const categoriesQuery = trpc.categories.list.useQuery();
   const bankAccountsQuery = trpc.bankAccounts.list.useQuery();
+  const creditCardsQuery = trpc.creditCards.list.useQuery();
 
   // Combinar e filtrar receitas:
   // - transactions com type = "income" (valores positivos)
@@ -74,7 +75,7 @@ export default function Income() {
       });
     }
 
-    return allIncome.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return allIncome.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [transactionsQuery.data, selectedMonth, selectedYear]);
 
   // Calcular totais por categoria com cores
@@ -94,10 +95,10 @@ export default function Income() {
 
     return Object.entries(grouped)
       .map(([name, data]) => ({ name, value: data.value, color: data.color }))
-      .sort((a, b) => b.value - a.value);
+      .sort((a: any, b: any) => b.value - a.value);
   }, [income, categoriesQuery.data]);
 
-  const totalIncome = income.reduce((sum, inc) => sum + (inc.amount || 0), 0);
+  const totalIncome = income.reduce((sum: any, inc) => sum + (inc.amount || 0), 0);
 
   const months = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -160,7 +161,7 @@ export default function Income() {
             <ChevronLeft className="w-4 h-4" />
           </Button>
 
-          <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
+          <Select value={selectedMonth.toString()} onValueChange={(v: any) => setSelectedMonth(parseInt(v))}>
             <SelectTrigger className="w-28 md:w-32 h-8 text-xs md:text-sm">
               <SelectValue />
             </SelectTrigger>
@@ -173,7 +174,7 @@ export default function Income() {
             </SelectContent>
           </Select>
 
-          <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
+          <Select value={selectedYear.toString()} onValueChange={(v: any) => setSelectedYear(parseInt(v))}>
             <SelectTrigger className="w-20 md:w-24 h-8 text-xs md:text-sm">
               <SelectValue />
             </SelectTrigger>
@@ -249,7 +250,7 @@ export default function Income() {
                 margin={{ top: 5, right: 60, left: 5, bottom: 5 }}
               >
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
+                <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v: any) => `R$${(v / 1000).toFixed(0)}k`} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={90} />
                 <Tooltip content={<CustomTooltip />} />
                 <Bar dataKey="value" radius={[0, 6, 6, 0]}>

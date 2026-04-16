@@ -442,7 +442,18 @@ export const appRouter = router({
       .mutation(({ ctx, input }) => db.importCreditCardTransactionsFromOFX(ctx.user.id, input)),
   }),
 
-  // ============= FILES =============
+  // ============= DASHBOARD =============
+  dashboard: router({
+    stats: protectedProcedure
+      .input(z.object({ month: z.number(), year: z.number() }))
+      .query(({ ctx, input }) => db.getDashboardStats(ctx.user.id, input.month, input.year)),
+  }),
+  
+  // Aliases para compatibilidade com layout original
+  accounts: router({
+    list: protectedProcedure.query(({ ctx }) => db.getBankAccounts(ctx.user.id)),
+  }),
+  
   files: router({
     import: protectedProcedure
       .input(z.object({
@@ -453,20 +464,6 @@ export const appRouter = router({
         fileType: z.string(),
       }))
       .mutation(({ ctx, input }) => db.importFile(ctx.user.id, input)),
-  }),
-
-
-
-   // ============= DASHBOARD =============
-  dashboard: router({
-    stats: protectedProcedure
-      .input(z.object({ month: z.number(), year: z.number() }))
-      .query(({ ctx, input }) => db.getDashboardStats(ctx.user.id, input.month, input.year)),
-  }),
-  
-  // Aliases para compatibilidade com layout original
-  accounts: router({
-    list: protectedProcedure.query(({ ctx }) => db.getBankAccounts(ctx.user.id)),
   }),
 });
 export type AppRouter = typeof appRouter;

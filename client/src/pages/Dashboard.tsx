@@ -43,16 +43,16 @@ export default function Dashboard() {
   const { data: creditCardTransactions } = trpc.creditCardTransactions.list.useQuery({});
 
   const currentMonthCCTransactions = (creditCardTransactions || [])
-    .filter((t) => {
+    .filter((t: any) => {
       const txDate = new Date(t.date);
       return txDate.getMonth() + 1 === selectedMonth && txDate.getFullYear() === selectedYear;
     });
 
   // Calcular receitas e despesas do mês selecionado (SEM TRANSF. ENTRE CONTAS)
   const currentMonthIncome = (transactions || [])
-    .filter((t) => {
+    .filter((t: any) => {
       const txDate = new Date(t.date);
-      const cat = categories?.find((c) => c.id === t.categoryId);
+      const cat = categories?.find((c: any) => c.id === t.categoryId);
       return (
         txDate.getMonth() + 1 === selectedMonth &&
         txDate.getFullYear() === selectedYear &&
@@ -60,12 +60,12 @@ export default function Dashboard() {
         !cat?.name?.includes("TRANSF. ENTRE CONTAS")
       );
     })
-    .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
+    .reduce((sum: number, t: any) => sum + Math.abs(parseFloat(t.amount)), 0);
 
   const currentMonthExpenseBank = (transactions || [])
-    .filter((t) => {
+    .filter((t: any) => {
       const txDate = new Date(t.date);
-      const cat = categories?.find((c) => c.id === t.categoryId);
+      const cat = categories?.find((c: any) => c.id === t.categoryId);
       return (
         txDate.getMonth() + 1 === selectedMonth &&
         txDate.getFullYear() === selectedYear &&
@@ -73,32 +73,32 @@ export default function Dashboard() {
         !cat?.name?.includes("TRANSF. ENTRE CONTAS")
       );
     })
-    .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
+    .reduce((sum: number, t: any) => sum + Math.abs(parseFloat(t.amount)), 0);
 
   // Estornos de cartão (negativos = receita) - SEM TRANSF. ENTRE CONTAS
   const currentMonthCCRefunds = currentMonthCCTransactions
-    .filter((t) => {
-      const cat = categories?.find((c) => c.id === t.categoryId);
+    .filter((t: any) => {
+      const cat = categories?.find((c: any) => c.id === t.categoryId);
       return parseFloat(t.amount) < 0 && cat?.name !== "TRANSF. ENTRE CONTAS";
     })
-    .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
+    .reduce((sum: number, t: any) => sum + Math.abs(parseFloat(t.amount)), 0);
 
   // Gastos de cartão (positivos = despesa) - SEM TRANSF. ENTRE CONTAS
   const currentMonthCCExpenses = currentMonthCCTransactions
-    .filter((t) => {
-      const cat = categories?.find((c) => c.id === t.categoryId);
+    .filter((t: any) => {
+      const cat = categories?.find((c: any) => c.id === t.categoryId);
       return parseFloat(t.amount) > 0 && cat?.name !== "TRANSF. ENTRE CONTAS";
     })
-    .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    .reduce((sum: number, t: any) => sum + parseFloat(t.amount), 0);
 
   const totalIncome = currentMonthIncome + currentMonthCCRefunds;
   const totalExpenses = currentMonthExpenseBank + currentMonthCCExpenses;
 
   // Calcular transferências entre contas - Receitas e Despesas
   const transferIncome = (transactions || [])
-    .filter((t) => {
+    .filter((t: any) => {
       const txDate = new Date(t.date);
-      const cat = categories?.find((c) => c.id === t.categoryId);
+      const cat = categories?.find((c: any) => c.id === t.categoryId);
       return (
         txDate.getMonth() + 1 === selectedMonth &&
         txDate.getFullYear() === selectedYear &&
@@ -106,12 +106,12 @@ export default function Dashboard() {
         cat?.name?.includes("TRANSF. ENTRE CONTAS")
       );
     })
-    .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
+    .reduce((sum: number, t: any) => sum + Math.abs(parseFloat(t.amount)), 0);
 
   const transferExpense = (transactions || [])
-    .filter((t) => {
+    .filter((t: any) => {
       const txDate = new Date(t.date);
-      const cat = categories?.find((c) => c.id === t.categoryId);
+      const cat = categories?.find((c: any) => c.id === t.categoryId);
       return (
         txDate.getMonth() + 1 === selectedMonth &&
         txDate.getFullYear() === selectedYear &&
@@ -119,7 +119,7 @@ export default function Dashboard() {
         cat?.name?.includes("TRANSF. ENTRE CONTAS")
       );
     })
-    .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
+    .reduce((sum: number, t: any) => sum + Math.abs(parseFloat(t.amount)), 0);
 
   const transferBetweenAccounts = transferIncome + transferExpense;
 
@@ -128,7 +128,7 @@ export default function Dashboard() {
     const grouped: Record<string, { value: number; color: string }> = {};
 
     (transactions || [])
-      .filter((t) => {
+      .filter((t: any) => {
         const txDate = new Date(t.date);
         return (
           txDate.getMonth() + 1 === selectedMonth &&
@@ -136,8 +136,8 @@ export default function Dashboard() {
           t.type === "expense"
         );
       })
-      .forEach((t) => {
-        const cat = categories?.find((c) => c.id === t.categoryId);
+      .forEach((t: any) => {
+        const cat = categories?.find((c: any) => c.id === t.categoryId);
         const name = cat?.name || "Sem categoria";
         const color = cat?.color || "#ef4444";
         if (name?.includes("TRANSF. ENTRE CONTAS")) return;
@@ -146,9 +146,9 @@ export default function Dashboard() {
       });
 
     currentMonthCCTransactions
-      .filter((t) => parseFloat(t.amount) > 0)
-      .forEach((t) => {
-        const cat = categories?.find((c) => c.id === t.categoryId);
+      .filter((t: any) => parseFloat(t.amount) > 0)
+      .forEach((t: any) => {
+        const cat = categories?.find((c: any) => c.id === t.categoryId);
         const name = cat?.name || "Sem categoria";
         const color = cat?.color || "#ef4444";
         if (name?.includes("TRANSF. ENTRE CONTAS")) return;
@@ -158,8 +158,8 @@ export default function Dashboard() {
 
     return Object.entries(grouped)
       .map(([name, data]) => ({ name, value: data.value, color: data.color }))
-      .filter((c) => c.value > 0)
-      .sort((a, b) => b.value - a.value);
+      .filter((c: any) => c.value > 0)
+      .sort((a: any, b: any) => b.value - a.value);
   })();
 
   // Breakdown de receitas por categoria
@@ -167,7 +167,7 @@ export default function Dashboard() {
     const grouped: Record<string, { value: number; color: string }> = {};
 
     (transactions || [])
-      .filter((t) => {
+      .filter((t: any) => {
         const txDate = new Date(t.date);
         return (
           txDate.getMonth() + 1 === selectedMonth &&
@@ -175,8 +175,8 @@ export default function Dashboard() {
           t.type === "income"
         );
       })
-      .forEach((t) => {
-        const cat = categories?.find((c) => c.id === t.categoryId);
+      .forEach((t: any) => {
+        const cat = categories?.find((c: any) => c.id === t.categoryId);
         const name = cat?.name || "Sem categoria";
         const color = cat?.color || "#22c55e";
         if (name?.includes("TRANSF. ENTRE CONTAS")) return;
@@ -185,9 +185,9 @@ export default function Dashboard() {
       });
 
     currentMonthCCTransactions
-      .filter((t) => parseFloat(t.amount) < 0)
-      .forEach((t) => {
-        const cat = categories?.find((c) => c.id === t.categoryId);
+      .filter((t: any) => parseFloat(t.amount) < 0)
+      .forEach((t: any) => {
+        const cat = categories?.find((c: any) => c.id === t.categoryId);
         const name = cat?.name || "Sem categoria";
         const color = cat?.color || "#22c55e";
         if (name?.includes("TRANSF. ENTRE CONTAS")) return;
@@ -197,14 +197,14 @@ export default function Dashboard() {
 
     return Object.entries(grouped)
       .map(([name, data]) => ({ name, value: data.value, color: data.color }))
-      .filter((c) => c.value > 0)
-      .sort((a, b) => b.value - a.value);
+      .filter((c: any) => c.value > 0)
+      .sort((a: any, b: any) => b.value - a.value);
   })();
 
   if (!user) return null;
 
   const totalBalance = (bankAccounts || [])
-    .reduce((sum, acc) => sum + parseFloat(acc.balance || "0"), 0);
+    .reduce((sum: any, acc) => sum + parseFloat(acc.balance || "0"), 0);
   
   const monthNames = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",

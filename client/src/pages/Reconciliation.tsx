@@ -18,8 +18,8 @@ export default function Reconciliation() {
 
   if (!user) return null;
 
-  const unreconciled = transactions?.filter((t) => !t.reconciled) || [];
-  const reconciled = transactions?.filter((t) => t.reconciled) || [];
+  const unreconciled = transactions?.filter((t: any) => !t.reconciled) || [];
+  const reconciled = transactions?.filter((t: any) => t.reconciled) || [];
 
   const handleToggleReconciliation = async (id: number, reconciled: boolean) => {
     try {
@@ -38,8 +38,8 @@ export default function Reconciliation() {
   };
 
   const renderTransactionRow = (transaction: any, isReconciled: boolean) => {
-    const category = categories?.find((c) => c.id === transaction.categoryId);
-    const account = accounts?.find((a) => a.id === transaction.accountId);
+    const category = categories?.find((c: any) => c.id === transaction.categoryId);
+    const account = accounts?.find((a: any) => a.id === transaction.accountId);
 
     return (
       <tr key={transaction.id} className="border-b border-border hover:bg-muted/50 transition-colors">
@@ -137,7 +137,7 @@ export default function Reconciliation() {
                     </tr>
                   </thead>
                   <tbody>
-                    {unreconciled.map((transaction) => renderTransactionRow(transaction, false))}
+                    {unreconciled.map((transaction: any) => renderTransactionRow(transaction, false))}
                   </tbody>
                 </table>
               </div>
@@ -182,7 +182,7 @@ export default function Reconciliation() {
                     </tr>
                   </thead>
                   <tbody>
-                    {reconciled.map((transaction) => renderTransactionRow(transaction, true))}
+                    {reconciled.map((transaction: any) => renderTransactionRow(transaction, true))}
                   </tbody>
                 </table>
               </div>

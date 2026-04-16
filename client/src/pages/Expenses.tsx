@@ -82,7 +82,7 @@ export default function Expenses() {
       });
     }
 
-    return allExpenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return allExpenses.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [transactionsQuery.data, selectedMonth, selectedYear, filterCategoryId]);
 
   // Calcular totais por categoria com cores (respeitando filtro)
@@ -103,10 +103,10 @@ export default function Expenses() {
 
     return Object.entries(grouped)
       .map(([name, data]) => ({ name, value: data.value, color: data.color, id: data.id }))
-      .sort((a, b) => b.value - a.value);
+      .sort((a: any, b: any) => b.value - a.value);
   }, [expenses, categoriesQuery.data]);
 
-  const totalExpenses = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+  const totalExpenses = expenses.reduce((sum: any, exp) => sum + (exp.amount || 0), 0);
   const filterCategoryName = filterCategoryId
     ? categoriesQuery.data?.find((c: any) => c.id === filterCategoryId)?.name
     : null;
@@ -152,7 +152,7 @@ export default function Expenses() {
       const txId = parseInt(editingExpense.id.replace("bank-", ""), 10);
       await updateTransactionMutation.mutateAsync({
         id: txId,
-        categoryId: parseInt(selectedCategoryId, 10),
+        categoryId: selectedCategoryId || 1,
       });
       
       toast.success("Categoria atualizada com sucesso!");
@@ -200,7 +200,7 @@ export default function Expenses() {
             <ChevronLeft className="w-4 h-4" />
           </Button>
 
-          <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
+          <Select value={selectedMonth.toString()} onValueChange={(v: any) => setSelectedMonth(parseInt(v))}>
             <SelectTrigger className="w-28 md:w-32 h-8 text-xs md:text-sm">
               <SelectValue />
             </SelectTrigger>
@@ -213,7 +213,7 @@ export default function Expenses() {
             </SelectContent>
           </Select>
 
-          <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
+          <Select value={selectedYear.toString()} onValueChange={(v: any) => setSelectedYear(parseInt(v))}>
             <SelectTrigger className="w-20 md:w-24 h-8 text-xs md:text-sm">
               <SelectValue />
             </SelectTrigger>
@@ -231,7 +231,7 @@ export default function Expenses() {
           </Button>
 
           <div className="flex items-center gap-2 md:gap-3">
-            <Select value={filterCategoryId?.toString() || "all"} onValueChange={(v) => setFilterCategoryId(v === "all" ? null : parseInt(v, 10))}>
+            <Select value={filterCategoryId?.toString() || "all"} onValueChange={(v: any) => setFilterCategoryId(v === "all" ? null : parseInt(v, 10))}>
               <SelectTrigger className="w-32 md:w-40 h-8 text-xs md:text-sm">
                 <SelectValue placeholder="Todas as categorias" />
               </SelectTrigger>
@@ -315,7 +315,7 @@ export default function Expenses() {
                 margin={{ top: 5, right: 60, left: 5, bottom: 5 }}
               >
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
+                <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v: any) => `R$${(v / 1000).toFixed(0)}k`} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={90} />
                 <Tooltip content={<CustomTooltip />} />
                 <Bar dataKey="value" radius={[0, 6, 6, 0]}>
@@ -431,7 +431,7 @@ export default function Expenses() {
             </div>
             <div>
               <label className="text-sm font-medium mb-2 block">Categoria</label>
-              <Select value={selectedCategoryId?.toString() || ""} onValueChange={(v) => setSelectedCategoryId(parseInt(v, 10))}>
+              <Select value={selectedCategoryId?.toString() || ""} onValueChange={(v: any) => setSelectedCategoryId(parseInt(v, 10))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma categoria" />
                 </SelectTrigger>

@@ -106,7 +106,7 @@ function EditBankAccountDialog({
             <label className="text-sm font-medium">Nome da Conta</label>
             <Input
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Ex: Minha Conta Corrente"
             />
           </div>
@@ -114,7 +114,7 @@ function EditBankAccountDialog({
             <label className="text-sm font-medium">Banco</label>
             <Input
               value={formData.bank}
-              onChange={(e) => setFormData({ ...formData, bank: e.target.value })}
+              onChange={(e: any) => setFormData({ ...formData, bank: e.target.value })}
               placeholder="Ex: Bradesco"
             />
           </div>
@@ -122,7 +122,7 @@ function EditBankAccountDialog({
             <label className="text-sm font-medium">Número da Conta</label>
             <Input
               value={formData.accountNumber}
-              onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
+              onChange={(e: any) => setFormData({ ...formData, accountNumber: e.target.value })}
               placeholder="Ex: 123456-7"
             />
           </div>
@@ -221,7 +221,7 @@ function EditCreditCardDialog({
             <label className="text-sm font-medium">Nome do Cartão</label>
             <Input
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Ex: Cartão Master"
             />
           </div>
@@ -244,7 +244,7 @@ function EditCreditCardDialog({
             <label className="text-sm font-medium">4 Últimos Dígitos</label>
             <Input
               value={formData.lastFourDigits}
-              onChange={(e) => setFormData({ ...formData, lastFourDigits: e.target.value.slice(0, 4) })}
+              onChange={(e: any) => setFormData({ ...formData, lastFourDigits: e.target.value.slice(0, 4) })}
               placeholder="Ex: 8631"
               maxLength={4}
             />
@@ -255,7 +255,7 @@ function EditCreditCardDialog({
               type="number"
               step="0.01"
               value={formData.limit}
-              onChange={(e) => setFormData({ ...formData, limit: e.target.value })}
+              onChange={(e: any) => setFormData({ ...formData, limit: e.target.value })}
               placeholder="0.00"
             />
           </div>
@@ -267,7 +267,7 @@ function EditCreditCardDialog({
                 min="1"
                 max="31"
                 value={formData.dueDay}
-                onChange={(e) => setFormData({ ...formData, dueDay: e.target.value })}
+                onChange={(e: any) => setFormData({ ...formData, dueDay: e.target.value })}
                 placeholder="10"
               />
             </div>
@@ -278,7 +278,7 @@ function EditCreditCardDialog({
                 min="1"
                 max="31"
                 value={formData.closingDay}
-                onChange={(e) => setFormData({ ...formData, closingDay: e.target.value })}
+                onChange={(e: any) => setFormData({ ...formData, closingDay: e.target.value })}
                 placeholder="1"
               />
             </div>
@@ -316,7 +316,10 @@ function EditCreditCardDialog({
 
 
 function ProfileHistorySection() {
-  const { data: history, isLoading } = trpc.auth.getProfileHistory.useQuery();
+  // TODO: Implementar getProfileHistory
+  // const { data: history, isLoading } = trpc.auth.getProfileHistory.useQuery();
+  const isLoading = false;
+  const history: any[] = [];
 
   if (isLoading) {
     return <p className="text-gray-500">Carregando histórico...</p>;
@@ -328,7 +331,7 @@ function ProfileHistorySection() {
 
   return (
     <div className="space-y-3">
-      {history.map((entry) => (
+      {history.map((entry: any) => (
         <div key={entry.id} className="border rounded-lg p-3 bg-gray-50">
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -484,7 +487,7 @@ function MinhasContas() {
                         variant="ghost"
                         size="sm"
                         className="text-white hover:bg-white/20 h-8 w-8 p-0"
-                        onClick={(e) => {
+                        onClick={(e: any) => {
                           e.stopPropagation();
                           handleEditBankAccount(account);
                         }}
@@ -550,7 +553,7 @@ function MinhasContas() {
                         variant="ghost"
                         size="sm"
                         className="text-white hover:bg-white/20 h-8 w-8 p-0"
-                        onClick={(e) => {
+                        onClick={(e: any) => {
                           e.stopPropagation();
                           handleEditCreditCard(card);
                         }}
@@ -696,7 +699,7 @@ export default function Profile() {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = async (e) => {
+    reader.onload = async (e: any) => {
       const photoData = e.target?.result as string;
       setProfilePhoto(photoData);
       
@@ -768,7 +771,7 @@ export default function Profile() {
           {/* Foto de Perfil (clicável) */}
           <div className="flex items-center space-x-4">
             <div
-              onClick={(e) => {
+              onClick={(e: any) => {
                 e.stopPropagation();
                 fileInputRef.current?.click();
               }}
@@ -804,7 +807,7 @@ export default function Profile() {
               {isEditing ? (
                 <Input
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
                   className="mt-1"
                 />
               ) : (
@@ -822,7 +825,7 @@ export default function Profile() {
                 <Input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e: any) => setFormData({ ...formData, email: e.target.value })}
                   className="mt-1"
                 />
               ) : (

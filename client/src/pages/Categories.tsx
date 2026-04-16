@@ -16,7 +16,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 const CATEGORY_TYPES = [
   { value: "income", label: "Receita" },
   { value: "expense", label: "Despesa" },
-  { value: "transfer", label: "Transferência entre contas" },
 ];
 
 const DEFAULT_COLORS = [
@@ -40,7 +39,7 @@ export default function Categories() {
   });
   const [formData, setFormData] = useState({
     name: "",
-    type: "expense" as "income" | "expense" | "transfer",
+    type: "expense" as "income" | "expense",
     color: "#6366f1",
   });
 
@@ -72,7 +71,6 @@ export default function Categories() {
         await updateCategoryMutation.mutateAsync({
           id: editingId,
           name: formData.name,
-          type: formData.type,
           color: formData.color,
         });
         toast.success("Categoria atualizada com sucesso!");
@@ -186,9 +184,9 @@ export default function Categories() {
     }
   };
 
-  const incomeCategories = categoriesQuery.data?.filter(c => c.type === "income") || [];
-  const expenseCategories = categoriesQuery.data?.filter(c => c.type === "expense") || [];
-  const transferCategories = categoriesQuery.data?.filter(c => c.type === "transfer") || [];
+  const incomeCategories = categoriesQuery.data?.filter((c: any) => c.type === "income") || [];
+  const expenseCategories = categoriesQuery.data?.filter((c: any) => c.type === "expense") || [];
+  const transferCategories = categoriesQuery.data?.filter((c: any) => c.type === "transfer") || [];
 
   return (
     <div className="space-y-6">
@@ -228,7 +226,7 @@ export default function Categories() {
 
                 <div>
                   <Label htmlFor="type">Tipo</Label>
-                  <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value as "income" | "expense" | "transfer" })}>
+                  <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value as "income" | "expense" })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -267,7 +265,7 @@ export default function Categories() {
         <div>
           <h2 className="text-lg font-semibold text-foreground mb-2">Receitas</h2>
           <div className="space-y-2">
-            {incomeCategories.map((category) => (
+            {incomeCategories.map((category: any) => (
               <CategoryCard
                 key={category.id}
                 category={category}
@@ -293,7 +291,7 @@ export default function Categories() {
         <div>
           <h2 className="text-lg font-semibold text-foreground mb-2">Despesas</h2>
           <div className="space-y-2">
-            {expenseCategories.map((category) => (
+            {expenseCategories.map((category: any) => (
               <CategoryCard
                 key={category.id}
                 category={category}
@@ -319,7 +317,7 @@ export default function Categories() {
         <div>
           <h2 className="text-lg font-semibold text-foreground mb-2">Transferências entre Contas</h2>
           <div className="space-y-2">
-            {transferCategories.map((category) => (
+            {transferCategories.map((category: any) => (
               <CategoryCard
                 key={category.id}
                 category={category}

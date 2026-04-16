@@ -25,7 +25,7 @@ import {
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
-let _db: ReturnType<typeof drizzle> | null = null;
+let _db: any = null;
 let _pool: mysql.Pool | null = null;
 let _initAttempted = false;
 
@@ -183,7 +183,7 @@ export async function getBankAccounts(userId: number) {
   const currentYear = new Date().getFullYear();
   
   const accountsWithFinalBalance = await Promise.all(
-    accounts.map(async (account) => {
+    accounts.map(async (account: any) => {
       try {
         const txList = await db
           .select()
@@ -199,7 +199,7 @@ export async function getBankAccounts(userId: number) {
         let monthlyIncome = 0;
         let monthlyExpense = 0;
         
-        txList.forEach((tx) => {
+        txList.forEach((tx: any) => {
           const txDate = new Date(tx.date);
           if (txDate.getMonth() + 1 === currentMonth && txDate.getFullYear() === currentYear) {
             if (tx.type === "income") {
@@ -658,7 +658,7 @@ export async function getCreditCardUtilization(userId: number, cardId: number, m
   
   const transactions = await getCreditCardTransactionsByMonth(userId, cardId, month, year);
   
-  const totalUsed = transactions.reduce((sum, t) => {
+  const totalUsed = transactions.reduce((sum: any, t: any) => {
     const amount = parseFloat(t.amount.toString());
     return sum + (amount > 0 ? amount : 0);
   }, 0);
@@ -882,6 +882,7 @@ export async function importCreditCardTransactionsFromPDF(userId: number, data: 
 export async function importCreditCardTransactionsFromOFX(userId: number, data: { cardId: number; ofxContent: string; fileName: string }) {
   try {
     const db = await getDb();
+    if (!db) throw new Error("Database not available");
     
     const card = await db.select().from(creditCards).where(
       and(eq(creditCards.id, data.cardId), eq(creditCards.userId, userId))
@@ -948,7 +949,9 @@ export async function importFile(userId: number, data: {
   fileType: string;
 }) {
   try {
+    console.log('[importFile] Starting import for', data.entityType, 'ID:', data.entityId, 'fileType:', data.fileType);
     const db = await getDb();
+    if (!db) throw new Error("Database not available");
     
     if (data.entityType === "creditCard") {
       const card = await db.select().from(creditCards).where(
@@ -963,9 +966,26 @@ export async function importFile(userId: number, data: {
       let extractedTransactions: Array<{date: Date; description: string; amount: string; type: "income" | "expense"}> = [];
       
       if (data.fileType === "application/pdf" || data.fileName.endsWith(".pdf")) {
+        console.log('[importFile] Processing PDF, content length:', data.fileContent.length);
         // For PDF, extract text and look for transaction patterns
+        // Decode base64 if needed
+        let pdfContent = data.fileContent;
+        if (!data.fileContent.startsWith('%PDF')) {
+          // Decode from base64
+          try {
+            const buffer = Buffer.from(data.fileContent, 'base64');
+            pdfContent = buffer.toString('latin1');
+            console.log('[importFile] Decoded base64 PDF, length:', pdfContent.length);
+          } catch (e) {
+            console.log('[importFile] Failed to decode base64:', e);
+            pdfContent = data.fileContent;
+          }
+        } else {
+          console.log('[importFile] PDF is already decoded');
+        }
         // Simple pattern: look for lines with dates and amounts
-        const lines = data.fileContent.split('\n');
+        const lines = pdfContent.split('\n');
+        console.log('[importFile] Split into', lines.length, 'lines');
         const datePattern = /(\d{1,2}\/(\d{1,2}|\d{4}))/g;
         const amountPattern = /R\$\s*([\d.,]+)/g;
         
@@ -995,19 +1015,51 @@ export async function importFile(userId: number, data: {
         });
       }
       
+      // Get or create default category for imported transactions
+      let defaultCategoryId = 1; // Default category ID
+      try {
+        const existingCategory = await db.select().from(categories).where(
+          and(eq(categories.userId, userId), eq(categories.name, "Imported"))
+        ).limit(1);
+        
+        if (existingCategory.length) {
+          defaultCategoryId = existingCategory[0].id;
+        } else {
+          // Create a default "Imported" category
+          const result = await db.insert(categories).values({
+            userId,
+            name: "Imported",
+            type: "expense",
+            color: "#9333ea",
+            icon: "upload",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+          // Get the ID of the newly created category
+          const newCategory = await db.select().from(categories).where(
+            and(eq(categories.userId, userId), eq(categories.name, "Imported"))
+          ).limit(1);
+          if (newCategory.length) {
+            defaultCategoryId = newCategory[0].id;
+          }
+        }
+      } catch (e) {
+        console.log('[importFile] Error creating default category:', e);
+        // Continue with default ID
+      }
+      
       // Create transactions in database
+      console.log('[importFile] Found', extractedTransactions.length, 'transactions to create');
       let transactionsCreated = 0;
       for (const tx of extractedTransactions) {
         try {
           await db.insert(creditCardTransactions).values({
             cardId: data.entityId,
             userId,
+            categoryId: defaultCategoryId,
             date: tx.date,
             description: tx.description,
             amount: tx.amount,
-            type: tx.type,
-            createdAt: new Date(),
-            updatedAt: new Date(),
           });
           transactionsCreated++;
         } catch (e) {
@@ -1015,6 +1067,7 @@ export async function importFile(userId: number, data: {
         }
       }
 
+      console.log('[importFile] Import completed, created', transactionsCreated, 'transactions');
       return {
         success: true,
         message: `Arquivo importado com sucesso. ${transactionsCreated} transações criadas.`,
@@ -1063,19 +1116,51 @@ export async function importFile(userId: number, data: {
         });
       }
       
+      // Get or create default category for imported transactions (for bank account imports)
+      let defaultCategoryId = 1;
+      if (db) {
+        try {
+          const existingCategory = await db.select().from(categories).where(
+            and(eq(categories.userId, userId), eq(categories.name, "Imported"))
+          ).limit(1);
+          
+          if (existingCategory.length) {
+            defaultCategoryId = existingCategory[0].id;
+          } else {
+            const result = await db.insert(categories).values({
+              userId,
+              name: "Imported",
+              type: "expense",
+              color: "#9333ea",
+              icon: "upload",
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            });
+            const newCategory = await db.select().from(categories).where(
+              and(eq(categories.userId, userId), eq(categories.name, "Imported"))
+            ).limit(1);
+            if (newCategory.length) {
+              defaultCategoryId = newCategory[0].id;
+            }
+          }
+        } catch (e) {
+          console.log('[importFile] Error creating default category:', e);
+        }
+      }
+      
       // Create transactions in database
       let transactionsCreated = 0;
       for (const tx of extractedTransactions) {
         try {
+          if (!db) throw new Error("Database not available");
           await db.insert(transactions).values({
             accountId: data.entityId,
             userId,
+            categoryId: defaultCategoryId,
             date: tx.date,
             description: tx.description,
             amount: tx.amount,
-            type: tx.type,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            type: (tx.type as "income" | "expense"),
           });
           transactionsCreated++;
         } catch (e) {

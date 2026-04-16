@@ -176,8 +176,8 @@ export default function BankAccountDetail() {
       return transactionDate >= prevMonthStart && transactionDate <= prevMonthEnd;
     });
     
-    const prevIncome = prevMonthTransactions.filter((t) => t.type === "income");
-    const prevExpenses = prevMonthTransactions.filter((t) => t.type === "expense");
+    const prevIncome = prevMonthTransactions.filter((t: any) => t.type === "income");
+    const prevExpenses = prevMonthTransactions.filter((t: any) => t.type === "expense");
     const prevTotalIncome = prevIncome.reduce((sum: number, t: any) => sum + parseFloat(t.amount.toString()), 0);
     const prevTotalExpenses = prevExpenses.reduce((sum: number, t: any) => sum + parseFloat(t.amount.toString()), 0);
     
@@ -248,8 +248,8 @@ export default function BankAccountDetail() {
     });
   }
   
-  const income = filteredTransactions.filter((t) => t.type === "income");
-  const expenses = filteredTransactions.filter((t) => t.type === "expense");
+  const income = filteredTransactions.filter((t: any) => t.type === "income");
+  const expenses = filteredTransactions.filter((t: any) => t.type === "expense");
   const totalIncome = income.reduce((sum: number, t: any) => sum + parseFloat(t.amount.toString()), 0);
   // Use Math.abs to handle negative values correctly (e.g., -R$-92,76 should be treated as positive)
   const totalExpenses = expenses.reduce((sum: number, t: any) => sum + Math.abs(parseFloat(t.amount.toString())), 0);
@@ -399,24 +399,24 @@ export default function BankAccountDetail() {
             <ChevronLeft className="w-4 h-4" />
           </Button>
           <div className="flex items-center gap-4">
-            <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
+            <Select value={selectedMonth.toString()} onValueChange={(v: any) => setSelectedMonth(parseInt(v))}>
               <SelectTrigger className="w-32 bg-white/20 border-white/30 text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {months.map((m) => (
+                {months.map((m: any) => (
                   <SelectItem key={m} value={m.toString()}>
                     {format(new Date(2024, m - 1), "MMMM", { locale: ptBR })}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
+            <Select value={selectedYear.toString()} onValueChange={(v: any) => setSelectedYear(parseInt(v))}>
               <SelectTrigger className="w-32 bg-white/20 border-white/30 text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {years.map((y) => (
+                {years.map((y: any) => (
                   <SelectItem key={y} value={y.toString()}>
                     {y}
                   </SelectItem>
@@ -467,7 +467,7 @@ export default function BankAccountDetail() {
                 <Input
                   type="text"
                   value={initialBalanceValue}
-                  onChange={(e) => setInitialBalanceValue(e.target.value)}
+                  onChange={(e: any) => setInitialBalanceValue(e.target.value)}
                   placeholder="0,00"
                   className="text-lg font-semibold"
                 />
@@ -669,13 +669,13 @@ export default function BankAccountDetail() {
                 type="number"
                 placeholder="Valor Mínimo"
                 value={filterMinValue}
-                onChange={(e) => setFilterMinValue(e.target.value)}
+                onChange={(e: any) => setFilterMinValue(e.target.value)}
               />
               <Input
                 type="number"
                 placeholder="Valor Máximo"
                 value={filterMaxValue}
-                onChange={(e) => setFilterMaxValue(e.target.value)}
+                onChange={(e: any) => setFilterMaxValue(e.target.value)}
               />
             </div>
             <div className="flex gap-2">
@@ -683,7 +683,7 @@ export default function BankAccountDetail() {
                 type="checkbox"
                 id="customRange"
                 checked={useCustomDateRange}
-                onChange={(e) => setUseCustomDateRange(e.target.checked)}
+                onChange={(e: any) => setUseCustomDateRange(e.target.checked)}
                 className="rounded"
               />
               <label htmlFor="customRange" className="text-sm">Usar período customizado</label>
@@ -693,12 +693,12 @@ export default function BankAccountDetail() {
                 <Input
                   type="date"
                   value={filterStartDate}
-                  onChange={(e) => setFilterStartDate(e.target.value)}
+                  onChange={(e: any) => setFilterStartDate(e.target.value)}
                 />
                 <Input
                   type="date"
                   value={filterEndDate}
-                  onChange={(e) => setFilterEndDate(e.target.value)}
+                  onChange={(e: any) => setFilterEndDate(e.target.value)}
                 />
               </div>
             )}
@@ -817,13 +817,13 @@ export default function BankAccountDetail() {
               <label className="text-sm font-medium mb-1 block">Descrição</label>
               <Input
                 value={newTransactionData.description}
-                onChange={(e) => setNewTransactionData({ ...newTransactionData, description: e.target.value })}
+                onChange={(e: any) => setNewTransactionData({ ...newTransactionData, description: e.target.value })}
                 placeholder="Descrição da transação"
               />
             </div>
             <div>
               <label className="text-sm font-medium mb-1 block">Categoria</label>
-              <Select value={newTransactionData.categoryId} onValueChange={(v) => setNewTransactionData({ ...newTransactionData, categoryId: v })}>
+              <Select value={newTransactionData.categoryId} onValueChange={(v: any) => setNewTransactionData({ ...newTransactionData, categoryId: v })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma categoria" />
                 </SelectTrigger>
@@ -840,7 +840,7 @@ export default function BankAccountDetail() {
               <label className="text-sm font-medium mb-1 block">Valor</label>
               <Input
                 value={newTransactionData.amount}
-                onChange={(e) => setNewTransactionData({ ...newTransactionData, amount: e.target.value })}
+                onChange={(e: any) => setNewTransactionData({ ...newTransactionData, amount: e.target.value })}
                 placeholder="0,00"
               />
             </div>
@@ -849,14 +849,14 @@ export default function BankAccountDetail() {
               <Input
                 type="date"
                 value={newTransactionData.date}
-                onChange={(e) => setNewTransactionData({ ...newTransactionData, date: e.target.value })}
+                onChange={(e: any) => setNewTransactionData({ ...newTransactionData, date: e.target.value })}
               />
             </div>
             <div>
               <label className="text-sm font-medium mb-1 block">Notas</label>
               <Input
                 value={newTransactionData.notes}
-                onChange={(e) => setNewTransactionData({ ...newTransactionData, notes: e.target.value })}
+                onChange={(e: any) => setNewTransactionData({ ...newTransactionData, notes: e.target.value })}
                 placeholder="Notas adicionais"
               />
             </div>
@@ -879,7 +879,7 @@ export default function BankAccountDetail() {
                 <label className="text-sm font-medium mb-1 block">Descrição</label>
                 <Input
                   value={editingField === 'description' ? editingValue : selectedTransaction.description}
-                  onChange={(e) => {
+                  onChange={(e: any) => {
                     setEditingField('description');
                     setEditingValue(e.target.value);
                   }}
@@ -908,7 +908,7 @@ export default function BankAccountDetail() {
                 <label className="text-sm font-medium mb-1 block">Valor</label>
                 <Input
                   value={editingField === 'amount' ? editingValue : formatBRL(selectedTransaction.amount.toString())}
-                  onChange={(e) => {
+                  onChange={(e: any) => {
                     setEditingField('amount');
                     setEditingValue(e.target.value);
                   }}
@@ -982,7 +982,7 @@ export default function BankAccountDetail() {
                     name="apply-mode"
                     value="all"
                     checked={applyRulesMode === 'all'}
-                    onChange={(e) => setApplyRulesMode(e.target.value as 'all' | 'period')}
+                    onChange={(e: any) => setApplyRulesMode(e.target.value as 'all' | 'period')}
                     className="w-4 h-4"
                   />
                   <label htmlFor="all-transactions" className="text-sm cursor-pointer">
@@ -996,7 +996,7 @@ export default function BankAccountDetail() {
                     name="apply-mode"
                     value="period"
                     checked={applyRulesMode === 'period'}
-                    onChange={(e) => setApplyRulesMode(e.target.value as 'all' | 'period')}
+                    onChange={(e: any) => setApplyRulesMode(e.target.value as 'all' | 'period')}
                     className="w-4 h-4"
                   />
                   <label htmlFor="period-transactions" className="text-sm cursor-pointer">
@@ -1013,7 +1013,7 @@ export default function BankAccountDetail() {
                   <Input
                     type="date"
                     value={applyRulesStartDate}
-                    onChange={(e) => setApplyRulesStartDate(e.target.value)}
+                    onChange={(e: any) => setApplyRulesStartDate(e.target.value)}
                     className="mt-1"
                   />
                 </div>
@@ -1022,7 +1022,7 @@ export default function BankAccountDetail() {
                   <Input
                     type="date"
                     value={applyRulesEndDate}
-                    onChange={(e) => setApplyRulesEndDate(e.target.value)}
+                    onChange={(e: any) => setApplyRulesEndDate(e.target.value)}
                     className="mt-1"
                   />
                 </div>

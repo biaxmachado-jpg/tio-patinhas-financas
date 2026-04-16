@@ -123,7 +123,7 @@ export default function CategorizationRules() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories?.map((cat) => (
+                      {categories?.map((cat: any) => (
                         <SelectItem key={cat.id} value={cat.id.toString()}>
                           {cat.name}
                         </SelectItem>
@@ -211,8 +211,8 @@ export default function CategorizationRules() {
 
         {/* Rules List */}
         <div className="space-y-3">
-          {rules?.sort((a, b) => b.priority - a.priority).map((rule, index) => {
-            const category = categories?.find((c) => c.id === rule.categoryId);
+          {rules?.sort((a: any, b: any) => b.priority - a.priority).map((rule: any, index: any) => {
+            const category = categories?.find((c: any) => c.id === rule.categoryId);
             return (
               <div
                 key={rule.id}

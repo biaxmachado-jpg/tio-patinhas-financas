@@ -1063,3 +1063,13 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Modificar BankAccounts.tsx para remover exibição do saldo final nos cards - REMOVIDO
 - [x] Manter apenas: nome da conta, banco e número da conta - MANTIDO
 - [x] Testar a visualização dos cards - TESTADO E FUNCIONANDO!
+
+
+## Feature: Extração Avançada de PDF com OCR
+
+- [x] Instalar tesseract.js para OCR - INSTALADO
+- [x] Implementar função de extração com OCR no backend - IMPLEMENTADO extractTransactionsFromPDFWithOCR()
+- [x] Melhorar parsing para reconhecer diferentes layouts de faturas - IMPLEMENTADO padrões para Bradesco, Itaú, genérico
+- [x] Extrair campos: data, descrição, valor, categoria automaticamente - IMPLEMENTADO
+- [ ] Testar com diferentes PDFs de faturas reais - PENDENTE
+- [ ] Validar precisão do OCR e ajustar conforme necessário - PENDENTE

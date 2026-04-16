@@ -29,14 +29,14 @@ export default function Budgets() {
 
   if (!user) return null;
 
-  const incomeCategories = useMemo(() => categories?.filter((c) => c.type === "income") ?? [], [categories]);
-  const expenseCategories = useMemo(() => categories?.filter((c) => c.type === "expense") ?? [], [categories]);
+  const incomeCategories = useMemo(() => categories?.filter((c: any) => c.type === "income") ?? [], [categories]);
+  const expenseCategories = useMemo(() => categories?.filter((c: any) => c.type === "expense") ?? [], [categories]);
 
   const getSpentAmount = (categoryId: number, type: "income" | "expense") => {
     // Transações bancárias
     const bankAmount = (
       transactions
-        ?.filter((t) => {
+        ?.filter((t: any) => {
           const transactionDate = new Date(t.date);
           const transactionMonth = transactionDate.getMonth() + 1;
           const transactionYear = transactionDate.getFullYear();
@@ -47,7 +47,7 @@ export default function Budgets() {
             transactionYear === year
           );
         })
-        .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0) || 0
+        .reduce((sum: number, t: any) => sum + parseFloat(t.amount.toString()), 0) || 0
     );
 
     // Transações de cartão de crédito (apenas despesas)
@@ -55,7 +55,7 @@ export default function Budgets() {
     if (type === "expense") {
       creditCardAmount = (
         creditCardTransactions
-          ?.filter((t) => {
+          ?.filter((t: any) => {
             const transactionDate = new Date(t.dueDate);
             const transactionMonth = transactionDate.getMonth() + 1;
             const transactionYear = transactionDate.getFullYear();
@@ -65,7 +65,7 @@ export default function Budgets() {
               transactionYear === year
             );
           })
-          .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0) || 0
+          .reduce((sum: number, t: any) => sum + parseFloat(t.amount.toString()), 0) || 0
       );
     }
 
@@ -73,7 +73,7 @@ export default function Budgets() {
   };
 
   const getBudgetForCategory = (categoryId: number) => {
-    const budget = budgets?.find((b) => b.categoryId === categoryId);
+    const budget = budgets?.find((b: any) => b.categoryId === categoryId);
     return budget ? parseFloat(budget.limit.toString()) : 0;
   };
 
@@ -81,7 +81,7 @@ export default function Budgets() {
   useEffect(() => {
     const alerts: Array<{ categoryId: number; categoryName: string; percentage: number }> = [];
     
-    expenseCategories.forEach((cat) => {
+    expenseCategories.forEach((cat: any) => {
       const budgetAmount = getBudgetForCategory(cat.id);
       if (budgetAmount > 0) {
         const spentAmount = getSpentAmount(cat.id, "expense");
@@ -104,7 +104,7 @@ export default function Budgets() {
     setEditingType(type);
     const categoriesToEdit = type === "income" ? incomeCategories : expenseCategories;
     const values: Record<number, string> = {};
-    categoriesToEdit.forEach((cat) => {
+    categoriesToEdit.forEach((cat: any) => {
       const budget = getBudgetForCategory(cat.id);
       values[cat.id] = budget > 0 ? budget.toString() : "";
     });
@@ -136,7 +136,7 @@ export default function Budgets() {
         }
 
         const existingBudget = budgets?.find(
-          (b) => b.categoryId === categoryId && b.month === targetMonth && b.year === targetYear
+          (b: any) => b.categoryId === categoryId && b.month === targetMonth && b.year === targetYear
         );
 
         if (existingBudget) {
@@ -169,7 +169,7 @@ export default function Budgets() {
       for (const cat of categoriesToEdit) {
         const value = budgetValues[cat.id];
         if (value && value !== "") {
-          const existingBudget = budgets?.find((b) => b.categoryId === cat.id);
+          const existingBudget = budgets?.find((b: any) => b.categoryId === cat.id);
           
           if (existingBudget) {
             await updateMutation.mutateAsync({
@@ -229,14 +229,14 @@ export default function Budgets() {
     try {
       const XLSX = await import('xlsx');
       
-      const incomeData = incomeCategories.map(cat => ({
+      const incomeData = incomeCategories.map((cat: any) => ({
         Categoria: cat.name,
         Realizado: getSpentAmount(cat.id, "income"),
         Orcamento: getBudgetForCategory(cat.id),
         Tipo: "Receita"
       }));
 
-      const expenseData = expenseCategories.map(cat => ({
+      const expenseData = expenseCategories.map((cat: any) => ({
         Categoria: cat.name,
         Realizado: getSpentAmount(cat.id, "expense"),
         Orcamento: getBudgetForCategory(cat.id),
@@ -287,10 +287,10 @@ export default function Budgets() {
           </button>
           <select
             value={month}
-            onChange={(e) => setMonth(parseInt(e.target.value))}
+            onChange={(e: any) => setMonth(parseInt(e.target.value))}
             className="px-3 py-2 border rounded-md"
           >
-            {months.map((m, i) => (
+            {months.map((m: any, i: any) => (
               <option key={i} value={i + 1}>
                 {m}
               </option>
@@ -298,10 +298,10 @@ export default function Budgets() {
           </select>
           <select
             value={year}
-            onChange={(e) => setYear(parseInt(e.target.value))}
+            onChange={(e: any) => setYear(parseInt(e.target.value))}
             className="px-3 py-2 border rounded-md"
           >
-            {years.map((y) => (
+            {years.map((y: any) => (
               <option key={y} value={y}>
                 {y}
               </option>
@@ -339,7 +339,7 @@ export default function Budgets() {
             </button>
           </div>
           <div className="grid gap-3">
-            {incomeCategories.map((cat) => {
+            {incomeCategories.map((cat: any) => {
               const spent = getSpentAmount(cat.id, "income");
               const budgetLimit = getBudgetForCategory(cat.id);
               const percentage = budgetLimit > 0 ? (spent / budgetLimit) * 100 : 0;
@@ -390,7 +390,7 @@ export default function Budgets() {
             </button>
           </div>
           <div className="grid gap-3">
-            {expenseCategories.map((cat) => {
+            {expenseCategories.map((cat: any) => {
               const spent = getSpentAmount(cat.id, "expense");
               const budgetLimit = getBudgetForCategory(cat.id);
               const percentage = budgetLimit > 0 ? (spent / budgetLimit) * 100 : 0;
@@ -453,7 +453,7 @@ export default function Budgets() {
           </DialogHeader>
 
           <div className="space-y-3 py-4">
-            {getEditingCategories().map((cat) => (
+            {getEditingCategories().map((cat: any) => (
               <div key={cat.id} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50">
                 <div
                   className="w-8 h-8 rounded flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
@@ -469,7 +469,7 @@ export default function Budgets() {
                     type="number"
                     placeholder="0.00"
                     value={budgetValues[cat.id] || ""}
-                    onChange={(e) => setBudgetValues({ ...budgetValues, [cat.id]: e.target.value })}
+                    onChange={(e: any) => setBudgetValues({ ...budgetValues, [cat.id]: e.target.value })}
                     className="w-32 text-right"
                     step="0.01"
                     min="0"
