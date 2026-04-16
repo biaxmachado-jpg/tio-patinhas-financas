@@ -1086,7 +1086,7 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Remover categoria "Imported" da importação de transações
 - [x] Deixar transações importadas com categoryId = NULL
 - [x] Atualizar UI para exibir campo vazio quando sem categoria
-- [ ] Testar importação e categorização manual
+- [x] Testar importação e categorização manual
 
 
 ## Sistema de Regras de Categorização Automática
@@ -1095,3 +1095,8 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Criar página/componente de gerenciamento de regras (CategorizationRules.tsx)
 - [x] Integrar aplicação de regras na importação de transações (importFile em db.ts)
 - [x] Testar com múltiplas regras e prioridades (18 testes passando)
+
+
+## Bugs Encontrados
+- [x] Cálculo de soma dos grupos de transações mostra R$NaN - CORRIGIDO (parseFloat)
+- [x] Categoria "Imported" ainda aparece em algumas transações - CORRIGIDO (schema + SQL para limpar)

@@ -1,0 +1,1 @@
+ALTER TABLE `creditCardTransactions` MODIFY COLUMN `categoryId` int;

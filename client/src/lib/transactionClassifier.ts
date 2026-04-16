@@ -128,9 +128,9 @@ export function calculateGroupTotals(grouped: {
   credito: number;
   total: number;
 } {
-  const vista = grouped.vista.reduce((sum, t) => sum + t.amount, 0);
-  const parcelada = grouped.parcelada.reduce((sum, t) => sum + t.amount, 0);
-  const credito = grouped.credito.reduce((sum, t) => sum + t.amount, 0);
+  const vista = grouped.vista.reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
+  const parcelada = grouped.parcelada.reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
+  const credito = grouped.credito.reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
 
   return {
     vista,

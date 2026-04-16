@@ -167,7 +167,7 @@ export const creditCardTransactions = mysqlTable("creditCardTransactions", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   cardId: int("cardId").notNull(),
-  categoryId: int("categoryId").notNull(),
+  categoryId: int("categoryId"),
   description: varchar("description", { length: 255 }).notNull(),
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
   date: timestamp("date").notNull(),
