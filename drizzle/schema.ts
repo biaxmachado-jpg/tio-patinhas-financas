@@ -200,3 +200,26 @@ export const profileHistory = mysqlTable("profileHistory", {
 
 export type ProfileHistory = typeof profileHistory.$inferSelect;
 export type InsertProfileHistory = typeof profileHistory.$inferInsert;
+
+/**
+ * Import history table for auditing file imports
+ */
+export const importHistory = mysqlTable("importHistory", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  entityType: mysqlEnum("entityType", ["creditCard", "bankAccount"]).notNull(),
+  entityId: int("entityId").notNull(), // creditCard ID or bankAccount ID
+  fileName: varchar("fileName", { length: 255 }).notNull(),
+  fileType: varchar("fileType", { length: 50 }).notNull(), // pdf, xlsx, xls, ofx, etc
+  bankDetected: varchar("bankDetected", { length: 100 }), // Bradesco, Itaú, Nubank, etc
+  transactionsImported: int("transactionsImported").default(0).notNull(),
+  duplicatesFound: int("duplicatesFound").default(0).notNull(),
+  duplicatesSkipped: int("duplicatesSkipped").default(0).notNull(),
+  status: mysqlEnum("status", ["success", "partial", "failed"]).default("success").notNull(),
+  errorMessage: text("errorMessage"), // If failed, what went wrong
+  importedAt: timestamp("importedAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ImportHistory = typeof importHistory.$inferSelect;
+export type InsertImportHistory = typeof importHistory.$inferInsert;

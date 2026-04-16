@@ -71,6 +71,13 @@
       "when": 1776203513301,
       "tag": "0009_smooth_wrecker",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1776360707764,
+      "tag": "0010_naive_titanium_man",
+      "breakpoints": true
     }
   ]
 }

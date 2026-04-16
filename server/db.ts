@@ -13,6 +13,7 @@ import {
   creditCardTransactions,
   monthlyBalances,
   profileHistory,
+  importHistory,
   type Category,
   type BankAccount,
   type Transaction,
@@ -22,6 +23,7 @@ import {
   type CreditCardTransaction,
   type MonthlyBalance,
   type ProfileHistory,
+  type ImportHistory,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { createWorker } from 'tesseract.js';
@@ -1120,6 +1122,24 @@ export async function importFile(userId: number, data: {
       }
 
       console.log('[importFile] Import completed, created', transactionsCreated, 'transactions');
+      
+      // Record import history
+      try {
+        await recordImportHistory(userId, {
+          entityType: 'creditCard',
+          entityId: data.entityId,
+          fileName: data.fileName,
+          fileType: data.fileType,
+          bankDetected: data.transactions?.[0]?.description ? 'Detected' : undefined, // Placeholder
+          transactionsImported: transactionsCreated,
+          duplicatesFound: 0, // TODO: Track duplicates
+          duplicatesSkipped: 0,
+          status: transactionsCreated > 0 ? 'success' : 'partial',
+        });
+      } catch (e) {
+        console.log('[importFile] Failed to record import history:', e);
+      }
+      
       return {
         success: true,
         message: `Arquivo importado com sucesso. ${transactionsCreated} transações criadas.`,
@@ -1430,5 +1450,119 @@ export async function checkDuplicatesForImport(
       })),
       error: error instanceof Error ? error.message : "Erro desconhecido",
     };
+  }
+}
+
+
+// ============= IMPORT HISTORY =============
+
+export async function recordImportHistory(userId: number, data: {
+  entityType: "creditCard" | "bankAccount";
+  entityId: number;
+  fileName: string;
+  fileType: string;
+  bankDetected?: string;
+  transactionsImported: number;
+  duplicatesFound: number;
+  duplicatesSkipped?: number;
+  status: "success" | "partial" | "failed";
+  errorMessage?: string;
+}) {
+  try {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+
+    const result = await db.insert(importHistory).values({
+      userId,
+      entityType: data.entityType,
+      entityId: data.entityId,
+      fileName: data.fileName,
+      fileType: data.fileType,
+      bankDetected: data.bankDetected,
+      transactionsImported: data.transactionsImported,
+      duplicatesFound: data.duplicatesFound,
+      duplicatesSkipped: data.duplicatesSkipped || 0,
+      status: data.status,
+      errorMessage: data.errorMessage,
+    });
+
+    return result;
+  } catch (error) {
+    console.error("[recordImportHistory] Error:", error);
+    throw error;
+  }
+}
+
+export async function getImportHistory(userId: number, entityType?: "creditCard" | "bankAccount", entityId?: number) {
+  try {
+    const db = await getDb();
+    if (!db) return [];
+
+    let query = db.select()
+      .from(importHistory)
+      .where(eq(importHistory.userId, userId));
+
+    if (entityType) {
+      query = query.where(eq(importHistory.entityType, entityType));
+    }
+
+    if (entityId) {
+      query = query.where(eq(importHistory.entityId, entityId));
+    }
+
+    const result = await query.orderBy(desc(importHistory.importedAt));
+    return result;
+  } catch (error) {
+    console.error("[getImportHistory] Error:", error);
+    return [];
+  }
+}
+
+export async function getImportHistoryById(userId: number, historyId: number) {
+  try {
+    const db = await getDb();
+    if (!db) return null;
+
+    const result = await db.select()
+      .from(importHistory)
+      .where(
+        and(
+          eq(importHistory.userId, userId),
+          eq(importHistory.id, historyId)
+        )
+      )
+      .limit(1);
+
+    return result.length > 0 ? result[0] : null;
+  } catch (error) {
+    console.error("[getImportHistoryById] Error:", error);
+    return null;
+  }
+}
+
+export async function getImportStatistics(userId: number, entityType?: "creditCard" | "bankAccount") {
+  try {
+    const db = await getDb();
+    if (!db) return null;
+
+    let query = db.select({
+      totalImports: sql<number>`COUNT(*)`,
+      totalTransactionsImported: sql<number>`SUM(${importHistory.transactionsImported})`,
+      totalDuplicatesFound: sql<number>`SUM(${importHistory.duplicatesFound})`,
+      successfulImports: sql<number>`SUM(CASE WHEN ${importHistory.status} = 'success' THEN 1 ELSE 0 END)`,
+      failedImports: sql<number>`SUM(CASE WHEN ${importHistory.status} = 'failed' THEN 1 ELSE 0 END)`,
+    })
+      .from(importHistory)
+      .where(eq(importHistory.userId, userId));
+
+    if (entityType) {
+      query = query.where(eq(importHistory.entityType, entityType));
+    }
+
+    const result = await query;
+    return result.length > 0 ? result[0] : null;
+  } catch (error) {
+    console.error("[getImportStatistics] Error:", error);
+    return null;
   }
 }

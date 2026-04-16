@@ -487,5 +487,24 @@ export const appRouter = router({
       }))
       .mutation(({ ctx, input }) => db.importFile(ctx.user.id, input)),
   }),
+
+  importHistory: router({
+    list: protectedProcedure
+      .input(z.object({
+        entityType: z.enum(["creditCard", "bankAccount"]).optional(),
+        entityId: z.number().optional(),
+      }).optional())
+      .query(({ ctx, input }) => db.getImportHistory(ctx.user.id, input?.entityType, input?.entityId)),
+    
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(({ ctx, input }) => db.getImportHistoryById(ctx.user.id, input.id)),
+    
+    statistics: protectedProcedure
+      .input(z.object({
+        entityType: z.enum(["creditCard", "bankAccount"]).optional(),
+      }).optional())
+      .query(({ ctx, input }) => db.getImportStatistics(ctx.user.id, input?.entityType)),
+  }),
 });
 export type AppRouter = typeof appRouter;
