@@ -1109,6 +1109,7 @@ export async function importFile(userId: number, data: {
             userId,
             categoryId: defaultCategoryId,
             date: tx.date,
+            dueDate: tx.date, // Use transaction date as due date for imported transactions
             description: tx.description,
             amount: tx.amount,
           });
