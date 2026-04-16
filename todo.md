@@ -1100,3 +1100,5 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 ## Bugs Encontrados
 - [x] Cálculo de soma dos grupos de transações mostra R$NaN - CORRIGIDO (parseFloat)
 - [x] Categoria "Imported" ainda aparece em algumas transações - CORRIGIDO (schema + SQL para limpar)
+
+- [x] Bug: Fevereiro 2026 mostra R$NaN para transações parceladas - CORRIGIDO (isNaN check)
