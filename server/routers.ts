@@ -455,13 +455,6 @@ export const appRouter = router({
   }),
   
   files: router({
-    preview: protectedProcedure
-      .input(z.object({
-        fileContent: z.string(),
-        fileName: z.string(),
-        fileType: z.string(),
-      }))
-      .query(({ input }) => db.previewFileTransactions(input)),
     import: protectedProcedure
       .input(z.object({
         entityType: z.enum(["creditCard", "bankAccount"]),
@@ -469,6 +462,12 @@ export const appRouter = router({
         fileContent: z.string(),
         fileName: z.string(),
         fileType: z.string(),
+        transactions: z.array(z.object({
+          date: z.date(),
+          description: z.string(),
+          amount: z.string(),
+          type: z.enum(["income", "expense"]),
+        })).optional(),
       }))
       .mutation(({ ctx, input }) => db.importFile(ctx.user.id, input)),
   }),

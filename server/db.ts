@@ -961,9 +961,10 @@ export async function importFile(userId: number, data: {
   fileContent: string; 
   fileName: string; 
   fileType: string;
+  transactions?: Array<{date: Date; description: string; amount: string; type: "income" | "expense"}>;
 }) {
   try {
-    console.log('[importFile] Starting import for', data.entityType, 'ID:', data.entityId, 'fileType:', data.fileType);
+    console.log('[importFile] Starting import for', data.entityType, 'ID:', data.entityId, 'transactions provided:', data.transactions?.length || 0);
     const db = await getDb();
     if (!db) throw new Error("Database not available");
     
@@ -976,8 +977,8 @@ export async function importFile(userId: number, data: {
         throw new Error("Cartão não encontrado");
       }
 
-      // Parse file and extract transactions
-      let extractedTransactions: Array<{date: Date; description: string; amount: string; type: "income" | "expense"}> = [];
+      // Use provided transactions or parse from file
+      let extractedTransactions: Array<{date: Date; description: string; amount: string; type: "income" | "expense"}> = data.transactions || [];
       
       if (data.fileType === "application/pdf" || data.fileName.endsWith(".pdf")) {
         console.log('[importFile] Processing PDF, content length:', data.fileContent.length);
@@ -1070,16 +1071,21 @@ export async function importFile(userId: number, data: {
         if (existingCategory.length) {
           defaultCategoryId = existingCategory[0].id;
         } else {
-          // Create a default "Imported" category
-          const result = await db.insert(categories).values({
-            userId,
-            name: "Imported",
-            type: "expense",
-            color: "#9333ea",
-            icon: "upload",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          });
+          // Create a default "Imported" category if it doesn't exist
+          try {
+            await db.insert(categories).values({
+              userId,
+              name: "Imported",
+              type: "expense",
+              color: "#9333ea",
+              icon: "upload",
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            });
+          } catch (e) {
+            // Category might already exist, ignore
+          }
+          
           // Get the ID of the newly created category
           const newCategory = await db.select().from(categories).where(
             and(eq(categories.userId, userId), eq(categories.name, "Imported"))
@@ -1089,7 +1095,7 @@ export async function importFile(userId: number, data: {
           }
         }
       } catch (e) {
-        console.log('[importFile] Error creating default category:', e);
+        console.log('[importFile] Error with category:', e);
         // Continue with default ID
       }
       

@@ -403,14 +403,13 @@ export default function Categories() {
 }
 
 // Função para obter o ícone baseado no tipo de categoria
-function getIconForType(type: "income" | "expense" | "transfer"): React.ReactNode {
+function getIconForType(type: "income" | "expense"): React.ReactNode {
   switch (type) {
     case "income":
       return <TrendingUp className="w-5 h-5 text-green-500" />;
     case "expense":
       return <TrendingDown className="w-5 h-5 text-red-500" />;
-    case "transfer":
-      return <ArrowRightLeft className="w-5 h-5 text-blue-500" />;
+
     default:
       return null;
   }
