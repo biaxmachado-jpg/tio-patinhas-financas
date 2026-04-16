@@ -128,12 +128,11 @@ export default function Categories() {
 
     try {
       await createRuleMutation.mutateAsync({
-        categoryId: selectedCategoryForRule,
-        keywords: ruleFormData.keywords,
+        categoryId: selectedCategoryForRule || 0,
+        keywords: ruleFormData.keywords.split(",").map(k => k.trim()).filter(k => k),
         matchType: ruleFormData.matchType,
         caseSensitive: ruleFormData.caseSensitive,
         priority: parseInt(ruleFormData.priority),
-        enabled: true,
       });
 
       toast.success("Regra criada com sucesso!");

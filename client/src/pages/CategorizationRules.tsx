@@ -17,11 +17,10 @@ export default function CategorizationRules() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     categoryId: 0,
-    keywords: "",
+    keywords: [] as string[],
     matchType: "contains" as "contains" | "exact" | "startsWith" | "endsWith",
     caseSensitive: false,
     priority: 0,
-    enabled: true,
   });
 
   const { data: rules, refetch } = trpc.categorizationRules.list.useQuery();
@@ -50,11 +49,10 @@ export default function CategorizationRules() {
       setEditingId(null);
       setFormData({
         categoryId: 0,
-        keywords: "",
+        keywords: [],
         matchType: "contains",
         caseSensitive: false,
         priority: 0,
-        enabled: true,
       });
       refetch();
     } catch (error) {
@@ -137,8 +135,8 @@ export default function CategorizationRules() {
                   <Input
                     id="keywords"
                     placeholder="Ex: supermercado, padaria, mercado (separadas por vírgula)"
-                    value={formData.keywords}
-                    onChange={(e) => setFormData({ ...formData, keywords: e.target.value })}
+                    value={formData.keywords.join(", ")}
+                    onChange={(e) => setFormData({ ...formData, keywords: e.target.value.split(",").map(k => k.trim()).filter(k => k) })}
                     required
                   />
                   <p className="text-xs text-muted-foreground mt-1">
@@ -187,17 +185,6 @@ export default function CategorizationRules() {
                   />
                   <Label htmlFor="caseSensitive" className="cursor-pointer">
                     Diferenciar maiúsculas e minúsculas
-                  </Label>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="enabled"
-                    checked={formData.enabled}
-                    onCheckedChange={(checked) => setFormData({ ...formData, enabled: checked as boolean })}
-                  />
-                  <Label htmlFor="enabled" className="cursor-pointer">
-                    Ativar esta regra
                   </Label>
                 </div>
 
@@ -298,11 +285,10 @@ export default function CategorizationRules() {
                       onClick={() => {
                         setFormData({
                           categoryId: rule.categoryId,
-                          keywords: rule.keywords,
+                          keywords: typeof rule.keywords === 'string' ? JSON.parse(rule.keywords) : rule.keywords,
                           matchType: rule.matchType,
                           caseSensitive: rule.caseSensitive,
                           priority: rule.priority,
-                          enabled: rule.enabled,
                         });
                         setEditingId(rule.id);
                         setOpen(true);

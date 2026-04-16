@@ -1087,3 +1087,11 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Deixar transações importadas com categoryId = NULL
 - [x] Atualizar UI para exibir campo vazio quando sem categoria
 - [ ] Testar importação e categorização manual
+
+
+## Sistema de Regras de Categorização Automática
+- [x] Implementar lógica de aplicação de regras (server/categorizationEngine.ts)
+- [x] Criar endpoints tRPC para CRUD de regras
+- [x] Criar página/componente de gerenciamento de regras (CategorizationRules.tsx)
+- [x] Integrar aplicação de regras na importação de transações (importFile em db.ts)
+- [x] Testar com múltiplas regras e prioridades (18 testes passando)

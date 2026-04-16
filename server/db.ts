@@ -388,16 +388,20 @@ export async function getCategorizationRuleById(id: number, userId: number) {
   return result[0];
 }
 
-export async function createCategorizationRule(userId: number, data: { categoryId: number; keywords: string; matchType: "contains" | "exact" | "startsWith" | "endsWith"; caseSensitive: boolean; priority: number; enabled: boolean }) {
+export async function createCategorizationRule(userId: number, data: { categoryId: number; keywords: string[]; matchType: "contains" | "exact" | "startsWith" | "endsWith"; caseSensitive: boolean; priority: number }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return db.insert(categorizationRules).values({ userId, ...data });
+  return db.insert(categorizationRules).values({ userId, categoryId: data.categoryId, keywords: JSON.stringify(data.keywords), matchType: data.matchType, caseSensitive: data.caseSensitive, priority: data.priority });
 }
 
-export async function updateCategorizationRule(id: number, userId: number, data: Partial<{ categoryId: number; keywords: string; matchType: "contains" | "exact" | "startsWith" | "endsWith"; caseSensitive: boolean; priority: number; enabled: boolean }>) {
+export async function updateCategorizationRule(id: number, userId: number, data: Partial<{ categoryId: number; keywords: string[]; matchType: "contains" | "exact" | "startsWith" | "endsWith"; caseSensitive: boolean; priority: number; enabled: boolean }>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return db.update(categorizationRules).set(data).where(and(eq(categorizationRules.id, id), eq(categorizationRules.userId, userId)));
+  const updateData: any = { ...data };
+  if (data.keywords) {
+    updateData.keywords = JSON.stringify(data.keywords);
+  }
+  return db.update(categorizationRules).set(updateData).where(and(eq(categorizationRules.id, id), eq(categorizationRules.userId, userId)));
 }
 
 export async function deleteCategorizationRule(id: number, userId: number) {
@@ -1065,7 +1069,15 @@ export async function importFile(userId: number, data: {
       }
       
       // Leave categoryId as NULL - user will categorize manually
-      const defaultCategoryId = null;
+      let defaultCategoryId = null;
+      
+      // Get user's categorization rules to apply automatically
+      let rules = [];
+      try {
+        rules = await db.select().from(categorizationRules).where(eq(categorizationRules.userId, userId)).orderBy(desc(categorizationRules.priority));
+      } catch (e) {
+        console.log('[importFile] Could not load categorization rules:', e);
+      }
       
       // Create transactions in database
       console.log('[importFile] Found', extractedTransactions.length, 'transactions to create');
@@ -1102,10 +1114,17 @@ export async function importFile(userId: number, data: {
             }
           }
           
+          // Apply categorization rules to determine category
+          let categoryId: number | null = defaultCategoryId;
+          if (rules.length > 0) {
+            const { applyCategorizationRules } = await import('./categorizationEngine');
+            categoryId = applyCategorizationRules(tx.description, rules) || defaultCategoryId;
+          }
+          
           await db.insert(creditCardTransactions).values({
             cardId: data.entityId,
             userId,
-            categoryId: defaultCategoryId as any, // NULL - user will categorize manually
+            categoryId: categoryId as any,
             date: tx.date,
             dueDate: dueDate,
             description: tx.description,
@@ -1185,17 +1204,33 @@ export async function importFile(userId: number, data: {
       }
       
       // Leave categoryId as NULL - user will categorize manually
-      const defaultCategoryId = null;
+      let defaultCategoryId = null;
+      
+      // Get user's categorization rules to apply automatically
+      let rules = [];
+      try {
+        rules = await db.select().from(categorizationRules).where(eq(categorizationRules.userId, userId)).orderBy(desc(categorizationRules.priority));
+      } catch (e) {
+        console.log('[importFile] Could not load categorization rules:', e);
+      }
       
       // Create transactions in database
       let transactionsCreated = 0;
       for (const tx of extractedTransactions) {
         try {
           if (!db) throw new Error("Database not available");
+          
+          // Apply categorization rules to determine category
+          let categoryId: number | null = defaultCategoryId;
+          if (rules.length > 0) {
+            const { applyCategorizationRules } = await import('./categorizationEngine');
+            categoryId = applyCategorizationRules(tx.description, rules) || defaultCategoryId;
+          }
+          
           await db.insert(transactions).values({
             accountId: data.entityId,
             userId,
-            categoryId: defaultCategoryId as any, // NULL - user will categorize manually
+            categoryId: categoryId as any, // NULL - user will categorize manually
             date: tx.date,
             description: tx.description,
             amount: tx.amount,

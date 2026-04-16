@@ -88,6 +88,51 @@ export const appRouter = router({
       .mutation(({ ctx, input }) => db.deleteCategory(input.id, ctx.user.id)),
   }),
 
+  // ============= CATEGORIZATION RULES =============
+  categorizationRules: router({
+    list: protectedProcedure.query(({ ctx }) => db.getCategorizationRules(ctx.user.id)),
+    
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(({ ctx, input }) => db.getCategorizationRuleById(input.id, ctx.user.id)),
+    
+    create: protectedProcedure
+      .input(z.object({
+        categoryId: z.number(),
+        keywords: z.array(z.string().min(1)),
+        matchType: z.enum(["contains", "exact", "startsWith", "endsWith"]).default("contains"),
+        caseSensitive: z.boolean().default(false),
+        priority: z.number().default(0),
+      }))
+      .mutation(({ ctx, input }) => db.createCategorizationRule(ctx.user.id, input)),
+    
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        categoryId: z.number().optional(),
+        keywords: z.array(z.string().min(1)).optional(),
+        matchType: z.enum(["contains", "exact", "startsWith", "endsWith"]).optional(),
+        caseSensitive: z.boolean().optional(),
+        priority: z.number().optional(),
+        enabled: z.boolean().optional(),
+      }))
+      .mutation(({ ctx, input }) => {
+        const { id, ...data } = input;
+        const updateData: any = {};
+        if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
+        if (data.keywords !== undefined) updateData.keywords = data.keywords;
+        if (data.matchType !== undefined) updateData.matchType = data.matchType;
+        if (data.caseSensitive !== undefined) updateData.caseSensitive = data.caseSensitive;
+        if (data.priority !== undefined) updateData.priority = data.priority;
+        if (data.enabled !== undefined) updateData.enabled = data.enabled;
+        return db.updateCategorizationRule(id, ctx.user.id, updateData);
+      }),
+    
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(({ ctx, input }) => db.deleteCategorizationRule(input.id, ctx.user.id)),
+  }),
+
   // ============= BANK ACCOUNTS =============
   bankAccounts: router({
     list: protectedProcedure.query(({ ctx }) => db.getBankAccounts(ctx.user.id)),
@@ -271,46 +316,7 @@ export const appRouter = router({
       .mutation(({ ctx, input }) => db.deleteBudget(input.id, ctx.user.id)),
   }),
 
-  // ============= CATEGORIZATION RULES =============
-  categorizationRules: router({
-    list: protectedProcedure.query(({ ctx }) => db.getCategorizationRules(ctx.user.id)),
-    
-    get: protectedProcedure
-      .input(z.object({ id: z.number() }))
-      .query(({ ctx, input }) => db.getCategorizationRuleById(input.id, ctx.user.id)),
-    
-    create: protectedProcedure
-      .input(z.object({
-        categoryId: z.number(),
-        keywords: z.string(),
-        matchType: z.enum(["contains", "exact", "startsWith", "endsWith"]),
-        caseSensitive: z.boolean(),
-        priority: z.number(),
-        enabled: z.boolean(),
-      }))
-      .mutation(({ ctx, input }) => db.createCategorizationRule(ctx.user.id, input)),
-    
-    update: protectedProcedure
-      .input(z.object({
-        id: z.number(),
-        categoryId: z.number().optional(),
-        keywords: z.string().optional(),
-        matchType: z.enum(["contains", "exact", "startsWith", "endsWith"]).optional(),
-        caseSensitive: z.boolean().optional(),
-        priority: z.number().optional(),
-        enabled: z.boolean().optional(),
-      }))
-      .mutation(({ ctx, input }) => {
-        const { id, ...data } = input;
-        return db.updateCategorizationRule(id, ctx.user.id, data);
-      }),
-    
-    delete: protectedProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(({ ctx, input }) => db.deleteCategorizationRule(input.id, ctx.user.id)),
-  }),
-
-  // ============= CREDIT CARDS =============
+  // ============= CREDIT CARDS ==============
   creditCards: router({
     list: protectedProcedure.query(({ ctx }) => db.getCreditCards(ctx.user.id)),
     
