@@ -86,21 +86,36 @@ export function parseBradesco(content: string): Transaction[] {
   // Split by lines
   const lines = content.split("\n");
 
-  // Find the "Lançamentos" section
-  let lancamentosIndex = -1;
+  // Find the header line with "Data" and "Histórico" and "Valor"
+  let headerIndex = -1;
   for (let i = 0; i < lines.length; i++) {
-    if (lines[i].includes("Lançamentos")) {
-      lancamentosIndex = i;
+    const line = lines[i].toLowerCase();
+    if (
+      line.includes("data") &&
+      (line.includes("histórico") || line.includes("historico") || line.includes("lançamento")) &&
+      (line.includes("valor") || line.includes("r$"))
+    ) {
+      headerIndex = i;
       break;
     }
   }
 
-  if (lancamentosIndex === -1) {
+  if (headerIndex === -1) {
+    // Fallback: look for "Lançamentos" section
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes("Lançamentos")) {
+        headerIndex = i;
+        break;
+      }
+    }
+  }
+
+  if (headerIndex === -1) {
     return transactions;
   }
 
-  // Process lines after "Lançamentos"
-  for (let i = lancamentosIndex + 1; i < lines.length; i++) {
+  // Process lines after header
+  for (let i = headerIndex + 1; i < lines.length; i++) {
     const line = lines[i].trim();
 
     // Skip empty lines and headers
@@ -114,7 +129,10 @@ export function parseBradesco(content: string): Transaction[] {
       line.includes("Total da fatura") ||
       line.includes("Cartão") ||
       line.includes("Limites") ||
-      line.includes("Utilizado")
+      line.includes("Utilizado") ||
+      line.includes("Resumo das Despesas") ||
+      line.includes("Saldo Anterior") ||
+      line.includes("Pagamentos/Créditos")
     ) {
       break;
     }
@@ -136,10 +154,12 @@ export function parseBradesco(content: string): Transaction[] {
     const descriptionEnd = line.lastIndexOf(amount);
     let description = line.substring(descriptionStart, descriptionEnd).trim();
 
-    // Clean up description
+    // Clean up description - remove extra numbers and currency values
     description = description.replace(/\s+/g, " ");
+    description = description.replace(/\d+,\d+\s*/g, "").trim(); // Remove amounts like "0,00"
+    description = description.replace(/\s+/g, " ").trim(); // Clean up spaces again
 
-    if (!description) continue;
+    if (!description || description.length < 2) continue;
 
     // Format date to YYYY-MM-DD
     const [day, month] = dateStr.split("/");
@@ -147,20 +167,24 @@ export function parseBradesco(content: string): Transaction[] {
     const formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
 
     // Clean amount
-    let cleanAmount = amount.replace(/[^0-9.,]/g, "");
+    let cleanAmount = amount.replace(/[^0-9.,\-]/g, "");
     if (cleanAmount.includes(".") && cleanAmount.includes(",")) {
       cleanAmount = cleanAmount.replace(".", "").replace(",", ".");
     } else {
       cleanAmount = cleanAmount.replace(",", ".");
     }
 
-    if (isNaN(parseFloat(cleanAmount))) continue;
+    const parsed = parseFloat(cleanAmount);
+    if (isNaN(parsed)) continue;
+
+    // Use absolute value (remove negative sign for expenses)
+    const absoluteAmount = Math.abs(parsed).toFixed(2);
 
     transactions.push({
       id: Date.now().toString() + Math.random(),
       date: formattedDate,
       description,
-      amount: cleanAmount,
+      amount: absoluteAmount,
     });
   }
 
@@ -355,20 +379,24 @@ export function parseGeneric(content: string): Transaction[] {
     const formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
 
     // Clean amount
-    let cleanAmount = amount.replace(/[^0-9.,]/g, "");
+    let cleanAmount = amount.replace(/[^0-9.,\-]/g, "");
     if (cleanAmount.includes(".") && cleanAmount.includes(",")) {
       cleanAmount = cleanAmount.replace(".", "").replace(",", ".");
     } else {
       cleanAmount = cleanAmount.replace(",", ".");
     }
 
-    if (isNaN(parseFloat(cleanAmount))) continue;
+    const parsed = parseFloat(cleanAmount);
+    if (isNaN(parsed)) continue;
+
+    // Use absolute value (remove negative sign for expenses)
+    const absoluteAmount = Math.abs(parsed).toFixed(2);
 
     transactions.push({
       id: Date.now().toString() + Math.random(),
       date: formattedDate,
       description,
-      amount: cleanAmount,
+      amount: absoluteAmount,
     });
   }
 
