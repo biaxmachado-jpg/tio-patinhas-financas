@@ -1105,3 +1105,10 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 
 - [x] Bug: Classificação de "Parceladas" está incluindo transações sem parcelas - CORRIGIDO (lógica simplificada)
 - [x] Bug: Botão "+ Nova Transação" não está funcionando - CORRIGIDO (adicionado DialogContent com formulário)
+
+
+## Bug: Página de Perfil Retorna 404
+- [x] Verificar por que rota /perfil não existe - CORRIGIDO (rota não estava registrada)
+- [x] Criar componente Profile.tsx - Já existia
+- [x] Registrar rota no App.tsx - ADICIONADO
+- [x] Testar carregamento do perfil - FUNCIONAL

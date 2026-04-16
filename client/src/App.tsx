@@ -82,6 +82,11 @@ function Router() {
           <BankAccountDetail />
         </DashboardLayout>
       </Route>
+      <Route path="/perfil">
+        <DashboardLayout>
+          <Profile />
+        </DashboardLayout>
+      </Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
