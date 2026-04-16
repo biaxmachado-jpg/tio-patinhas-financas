@@ -18,6 +18,12 @@ export interface Transaction {
   amount: string;
 }
 
+export interface ParseResult {
+  bank: BankType;
+  transactions: Transaction[];
+  dueDate?: Date; // Data de vencimento da fatura
+}
+
 // Bank detection patterns
 const BANK_PATTERNS: Record<BankType, BankInfo> = {
   bradesco: {
@@ -409,30 +415,122 @@ export function parseGeneric(content: string): Transaction[] {
 export async function parseFileWithBankDetection(
   content: string,
   fileType: string
-): Promise<{ bank: BankType; transactions: Transaction[] }> {
+): Promise<ParseResult> {
   // Detect bank
   const bank = detectBank(content);
 
   // Apply specific parser
   let transactions: Transaction[] = [];
+  let dueDate: Date | undefined;
 
   switch (bank) {
     case "bradesco":
       transactions = parseBradesco(content);
+      dueDate = extractDueDateBradesco(content);
       break;
     case "itau":
       transactions = parseItau(content);
+      dueDate = extractDueDateItau(content);
       break;
     case "nubank":
       transactions = parseNubank(content);
+      dueDate = extractDueDateNubank(content);
       break;
     case "generic":
     default:
       transactions = parseGeneric(content);
+      dueDate = extractDueDateGeneric(content);
       break;
   }
 
-  return { bank, transactions };
+  return { bank, transactions, dueDate };
+}
+
+/**
+ * Extract due date from Bradesco statement
+ */
+function extractDueDateBradesco(content: string): Date | undefined {
+  // Look for "Vencimento: dd/mm/yyyy" or similar patterns
+  const patterns = [
+    /Vencimento[:\s]+(?:dia\s+)?(\d{1,2})[\s\/\-](\d{1,2})[\s\/\-](\d{4})/i,
+    /Vencimento[:\s]+(\d{1,2})\/(\d{1,2})/i,
+    /Data de Vencimento[:\s]+(\d{1,2})\/(\d{1,2})\/(\d{4})/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = content.match(pattern);
+    if (match) {
+      const day = parseInt(match[1]);
+      const month = parseInt(match[2]);
+      const year = match[3] ? parseInt(match[3]) : new Date().getFullYear();
+      return new Date(year, month - 1, day);
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Extract due date from Itau statement
+ */
+function extractDueDateItau(content: string): Date | undefined {
+  const patterns = [
+    /Data de Vencimento[:\s]+(\d{1,2})\/(\d{1,2})\/(\d{4})/i,
+    /Vencimento[:\s]+(\d{1,2})\/(\d{1,2})\/(\d{4})/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = content.match(pattern);
+    if (match) {
+      const day = parseInt(match[1]);
+      const month = parseInt(match[2]);
+      const year = parseInt(match[3]);
+      return new Date(year, month - 1, day);
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Extract due date from Nubank statement
+ */
+function extractDueDateNubank(content: string): Date | undefined {
+  const patterns = [
+    /Vencimento[:\s]+(\d{1,2})\s+de\s+\w+\s+de\s+(\d{4})/i,
+    /Vencimento[:\s]+(\d{1,2})\/(\d{1,2})\/(\d{4})/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = content.match(pattern);
+    if (match) {
+      const day = parseInt(match[1]);
+      const month = match[2] ? parseInt(match[2]) : new Date().getMonth() + 1;
+      const year = match[3] ? parseInt(match[3]) : new Date().getFullYear();
+      return new Date(year, month - 1, day);
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Extract due date from generic statement
+ */
+function extractDueDateGeneric(content: string): Date | undefined {
+  const patterns = [
+    /Vencimento[:\s]+(\d{1,2})\/(\d{1,2})\/(\d{4})/i,
+    /Due Date[:\s]+(\d{1,2})\/(\d{1,2})\/(\d{4})/i,
+    /Data de Vencimento[:\s]+(\d{1,2})\/(\d{1,2})\/(\d{4})/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = content.match(pattern);
+    if (match) {
+      const day = parseInt(match[1]);
+      const month = parseInt(match[2]);
+      const year = parseInt(match[3]);
+      return new Date(year, month - 1, day);
+    }
+  }
+  return undefined;
 }
 
 /**

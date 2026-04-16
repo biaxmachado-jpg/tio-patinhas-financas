@@ -129,6 +129,9 @@ export default function ImportFile() {
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
   const [showCategorizer, setShowCategorizer] = useState(false);
   const [showDescriptionEditor, setShowDescriptionEditor] = useState(false);
+  const [extractedDueDate, setExtractedDueDate] = useState<Date | null>(null);
+  const [confirmedDueDate, setConfirmedDueDate] = useState<Date | null>(null);
+  const [showDueDateConfirm, setShowDueDateConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const cardQuery = trpc.creditCards.get.useQuery(
@@ -218,6 +221,7 @@ export default function ImportFile() {
         const result = await parseFileWithBankDetection(fullText, "pdf");
         extractedTransactions = result.transactions;
         bank = result.bank;
+        setExtractedDueDate(result.dueDate || null);
       } else if (fileExtension === "xlsx" || fileExtension === "xls") {
         const arrayBuffer = await file.arrayBuffer();
         const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: "array" });
@@ -238,6 +242,11 @@ export default function ImportFile() {
           const result = await parseFileWithBankDetection(csvText, "xlsx");
           extractedTransactions = result.transactions;
           bank = result.bank;
+          setExtractedDueDate(result.dueDate || null);
+        } else {
+          // Try to extract dueDate from CSV text
+          const result = await parseFileWithBankDetection(csvText, "xlsx");
+          setExtractedDueDate(result.dueDate || null);
         }
       } else {
         toast.error("Formato de arquivo não suportado para processamento automático");
