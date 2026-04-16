@@ -15,6 +15,7 @@ import {
   getBankInfo,
   type BankType,
 } from "@/lib/bankDetection";
+import { TransactionCategorizer, type TransactionWithCategory } from "@/components/TransactionCategorizer";
 
 type ImportType = "creditCard" | "bankAccount";
 
@@ -24,6 +25,7 @@ interface Transaction {
   description: string;
   amount: string;
   isDuplicate?: boolean;
+  categoryId?: number;
 }
 
 export default function ImportFile() {
@@ -39,6 +41,7 @@ export default function ImportFile() {
   const [detectedBank, setDetectedBank] = useState<BankType | null>(null);
   const [duplicates, setDuplicates] = useState<any[]>([]);
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+  const [showCategorizer, setShowCategorizer] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const cardQuery = trpc.creditCards.get.useQuery(
@@ -51,9 +54,11 @@ export default function ImportFile() {
   );
 
   const importMutation = trpc.files.import.useMutation();
+  const categoriesQuery = trpc.categories.list.useQuery();
 
   const entity = importType === "creditCard" ? cardQuery.data : accountQuery.data;
   const isLoadingEntity = importType === "creditCard" ? cardQuery.isLoading : accountQuery.isLoading;
+  const categories = categoriesQuery.data || [];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -205,9 +210,22 @@ export default function ImportFile() {
     }
   };
 
+  const handleCategoriesApplied = (categorizedTransactions: TransactionWithCategory[]) => {
+    setTransactions(categorizedTransactions);
+    setShowCategorizer(false);
+  };
+
   const handleImport = async () => {
     if (transactions.length === 0) {
       toast.error("Por favor, adicione pelo menos uma transação");
+      return;
+    }
+
+    // Check if all transactions have categories
+    const uncategorized = transactions.filter((tx) => !tx.categoryId);
+    if (uncategorized.length > 0) {
+      toast.error(`${uncategorized.length} transação(ões) sem categoria. Categorize antes de importar.`);
+      setShowCategorizer(true);
       return;
     }
 
@@ -230,6 +248,7 @@ export default function ImportFile() {
         description: tx.description,
         amount: tx.amount,
         type: "expense" as const,
+        categoryId: tx.categoryId,
       }));
 
       const result = await importMutation.mutateAsync({
@@ -274,6 +293,31 @@ export default function ImportFile() {
             Voltar
           </Button>
         </Card>
+      </div>
+    );
+  }
+
+  // Show categorizer if needed
+  if (showCategorizer && transactions.length > 0) {
+    return (
+      <div className="min-h-screen bg-background p-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center gap-4 mb-6">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowCategorizer(false)}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-3xl font-bold">Categorizar Transações</h1>
+          </div>
+          <TransactionCategorizer
+            transactions={transactions}
+            onCategoriesApplied={handleCategoriesApplied}
+            onCancel={() => setShowCategorizer(false)}
+          />
+        </div>
       </div>
     );
   }
