@@ -13,12 +13,97 @@ import * as pdfjs from "pdfjs-dist";
 import {
   parseFileWithBankDetection,
   getBankInfo,
+  detectBank,
   type BankType,
 } from "@/lib/bankDetection";
 import { TransactionCategorizer, type TransactionWithCategory } from "@/components/TransactionCategorizer";
 import { DescriptionBatchEditor } from "@/components/DescriptionBatchEditor";
 
 type ImportType = "creditCard" | "bankAccount";
+
+// Parse XLSX data directly from structured format
+function parseXLSXData(data: any[][]): Transaction[] {
+  const transactions: Transaction[] = [];
+  
+  if (!data || data.length === 0) return transactions;
+  
+  // Find header row (look for "Data" or "Date")
+  let headerIndex = -1;
+  for (let i = 0; i < Math.min(20, data.length); i++) {
+    const row = data[i];
+    if (!row) continue;
+    
+    const rowStr = row.join(" ").toLowerCase();
+    if (rowStr.includes("data") && (rowStr.includes("hist") || rowStr.includes("descr") || rowStr.includes("valor"))) {
+      headerIndex = i;
+      break;
+    }
+  }
+  
+  if (headerIndex === -1) return transactions;
+  
+  // Identify column indices
+  const headerRow = data[headerIndex];
+  let dateCol = -1, descCol = -1, amountCol = -1;
+  
+  for (let i = 0; i < headerRow.length; i++) {
+    const cell = String(headerRow[i]).toLowerCase();
+    if (cell.includes("data") || cell.includes("date")) dateCol = i;
+    if (cell.includes("hist") || cell.includes("descr") || cell.includes("lanca")) descCol = i;
+    if (cell.includes("valor") || cell.includes("r$") || cell.includes("amount")) amountCol = i;
+  }
+  
+  // Parse data rows
+  for (let i = headerIndex + 1; i < data.length; i++) {
+    const row = data[i];
+    if (!row || row.length === 0) continue;
+    
+    const dateStr = row[dateCol];
+    const description = row[descCol];
+    const amountStr = row[amountCol];
+    
+    // Skip if missing required fields
+    if (!dateStr || !description || !amountStr) continue;
+    
+    // Skip summary rows
+    const descLower = String(description).toLowerCase();
+    if (descLower.includes("total") || descLower.includes("saldo") || descLower.includes("limite")) continue;
+    
+    // Parse date
+    let formattedDate = "";
+    const dateMatch = String(dateStr).match(/(\d{1,2})\/(\d{1,2})/);
+    if (dateMatch) {
+      const [, day, month] = dateMatch;
+      const year = new Date().getFullYear();
+      formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    } else {
+      continue;
+    }
+    
+    // Parse amount
+    let amount = String(amountStr).trim();
+    // Remove currency symbols
+    amount = amount.replace(/[R$]/g, "").trim();
+    // Handle Brazilian format (1.234,56 -> 1234.56)
+    if (amount.includes(".") && amount.includes(",")) {
+      amount = amount.replace(".", "").replace(",", ".");
+    } else if (amount.includes(",")) {
+      amount = amount.replace(",", ".");
+    }
+    
+    const parsed = parseFloat(amount);
+    if (isNaN(parsed)) continue;
+    
+    transactions.push({
+      id: Date.now().toString() + Math.random(),
+      date: formattedDate,
+      description: String(description).trim(),
+      amount: Math.abs(parsed).toFixed(2),
+    });
+  }
+  
+  return transactions;
+}
 
 interface Transaction {
   id: string;
@@ -137,11 +222,23 @@ export default function ImportFile() {
         const arrayBuffer = await file.arrayBuffer();
         const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: "array" });
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-        const csvText = XLSX.utils.sheet_to_csv(worksheet);
         
-        const result = await parseFileWithBankDetection(csvText, "xlsx");
-        extractedTransactions = result.transactions;
-        bank = result.bank;
+        // Get raw data as array of arrays (preserves structure)
+        const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+        
+        // Parse XLSX data directly
+        extractedTransactions = parseXLSXData(rawData);
+        
+        // Detect bank from file content
+        const csvText = XLSX.utils.sheet_to_csv(worksheet);
+        bank = detectBank(csvText);
+        
+        // If no transactions found with direct parsing, try text-based parsing
+        if (extractedTransactions.length === 0) {
+          const result = await parseFileWithBankDetection(csvText, "xlsx");
+          extractedTransactions = result.transactions;
+          bank = result.bank;
+        }
       } else {
         toast.error("Formato de arquivo não suportado para processamento automático");
         return;
