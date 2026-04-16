@@ -16,6 +16,7 @@ import {
   type BankType,
 } from "@/lib/bankDetection";
 import { TransactionCategorizer, type TransactionWithCategory } from "@/components/TransactionCategorizer";
+import { DescriptionBatchEditor } from "@/components/DescriptionBatchEditor";
 
 type ImportType = "creditCard" | "bankAccount";
 
@@ -42,6 +43,7 @@ export default function ImportFile() {
   const [duplicates, setDuplicates] = useState<any[]>([]);
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
   const [showCategorizer, setShowCategorizer] = useState(false);
+  const [showDescriptionEditor, setShowDescriptionEditor] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const cardQuery = trpc.creditCards.get.useQuery(
@@ -215,6 +217,12 @@ export default function ImportFile() {
     setShowCategorizer(false);
   };
 
+  const handleDescriptionsNormalized = (normalizedTransactions: Transaction[]) => {
+    setTransactions(normalizedTransactions);
+    setShowDescriptionEditor(false);
+    toast.success("Descrições normalizadas com sucesso!");
+  };
+
   const handleImport = async () => {
     if (transactions.length === 0) {
       toast.error("Por favor, adicione pelo menos uma transação");
@@ -293,6 +301,31 @@ export default function ImportFile() {
             Voltar
           </Button>
         </Card>
+      </div>
+    );
+  }
+
+  // Show description editor if needed
+  if (showDescriptionEditor && transactions.length > 0) {
+    return (
+      <div className="min-h-screen bg-background p-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center gap-4 mb-6">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowDescriptionEditor(false)}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-3xl font-bold">Normalizar Descrições</h1>
+          </div>
+          <DescriptionBatchEditor
+            transactions={transactions}
+            onApplyTransformations={handleDescriptionsNormalized}
+            onCancel={() => setShowDescriptionEditor(false)}
+          />
+        </div>
       </div>
     );
   }
@@ -416,10 +449,22 @@ export default function ImportFile() {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Transações</h2>
-            <Button onClick={addTransaction} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Adicionar Transação
-            </Button>
+            <div className="flex gap-2">
+              {transactions.length > 0 && (
+                <Button
+                  onClick={() => setShowDescriptionEditor(true)}
+                  size="sm"
+                  variant="outline"
+                  className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                >
+                  Normalizar Descrições
+                </Button>
+              )}
+              <Button onClick={addTransaction} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Adicionar Transação
+              </Button>
+            </div>
           </div>
 
           {transactions.length === 0 ? (
