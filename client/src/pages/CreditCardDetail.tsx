@@ -15,6 +15,8 @@ import { ptBR } from "date-fns/locale";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useParams, useLocation } from "wouter";
 import { TransactionActions } from "@/components/TransactionActions";
+import { TransactionGroup } from "@/components/TransactionGroup";
+import { groupTransactionsByType, calculateGroupTotals, getTransactionTypeLabel } from "@/lib/transactionClassifier";
 
 export default function CreditCardDetail() {
   const { cardId } = useParams<{ cardId: string }>();
@@ -25,7 +27,7 @@ export default function CreditCardDetail() {
   const [filterStartDate, setFilterStartDate] = useState<string>("");
   const [filterEndDate, setFilterEndDate] = useState<string>("");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [transactionFilter, setTransactionFilter] = useState<'all' | 'vista' | 'parcelada'>('all');
+  const [transactionFilter, setTransactionFilter] = useState<'all' | 'vista' | 'parcelada' | 'credito'>('all');
   const [editForm, setEditForm] = useState({
     lastFourDigits: "",
     dueDay: "",
@@ -73,45 +75,79 @@ export default function CreditCardDetail() {
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
+  // Calculate billing due date for classification
+  const billingDueDate = card && card.dueDay
+    ? new Date(selectedYear, selectedMonth - 1, card.dueDay)
+    : undefined;
+
+  // Group transactions by type
+  const groupedTransactions = groupTransactionsByType(
+    transactionsQuery.data || [],
+    billingDueDate
+  );
+
   // Filter transactions based on selected filter and date range
-  const filteredTransactions = transactionsQuery.data?.filter((t: any) => {
-    // Note: Backend already filters by month/year using dueDate, so we don't filter again here
-    const transactionDate = new Date(t.dueDate || t.date);
-    
-    // Filter by installment type
-    if (transactionFilter === 'vista' && t.installments !== 1) return false;
-    if (transactionFilter === 'parcelada' && t.installments <= 1) return false;
-    
+  const filterTransactionsByType = (transactions: any[], type: 'all' | 'vista' | 'parcelada' | 'credito') => {
+    let filtered = transactions;
+
+    // Filter by transaction type
+    if (type === 'vista') {
+      filtered = filtered.filter((t: any) => t.type === 'vista');
+    } else if (type === 'parcelada') {
+      filtered = filtered.filter((t: any) => t.type === 'parcelada');
+    } else if (type === 'credito') {
+      filtered = filtered.filter((t: any) => t.type === 'credito');
+    }
+
     // Filter by date range if custom range is enabled
     if (useCustomDateRange && filterStartDate && filterEndDate) {
       const startDate = new Date(filterStartDate);
       const endDate = new Date(filterEndDate);
       endDate.setHours(23, 59, 59, 999);
-      const txDate = new Date(t.dueDate || t.date);
-      if (txDate < startDate || txDate > endDate) return false;
+      filtered = filtered.filter((t: any) => {
+        const txDate = new Date(t.dueDate || t.date);
+        return txDate >= startDate && txDate <= endDate;
+      });
     }
-    
-    return true;
-  }) || [];
 
-  // Separate transactions into expenses and refunds
-  const expenseTransactions = filteredTransactions.filter((t: any) => parseFloat(t.amount) >= 0);
-  const refundTransactions = filteredTransactions.filter((t: any) => parseFloat(t.amount) < 0);
+    return filtered;
+  };
+
+  const filteredVista = filterTransactionsByType(
+    groupedTransactions.vista,
+    transactionFilter === 'all' ? 'vista' : transactionFilter === 'vista' ? 'vista' : 'all'
+  );
+  const filteredParcelada = filterTransactionsByType(
+    groupedTransactions.parcelada,
+    transactionFilter === 'all' ? 'parcelada' : transactionFilter === 'parcelada' ? 'parcelada' : 'all'
+  );
+  const filteredCredito = filterTransactionsByType(
+    groupedTransactions.credito,
+    transactionFilter === 'all' ? 'credito' : transactionFilter === 'credito' ? 'credito' : 'all'
+  );
+
+  // Get filtered transactions based on current filter
+  const getFilteredTransactions = () => {
+    if (transactionFilter === 'vista') return filteredVista;
+    if (transactionFilter === 'parcelada') return filteredParcelada;
+    if (transactionFilter === 'credito') return filteredCredito;
+    return [...filteredVista, ...filteredParcelada, ...filteredCredito];
+  };
+
+  const allFilteredTransactions = getFilteredTransactions();
+  const expenseTransactions = allFilteredTransactions.filter((t: any) => parseFloat(t.amount) >= 0);
+  const refundTransactions = allFilteredTransactions.filter((t: any) => parseFloat(t.amount) < 0);
 
   // Calculate totals based on filtered transactions
-  const totalInvoice = filteredTransactions.reduce((sum: number, t: any) => {
-    const amount = parseFloat(t.amount.toString());
-    return sum + amount;
-  }, 0);
-  const totalInstallments = filteredTransactions.filter((t: any) => t.installments > 1).reduce((sum: number, t: any) => {
-    const amount = parseFloat(t.amount.toString());
-    return sum + amount;
-  }, 0);
-  
-  const totalVista = filteredTransactions.filter((t: any) => t.installments === 1).reduce((sum: number, t: any) => {
-    const amount = parseFloat(t.amount.toString());
-    return sum + amount;
-  }, 0);
+  const totals = calculateGroupTotals({
+    vista: filteredVista,
+    parcelada: filteredParcelada,
+    credito: filteredCredito,
+  });
+
+  const totalInvoice = totals.total;
+  const totalInstallments = totals.parcelada;
+  const totalVista = totals.vista;
 
   const handleDeleteTransaction = async (transactionId: number) => {
     try {
@@ -208,15 +244,15 @@ export default function CreditCardDetail() {
     }
   };
 
-  const handleEditTransactionField = async (transaction: any, field: 'category' | 'value' | 'establishment', value: string) => {
+  const handleEditTransactionField = async (transaction: any, field: string, value: string) => {
     try {
       const updateData: any = { id: transaction.id };
       
-      if (field === 'category') {
+      if (field === 'category' || field === 'categoryId') {
         updateData.categoryId = parseInt(value);
-      } else if (field === 'value') {
+      } else if (field === 'value' || field === 'amount') {
         updateData.amount = convertBRLToNumber(value);
-      } else if (field === 'establishment') {
+      } else if (field === 'establishment' || field === 'description') {
         updateData.description = value;
       }
 
@@ -680,7 +716,7 @@ export default function CreditCardDetail() {
                 )}
               </>
             )}
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
             <Button
               variant={transactionFilter === 'all' ? 'default' : 'outline'}
               size="sm"
@@ -701,6 +737,13 @@ export default function CreditCardDetail() {
               onClick={() => setTransactionFilter('parcelada')}
             >
               Parceladas
+            </Button>
+            <Button
+              variant={transactionFilter === 'credito' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setTransactionFilter('credito')}
+            >
+              Créditos
             </Button>
             </div>
             <Dialog open={isAddTransactionOpen} onOpenChange={setIsAddTransactionOpen}>
@@ -728,215 +771,170 @@ export default function CreditCardDetail() {
           </div>
         </div>
 
-        {expenseTransactions.length > 0 ? (
-          <div className="overflow-x-auto mb-6">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  {isEditMode && (
-                    <th className="text-center py-3 px-2 font-medium text-muted-foreground w-10">
-                      <Checkbox
-                        checked={selectedTransactionIds.size === expenseTransactions.length && expenseTransactions.length > 0}
-                        onCheckedChange={toggleAllTransactions}
-                      />
-                    </th>
-                  )}
-                  <th className="text-left py-3 px-2 font-medium text-muted-foreground">Data</th>
-                  <th className="text-left py-3 px-2 font-medium text-muted-foreground">Estabelecimento</th>
-                  <th className="text-left py-3 px-2 font-medium text-muted-foreground">Categoria</th>
-                  <th className="text-center py-3 px-2 font-medium text-muted-foreground">Parcelado?</th>
-                  <th className="text-right py-3 px-2 font-medium text-muted-foreground">Valor</th>
-                </tr>
-              </thead>
-              <tbody>
-                {expenseTransactions.map((transaction: any) => (
-                  <tr key={transaction.id} className="border-b border-border/50 hover:bg-muted/50 transition-colors">
-                    {isEditMode && (
-                      <td className="text-center py-3 px-2">
-                        <Checkbox
-                          checked={selectedTransactionIds.has(transaction.id)}
-                          onCheckedChange={() => toggleTransactionSelection(transaction.id)}
-                        />
-                      </td>
-                    )}
-                    <td className="py-3 px-2 text-muted-foreground">
-                      {format(new Date(transaction.date), "dd/MM/yyyy", { locale: ptBR })}
-                    </td>
-                    <td className={`py-3 px-2 text-foreground ${isEditMode ? 'cursor-pointer hover:underline' : ''}`} onClick={() => {
-                      if (!isEditMode) return;
-                      setEditingField('establishment');
-                      setEditingValue(transaction.description);
-                      setEditingTransactionId(transaction.id);
-                    }}>
-                      {editingField === 'establishment' && editingTransactionId === transaction.id ? (
-                        <Input
-                          type="text"
-                          value={editingValue}
-                          onChange={(e) => setEditingValue(e.target.value)}
-                          onBlur={() => handleEditTransactionField(transaction, 'establishment', editingValue)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleEditTransactionField(transaction, 'establishment', editingValue);
-                            if (e.key === 'Escape') setEditingField(null);
-                          }}
-                          autoFocus
-                          className="h-8"
-                        />
-                      ) : (
-                        transaction.description
-                      )}
-                    </td>
-                    <td className={`py-3 px-2 text-muted-foreground ${isEditMode ? 'cursor-pointer hover:underline' : ''}`} onClick={() => {
-                      if (!isEditMode) return;
-                      setEditingField('category');
-                      setEditingValue(transaction.categoryId?.toString() || '');
-                      setEditingTransactionId(transaction.id);
-                    }}>
-                      {editingField === 'category' && editingTransactionId === transaction.id ? (
-                        <Select value={editingValue} onValueChange={(value) => {
-                          handleEditTransactionField(transaction, 'category', value);
-                        }}>
-                          <SelectTrigger className="h-8">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {categoriesQuery.data?.map((cat: any) => (
-                              <SelectItem key={cat.id} value={cat.id.toString()}>
-                                {cat.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        categoriesQuery.data?.find((c: any) => c.id === transaction.categoryId)?.name || '-'
-                      )}
-                    </td>
-                      <td className={`py-3 px-2 text-right font-semibold text-red-600 ${isEditMode ? 'cursor-pointer hover:underline' : ''}`} onClick={() => {
-                        if (!isEditMode) return;
-                      setEditingField('value');
-                      setEditingValue(formatBRL(transaction.amount).replace('R$', ''));
-                      setEditingTransactionId(transaction.id);
-                    }}>
-                      {editingField === 'value' && editingTransactionId === transaction.id ? (
-                        <Input
-                          type="text"
-                          value={editingValue}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/[^0-9.,]/g, '');
-                            setEditingValue(value);
-                          }}
-                          onBlur={() => handleEditTransactionField(transaction, 'value', editingValue)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleEditTransactionField(transaction, 'value', editingValue);
-                            if (e.key === 'Escape') setEditingField(null);
-                          }}
-                          autoFocus
-                          className="h-8 text-right"
-                        />
-                      ) : (
-                        formatBRL(transaction.amount)
-                      )}
-                    </td>
-                    <td className="py-3 px-2 text-center">
-                      <Dialog open={editingTransactionId === transaction.id && editingField === 'installments'} onOpenChange={(open) => {
-                        if (open) {
-                          setEditingTransactionId(transaction.id);
-                          setEditingField('installments');
-                          setEditingInstallments(transaction.installments.toString());
-                        } else {
-                          setEditingTransactionId(null);
-                          setEditingField(null);
-                        }
-                      }}>
-                        <DialogTrigger asChild>
-                          <button className="text-muted-foreground hover:text-foreground cursor-pointer">
-                            {transaction.installments > 1 ? "Sim" : "Não"}
-                          </button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Editar Parcelamento</DialogTitle>
-                            <DialogDescription>
-                              {transaction.description}
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <div>
-                              <label className="text-sm font-medium">Número de Parcelas</label>
-                              <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9]*"
-                                value={editingInstallments}
-                                onChange={(e) => {
-                                  const val = e.target.value.replace(/[^0-9]/g, '');
-                                  const num = parseInt(val) || 0;
-                                  if (num >= 1 && num <= 36) {
-                                    setEditingInstallments(val);
-                                  } else if (val === '') {
-                                    setEditingInstallments('');
-                                  }
-                                }}
-                                placeholder="1-36"
-                                className="mt-1"
-                              />
-                            </div>
-                            <div className="flex gap-2 justify-end">
-                              <Button variant="outline" onClick={() => {
-                                setEditingTransactionId(null);
-                                setEditingField(null);
-                              }}>
-                                Cancelar
-                              </Button>
-                              <Button onClick={async () => {
-                                try {
-                                  // await updateTransactionMutation.mutateAsync({
-                                  //   id: transaction.id,
-                                  //   installments: parseInt(editingInstallments) || 1,
-                                  // });
-                                  setEditingTransactionId(null);
-                                  setEditingField(null);
-                                  // transactionsQuery.refetch();
-                                  toast.success("Parcelas atualizadas com sucesso!");
-                                } catch (error) {
-                                  console.error("Erro ao atualizar transação:", error);
-                                }
-                              }}>
-                                Salvar
-                              </Button>
-                            </div>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                    </td>
-                    <td className="py-3 px-2 text-center">
-                      <TransactionActions
-                        transactionId={transaction.id}
-                        categoryId={transaction.categoryId}
-                        description={transaction.description}
-                        dueDate={new Date(transaction.dueDate || transaction.date)}
-                        onDelete={() => transactionsQuery.refetch()}
-                        onUpdate={() => transactionsQuery.refetch()}
-                        onMove={() => transactionsQuery.refetch()}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* Grouped Transactions Display */}
+        {transactionFilter === 'all' ? (
+          <div className="space-y-8">
+            {/* À Vista Section */}
+            {filteredVista.length > 0 && (
+              <TransactionGroup
+                type="vista"
+                transactions={filteredVista}
+                total={totals.vista}
+                categories={categoriesQuery.data || []}
+                isEditMode={isEditMode}
+                selectedIds={selectedTransactionIds}
+                onToggleSelection={toggleTransactionSelection}
+                onToggleAllSelection={() => {
+                  if (selectedTransactionIds.size === filteredVista.length) {
+                    setSelectedTransactionIds(new Set());
+                  } else {
+                    setSelectedTransactionIds(new Set(filteredVista.map((t: any) => t.id)));
+                  }
+                }}
+                onEditField={handleEditTransactionField}
+                onDeleteTransaction={handleDeleteTransaction}
+                onRefetch={() => transactionsQuery.refetch()}
+              />
+            )}
+
+            {/* Parceladas Section */}
+            {filteredParcelada.length > 0 && (
+              <TransactionGroup
+                type="parcelada"
+                transactions={filteredParcelada}
+                total={totals.parcelada}
+                categories={categoriesQuery.data || []}
+                isEditMode={isEditMode}
+                selectedIds={selectedTransactionIds}
+                onToggleSelection={toggleTransactionSelection}
+                onToggleAllSelection={() => {
+                  if (selectedTransactionIds.size === filteredParcelada.length) {
+                    setSelectedTransactionIds(new Set());
+                  } else {
+                    setSelectedTransactionIds(new Set(filteredParcelada.map((t: any) => t.id)));
+                  }
+                }}
+                onEditField={handleEditTransactionField}
+                onDeleteTransaction={handleDeleteTransaction}
+                onRefetch={() => transactionsQuery.refetch()}
+              />
+            )}
+
+            {/* Créditos Section */}
+            {filteredCredito.length > 0 && (
+              <TransactionGroup
+                type="credito"
+                transactions={filteredCredito}
+                total={totals.credito}
+                categories={categoriesQuery.data || []}
+                isEditMode={isEditMode}
+                selectedIds={selectedTransactionIds}
+                onToggleSelection={toggleTransactionSelection}
+                onToggleAllSelection={() => {
+                  if (selectedTransactionIds.size === filteredCredito.length) {
+                    setSelectedTransactionIds(new Set());
+                  } else {
+                    setSelectedTransactionIds(new Set(filteredCredito.map((t: any) => t.id)));
+                  }
+                }}
+                onEditField={handleEditTransactionField}
+                onDeleteTransaction={handleDeleteTransaction}
+                onRefetch={() => transactionsQuery.refetch()}
+              />
+            )}
+
+            {filteredVista.length === 0 && filteredParcelada.length === 0 && filteredCredito.length === 0 && (
+              <div className="text-center py-8">
+                <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-2 opacity-50" />
+                <p className="text-muted-foreground">Nenhuma transação neste período</p>
+              </div>
+            )}
           </div>
+        ) : transactionFilter === 'vista' ? (
+          filteredVista.length > 0 ? (
+            <TransactionGroup
+              type="vista"
+              transactions={filteredVista}
+              total={totals.vista}
+              categories={categoriesQuery.data || []}
+              isEditMode={isEditMode}
+              selectedIds={selectedTransactionIds}
+              onToggleSelection={toggleTransactionSelection}
+              onToggleAllSelection={() => {
+                if (selectedTransactionIds.size === filteredVista.length) {
+                  setSelectedTransactionIds(new Set());
+                } else {
+                  setSelectedTransactionIds(new Set(filteredVista.map((t: any) => t.id)));
+                }
+              }}
+              onEditField={handleEditTransactionField}
+              onDeleteTransaction={handleDeleteTransaction}
+              onRefetch={() => transactionsQuery.refetch()}
+            />
+          ) : (
+            <div className="text-center py-8">
+              <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-2 opacity-50" />
+              <p className="text-muted-foreground">Nenhuma transação à vista neste período</p>
+            </div>
+          )
+        ) : transactionFilter === 'parcelada' ? (
+          filteredParcelada.length > 0 ? (
+            <TransactionGroup
+              type="parcelada"
+              transactions={filteredParcelada}
+              total={totals.parcelada}
+              categories={categoriesQuery.data || []}
+              isEditMode={isEditMode}
+              selectedIds={selectedTransactionIds}
+              onToggleSelection={toggleTransactionSelection}
+              onToggleAllSelection={() => {
+                if (selectedTransactionIds.size === filteredParcelada.length) {
+                  setSelectedTransactionIds(new Set());
+                } else {
+                  setSelectedTransactionIds(new Set(filteredParcelada.map((t: any) => t.id)));
+                }
+              }}
+              onEditField={handleEditTransactionField}
+              onDeleteTransaction={handleDeleteTransaction}
+              onRefetch={() => transactionsQuery.refetch()}
+            />
+          ) : (
+            <div className="text-center py-8">
+              <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-2 opacity-50" />
+              <p className="text-muted-foreground">Nenhuma transação parcelada neste período</p>
+            </div>
+          )
         ) : (
-          <div className="text-center py-8 mb-6">
-            <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-2 opacity-50" />
-            <p className="text-muted-foreground">
-              {transactionFilter === 'vista' && 'Nenhuma transação à vista neste período'}
-              {transactionFilter === 'parcelada' && 'Nenhuma transação parcelada neste período'}
-              {transactionFilter === 'all' && 'Nenhuma transação neste período'}
-            </p>
-          </div>
+          filteredCredito.length > 0 ? (
+            <TransactionGroup
+              type="credito"
+              transactions={filteredCredito}
+              total={totals.credito}
+              categories={categoriesQuery.data || []}
+              isEditMode={isEditMode}
+              selectedIds={selectedTransactionIds}
+              onToggleSelection={toggleTransactionSelection}
+              onToggleAllSelection={() => {
+                if (selectedTransactionIds.size === filteredCredito.length) {
+                  setSelectedTransactionIds(new Set());
+                } else {
+                  setSelectedTransactionIds(new Set(filteredCredito.map((t: any) => t.id)));
+                }
+              }}
+              onEditField={handleEditTransactionField}
+              onDeleteTransaction={handleDeleteTransaction}
+              onRefetch={() => transactionsQuery.refetch()}
+            />
+          ) : (
+            <div className="text-center py-8">
+              <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-2 opacity-50" />
+              <p className="text-muted-foreground">Nenhum crédito neste período</p>
+            </div>
+          )
         )}
 
-        {/* Refunds Section */}
-        {refundTransactions.length > 0 && (
+        {/* Legacy Refunds Section - Kept for compatibility */}
+        {false && refundTransactions.length > 0 && (
           <div className="mt-8 pt-8 border-t border-border">
             <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
               <TrendingDown className="w-5 h-5 text-green-600" />

@@ -1073,3 +1073,10 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Extrair campos: data, descrição, valor, categoria automaticamente - IMPLEMENTADO
 - [x] Testar com diferentes PDFs de faturas reais - COMPLETO
 - [x] Validar precisão do OCR e ajustar conforme necessário - COMPLETO
+
+
+## Agrupamento de Transações por Tipo
+- [x] Implementar lógica de classificação de transações (À Vista, Parceladas, Créditos)
+- [x] Atualizar CreditCardDetail para exibir transações agrupadas
+- [x] Criar testes unitários para classificação
+- [ ] Testar agrupamento com dados reais
