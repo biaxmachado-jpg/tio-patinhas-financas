@@ -18,6 +18,7 @@ import { TransactionActions } from "@/components/TransactionActions";
 import { TransactionGroup } from "@/components/TransactionGroup";
 import { groupTransactionsByType, calculateGroupTotals, getTransactionTypeLabel } from "@/lib/transactionClassifier";
 import { InvoiceCompositionChart } from "@/components/InvoiceCompositionChart";
+import { InvoiceByCategoryChart } from "@/components/InvoiceByCategoryChart";
 
 export default function CreditCardDetail() {
   const { cardId } = useParams<{ cardId: string }>();
@@ -598,13 +599,12 @@ export default function CreditCardDetail() {
         </Card>
       </div>
 
-      {/* Invoice Composition Chart */}
+      {/* Invoice by Category Chart */}
       <div className="mt-8">
-        <InvoiceCompositionChart
-          vistaAmount={totalVista}
-          parceladaAmount={totalInstallments}
-          creditoAmount={0}
-          title="Composição da Fatura"
+        <InvoiceByCategoryChart
+          transactions={allFilteredTransactions}
+          categories={categoriesQuery.data || []}
+          title="Composição por Categoria"
         />
       </div>
 
