@@ -208,6 +208,8 @@ export default function ImportFile() {
       const fileExtension = file.name.split(".").pop()?.toLowerCase();
       
       if (fileExtension === "pdf") {
+        // Configure PDF.js Worker
+        pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjs.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
         let fullText = "";
