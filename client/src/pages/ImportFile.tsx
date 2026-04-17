@@ -208,8 +208,11 @@ export default function ImportFile() {
       const fileExtension = file.name.split(".").pop()?.toLowerCase();
       
       if (fileExtension === "pdf") {
-        // Configure PDF.js Worker
-        pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+        // Configure PDF.js Worker - use local worker from node_modules
+        pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+          'pdfjs-dist/build/pdf.worker.min.mjs',
+          import.meta.url,
+        ).toString();
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjs.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
         let fullText = "";
