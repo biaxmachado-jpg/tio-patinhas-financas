@@ -17,6 +17,7 @@ import { useParams, useLocation } from "wouter";
 import { TransactionActions } from "@/components/TransactionActions";
 import { TransactionGroup } from "@/components/TransactionGroup";
 import { groupTransactionsByType, calculateGroupTotals, getTransactionTypeLabel } from "@/lib/transactionClassifier";
+import { InvoiceCompositionChart } from "@/components/InvoiceCompositionChart";
 
 export default function CreditCardDetail() {
   const { cardId } = useParams<{ cardId: string }>();
@@ -597,8 +598,18 @@ export default function CreditCardDetail() {
         </Card>
       </div>
 
+      {/* Invoice Composition Chart */}
+      <div className="mt-8">
+        <InvoiceCompositionChart
+          vistaAmount={totalVista}
+          parceladaAmount={totalInstallments}
+          creditoAmount={0}
+          title="Composição da Fatura"
+        />
+      </div>
+
       {/* Date Range Filter */}
-      <Card className="p-4 bg-muted/50">
+      <Card className="p-4 bg-muted/50 mt-8">
         <div className="flex items-center gap-4">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
