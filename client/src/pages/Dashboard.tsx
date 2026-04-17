@@ -203,8 +203,8 @@ export default function Dashboard() {
 
   if (!user) return null;
 
-  const totalBalance = (bankAccounts || [])
-    .reduce((sum: any, acc) => sum + parseFloat(acc.balance || "0"), 0);
+  // Saldo Total do mês = Receitas - Despesas
+  const totalBalance = totalIncome - totalExpenses;
   
   const monthNames = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
