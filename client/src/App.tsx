@@ -87,6 +87,11 @@ function Router() {
           <Profile />
         </DashboardLayout>
       </Route>
+      <Route path="/banco-de-dados">
+        <DashboardLayout>
+          <Database />
+        </DashboardLayout>
+      </Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
