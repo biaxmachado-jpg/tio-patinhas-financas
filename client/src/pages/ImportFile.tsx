@@ -146,6 +146,7 @@ export default function ImportFile() {
 
   const importMutation = trpc.files.import.useMutation();
   const categoriesQuery = trpc.categories.list.useQuery();
+  const utils = trpc.useUtils();
 
   const entity = importType === "creditCard" ? cardQuery.data : accountQuery.data;
   const isLoadingEntity = importType === "creditCard" ? cardQuery.isLoading : accountQuery.isLoading;
@@ -291,7 +292,6 @@ export default function ImportFile() {
   const checkForDuplicates = async (txs: Transaction[]) => {
     try {
       // Call checkDuplicates query using the client
-      const utils = trpc.useUtils();
       const result = await utils.files.checkDuplicates.fetch({
         entityType: importType,
         entityId,
