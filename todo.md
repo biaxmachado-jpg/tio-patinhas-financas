@@ -1112,3 +1112,9 @@ As seguintes funcionalidades foram identificadas como opcionais e não foram imp
 - [x] Criar componente Profile.tsx - Já existia
 - [x] Registrar rota no App.tsx - ADICIONADO
 - [x] Testar carregamento do perfil - FUNCIONAL
+
+
+## Bug: Importação de PDF do BRB Falhando
+- [ ] Corrigir configuração do PDF.js Worker (erro: No 'GlobalWorkerOptions.workerData' specified)
+- [ ] Implementar parser para formato BRB (estrutura: Mês/Dia/Histórico/Valor)
+- [ ] Testar com arquivo extrato-lancamentos.pdf

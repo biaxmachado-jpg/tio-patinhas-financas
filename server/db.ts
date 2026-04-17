@@ -1174,33 +1174,60 @@ export async function importFile(userId: number, data: {
       let extractedTransactions: Array<{date: Date; description: string; amount: string; type: "income" | "expense"}> = [];
       
       if (data.fileType === "application/pdf" || data.fileName.endsWith(".pdf")) {
-        const lines = data.fileContent.split('\n');
-        const datePattern = /(\d{1,2}\/(\d{1,2}|\d{4}))/g;
-        const amountPattern = /R\$\s*([\d.,]+)/g;
-        
-        lines.forEach(line => {
-          const dateMatch = line.match(datePattern);
-          const amountMatch = line.match(amountPattern);
-          
-          if (dateMatch && amountMatch) {
-            try {
-              const dateStr = dateMatch[0];
-              const amountStr = amountMatch[0].replace('R$ ', '').replace('.', '').replace(',', '.');
-              const date = new Date(dateStr);
-              
-              if (!isNaN(date.getTime())) {
-                extractedTransactions.push({
-                  date,
-                  description: line.substring(0, 50),
-                  amount: amountStr,
-                  type: "expense"
-                });
-              }
-            } catch (e) {
-              // Skip invalid entries
-            }
+        // Decode base64 if needed
+        let pdfContent = data.fileContent;
+        if (!data.fileContent.startsWith('%PDF')) {
+          try {
+            const buffer = Buffer.from(data.fileContent, 'base64');
+            pdfContent = buffer.toString('latin1');
+            console.log('[importFile] Decoded base64 PDF for bank account, length:', pdfContent.length);
+          } catch (e) {
+            console.log('[importFile] Failed to decode base64:', e);
+            pdfContent = data.fileContent;
           }
-        });
+        }
+        
+        // Try BRB parser first
+        try {
+          const { detectBRBFormat, parseBRBStatement } = await import('./parsers/brb-parser');
+          if (detectBRBFormat(pdfContent)) {
+            console.log('[importFile] Detected BRB format, using specialized parser');
+            extractedTransactions = parseBRBStatement(pdfContent);
+          }
+        } catch (e) {
+          console.log('[importFile] BRB parser not available, using fallback');
+        }
+        
+        // Fallback: generic parsing if BRB parser didn't work
+        if (extractedTransactions.length === 0) {
+          const lines = pdfContent.split('\n');
+          const datePattern = /(\d{1,2}\/(\d{1,2}|\d{4}))/g;
+          const amountPattern = /R\$\s*([\d.,]+)/g;
+          
+          lines.forEach(line => {
+            const dateMatch = line.match(datePattern);
+            const amountMatch = line.match(amountPattern);
+            
+            if (dateMatch && amountMatch) {
+              try {
+                const dateStr = dateMatch[0];
+                const amountStr = amountMatch[0].replace('R$ ', '').replace(/\./g, '').replace(',', '.');
+                const date = new Date(dateStr);
+                
+                if (!isNaN(date.getTime())) {
+                  extractedTransactions.push({
+                    date,
+                    description: line.substring(0, 50),
+                    amount: amountStr,
+                    type: "expense"
+                  });
+                }
+              } catch (e) {
+                // Skip invalid entries
+              }
+            }
+          });
+        }
       }
       
       // Leave categoryId as NULL - user will categorize manually
