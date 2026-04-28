@@ -1,5 +1,4 @@
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -20,7 +19,6 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
 import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
@@ -250,9 +248,7 @@ function DashboardLayoutContent({
                                   className="h-9 transition-all font-normal text-sm"
                                 >
                                   <div className="h-2 w-2 rounded-full" style={{
-                                    backgroundColor: account.color || (account.bank === "Itaú" ? "#FF6B35" :
-                                                   account.bank === "Bradesco" ? "#C41E3A" :
-                                                   account.bank === "BRB" ? "#000000" : "#3b82f6")
+                                    backgroundColor: account.color || "#3b82f6"
                                   }} />
                                   <span>{account.name}</span>
                                 </SidebarMenuButton>
@@ -264,7 +260,7 @@ function DashboardLayoutContent({
                     </Collapsible>
                   );
                 }
-                
+
                 if (item.label === "Cartões de Crédito") {
                   const isActive = location === "/cartoes";
                   return (
@@ -302,12 +298,7 @@ function DashboardLayoutContent({
                                   className="h-9 transition-all font-normal text-sm"
                                 >
                                   <div className="h-2 w-2 rounded-full" style={{
-                                    backgroundColor: card.color || (card.brand === "Visa" ? "#1434CB" :
-                                                   card.brand === "Mastercard" ? "#EB001B" :
-                                                   card.brand === "Elo" ? "#FF6000" :
-                                                   card.brand === "American Express" ? "#006FCF" :
-                                                   card.brand === "Hipercard" ? "#CC0000" :
-                                                   card.brand === "Discover" ? "#FF6000" : "#3b82f6"),
+                                    backgroundColor: card.color || "#3b82f6"
                                   }} />
                                   <span>{card.name}</span>
                                 </SidebarMenuButton>
@@ -319,7 +310,7 @@ function DashboardLayoutContent({
                     </Collapsible>
                   );
                 }
-                
+
                 const isActive = location === item.path;
                 return (
                   <SidebarMenuItem key={item.path}>
@@ -327,11 +318,9 @@ function DashboardLayoutContent({
                       isActive={isActive}
                       onClick={() => setLocation(item.path)}
                       tooltip={item.label}
-                      className={`h-10 transition-all font-normal`}
+                      className="h-10 transition-all font-normal"
                     >
-                      <item.icon
-                        className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
-                      />
+                      <item.icon className={`h-4 w-4 ${isActive ? "text-primary" : ""}`} />
                       <span>{item.label}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -372,7 +361,7 @@ function DashboardLayoutContent({
                   className="cursor-pointer text-destructive focus:text-destructive"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Sign out</span>
+                  <span>Sair</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
