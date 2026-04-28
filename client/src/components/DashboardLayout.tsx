@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -57,7 +58,9 @@ export default function DashboardLayout({
     const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
     return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
   });
-  const { loading, user } = useAuth();
+  const { loading, user, login } = useAuth();
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginLoading, setLoginLoading] = useState(false);
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
@@ -67,26 +70,40 @@ export default function DashboardLayout({
     return <DashboardLayoutSkeleton />
   }
 
+  const handleLogin = async () => {
+    setLoginLoading(true);
+    setLoginError(null);
+    try {
+      await login();
+    } catch (err: any) {
+      setLoginError(err?.message ?? "Erro ao fazer login. Tente novamente.");
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-8 p-8 max-w-md w-full">
           <div className="flex flex-col items-center gap-6">
             <h1 className="text-2xl font-semibold tracking-tight text-center">
-              Sign in to continue
+              Tio Patinhas Finanças
             </h1>
             <p className="text-sm text-muted-foreground text-center max-w-sm">
-              Access to this dashboard requires authentication. Continue to launch the login flow.
+              Faça login para acessar seu painel financeiro.
             </p>
           </div>
+          {loginError && (
+            <p className="text-sm text-red-500 text-center">{loginError}</p>
+          )}
           <Button
-            onClick={() => {
-              window.location.href = getLoginUrl();
-            }}
+            onClick={handleLogin}
+            disabled={loginLoading}
             size="lg"
             className="w-full shadow-lg hover:shadow-xl transition-all"
           >
-            Sign in
+            {loginLoading ? "Entrando..." : "Entrar com Google"}
           </Button>
         </div>
       </div>
