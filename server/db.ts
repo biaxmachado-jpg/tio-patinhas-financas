@@ -51,7 +51,13 @@ export async function getDb() {
     _initAttempted = true;
     try {
       if (!_pool) {
-        _pool = mysql.createPool(process.env.DATABASE_URL);
+      const dbUrl = process.env.DATABASE_URL || "";
+_pool = mysql.createPool({
+  uri: dbUrl.replace(/\?ssl=.*$/, ""),
+  ssl: { rejectUnauthorized: false },
+  waitForConnections: true,
+  connectionLimit: 5,
+});
       }
       _db = drizzle(_pool, { mode: 'default', schema: { users, categories, bankAccounts, transactions, budgets, categorizationRules, creditCards, creditCardTransactions, monthlyBalances, profileHistory } });
       
