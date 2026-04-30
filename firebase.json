@@ -1,0 +1,12 @@
+{
+  "hosting": {
+    "site": "tiopatinhas-dd76e",
+    "public": "dist/public",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      { "source": "/api/**", "run": { "serviceId": "tiopatinhas", "region": "us-central1" } },
+      { "source": "/login", "run": { "serviceId": "tiopatinhas", "region": "us-central1" } },
+      { "source": "**", "destination": "/index.html" }
+    ]
+  }
+}
