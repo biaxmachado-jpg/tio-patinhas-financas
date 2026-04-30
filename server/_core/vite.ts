@@ -4,14 +4,11 @@ import { type Server } from "http";
 import path from "path";
 
 export async function setupVite(app: Express, server: Server) {
-  // Importação dinâmica — só carrega vite em desenvolvimento
   const { createServer: createViteServer } = await import("vite");
-  const viteConfig = await import("../../vite.config");
   const { nanoid } = await import("nanoid");
 
   const vite = await createViteServer({
-    ...viteConfig.default,
-    configFile: false,
+    configFile: path.resolve(process.cwd(), "vite.config.ts"),
     server: { middlewareMode: true, hmr: { server }, allowedHosts: true as const },
     appType: "custom",
   });
@@ -20,10 +17,9 @@ export async function setupVite(app: Express, server: Server) {
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
     try {
-      const clientTemplate = path.resolve(import.meta.dirname, "../..", "client", "index.html");
+      const clientTemplate = path.resolve(process.cwd(), "client", "index.html");
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
-      const { nanoid: id } = await import("nanoid");
-      template = template.replace(`src="/src/main.tsx"`, `src="/src/main.tsx?v=${id()}"`);
+      template = template.replace(`src="/src/main.tsx"`, `src="/src/main.tsx?v=${nanoid()}"`);
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
@@ -35,8 +31,8 @@ export async function setupVite(app: Express, server: Server) {
 
 export function serveStatic(app: Express) {
   const distPath = process.env.NODE_ENV === "development"
-    ? path.resolve(import.meta.dirname, "../..", "dist", "public")
-    : path.resolve(import.meta.dirname, "public");
+    ? path.resolve(process.cwd(), "dist", "public")
+    : path.resolve(path.dirname(new URL(import.meta.url).pathname), "public");
 
   if (!fs.existsSync(distPath)) {
     console.error(`Could not find the build directory: ${distPath}`);
