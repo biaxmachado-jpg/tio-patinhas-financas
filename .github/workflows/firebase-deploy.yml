@@ -30,11 +30,8 @@ jobs:
       - name: Instalar Firebase CLI
         run: npm install -g firebase-tools
 
-      - name: Deploy
-        run: firebase deploy --only hosting --project tiopatinhas-dd76e
-
-      - name: Listar arquivos gerados
-        run: ls -la dist/ && ls -la dist/public/ 2>/dev/null || echo "dist/public nao existe"
+      - name: Verificar firebase.json
+        run: cat firebase.json
 
       - name: Deploy
         run: firebase deploy --only hosting --project tiopatinhas-dd76e
