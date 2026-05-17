@@ -1,10 +1,9 @@
 FROM node:22-slim AS builder
 WORKDIR /app
-RUN npm install -g pnpm@10
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+COPY package.json ./
+RUN npm install --legacy-peer-deps
 COPY . .
-RUN pnpm build
+RUN npm run build
 
 FROM node:22-slim AS runner
 WORKDIR /app
