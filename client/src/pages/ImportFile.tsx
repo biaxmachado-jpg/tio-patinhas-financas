@@ -363,10 +363,11 @@ function parseXLSXData(data: any[][]): Transaction[] {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function ImportFile() {
   const { cardId, accountId } = useParams();
-  const [, navigate] = useLocation();
-
-  const importType: ImportType = cardId ? "creditCard" : "bankAccount";
-  const entityId = cardId ? parseInt(cardId || "0") : parseInt(accountId || "0");
+const [location, navigate] = useLocation();
+const importType: ImportType = location.startsWith("/cartoes/") ? "creditCard" : "bankAccount";
+const entityId = importType === "creditCard"
+  ? parseInt(cardId || accountId || "0")
+  : parseInt(accountId || cardId || "0");
 
   const [file, setFile] = useState<File | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
