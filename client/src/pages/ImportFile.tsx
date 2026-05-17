@@ -949,10 +949,9 @@ const entityId = importType === "creditCard"
           }}
           onCancel={() => {
             setShowDueDateConfirm(false);
-            setTransactions([]);
-            setExtractedDueDate(null);
-            setFile(null);
-          }}
+  setConfirmedDueDate(null);
+  checkForDuplicates(transactions);
+}}
         />
       )}
     </div>
