@@ -202,70 +202,50 @@ export function parseBradesco(content: string): Transaction[] {
  */
 export function parseItau(content: string): Transaction[] {
   const transactions: Transaction[] = [];
-
-  // Similar pattern to Bradesco but with Itaú-specific markers
   const lines = content.split("\n");
 
-  // Find transaction section
-  let transactionStart = -1;
-  for (let i = 0; i < lines.length; i++) {
-    if (
-      lines[i].includes("Lançamentos") ||
-      lines[i].includes("Transações") ||
-      lines[i].includes("Movimentação")
-    ) {
-      transactionStart = i;
-      break;
-    }
-  }
+  const SKIP_PATTERNS = [
+    "saldo do dia",
+    "período de visualização",
+    "emitido em",
+    "saldo em conta",
+    "limite da conta",
+    "aviso",
+    "extrato conta",
+    "lançamentos",
+  ];
 
-  if (transactionStart === -1) {
-    return transactions;
-  }
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
 
-  // Parse transactions
-  for (let i = transactionStart + 1; i < lines.length; i++) {
-    const line = lines[i].trim();
+    if (SKIP_PATTERNS.some((p) => trimmed.toLowerCase().includes(p))) continue;
 
-    if (!line || line.includes("Total") || line.includes("Saldo")) {
-      break;
-    }
+    // Formato Itaú PDF: DD/MM/AAAA DESCRIÇÃO -9.999,99 ou 9.999,99
+    const match = trimmed.match(
+      /^(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+(-?[\d.]+,\d{2})$/
+    );
 
-    // Itaú format: DD/MM DESCRIPTION VALUE
-    const dateMatch = line.match(/(\d{1,2}\/\d{1,2})/);
-    if (!dateMatch) continue;
+    if (!match) continue;
 
-    const amountMatch = line.match(/R?\$?\s*([\d.,]+)\s*$/);
-    if (!amountMatch) continue;
+    const [, dateStr, description, rawAmount] = match;
 
-    const dateStr = dateMatch[1];
-    const amount = amountMatch[1];
+    if (description.toLowerCase().includes("saldo do dia")) continue;
 
-    const descriptionStart = line.indexOf(dateStr) + dateStr.length;
-    const descriptionEnd = line.lastIndexOf(amount);
-    let description = line.substring(descriptionStart, descriptionEnd).trim();
-    description = description.replace(/\s+/g, " ");
+    const [day, month, year] = dateStr.split("/");
+    const formattedDate = `${year}-${month}-${day}`;
 
-    if (!description) continue;
+    const cleanAmount = rawAmount.replace(/\./g, "").replace(",", ".");
+    const numericAmount = parseFloat(cleanAmount);
+    if (isNaN(numericAmount)) continue;
 
-    const [day, month] = dateStr.split("/");
-    const year = new Date().getFullYear();
-    const formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-
-    let cleanAmount = amount.replace(/[^0-9.,]/g, "");
-    if (cleanAmount.includes(".") && cleanAmount.includes(",")) {
-      cleanAmount = cleanAmount.replace(".", "").replace(",", ".");
-    } else {
-      cleanAmount = cleanAmount.replace(",", ".");
-    }
-
-    if (isNaN(parseFloat(cleanAmount))) continue;
+    const absAmount = Math.abs(numericAmount).toFixed(2);
 
     transactions.push({
       id: Date.now().toString() + Math.random(),
       date: formattedDate,
-      description,
-      amount: cleanAmount,
+      description: description.trim(),
+      amount: absAmount,
     });
   }
 
