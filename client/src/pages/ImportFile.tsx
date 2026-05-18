@@ -32,7 +32,37 @@ interface Transaction {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parser para CSV de fatura (formato: data,lançamento,valor)
+// Utilitário: extrai o sufixo de parcelamento "XX/YY" do final da descrição
+// Ex: "SAMSUNG NO ITAU   02/21" → { base: "SAMSUNG NO ITAU", parcela: "02/21" }
+// ─────────────────────────────────────────────────────────────────────────────
+function extrairParcelamento(desc: string): { base: string; parcela: string | null } {
+  // Padrão: 2 dígitos / 2 dígitos no final (com possíveis espaços antes)
+  const match = desc.trim().match(/^(.*?)\s+(\d{2}\/\d{2})\s*$/);
+  if (match) {
+    return { base: match[1].trim(), parcela: match[2] };
+  }
+  return { base: desc.trim(), parcela: null };
+}
+
+// Descrições que indicam que a linha NÃO é uma transação real de compra
+const SKIP_DESCRIPTIONS = [
+  "pagamento efetuado",
+  "pagamento recebido",
+  "estorno",
+  "iof compra internaciona",  // IOF é cobrado separado — manter se quiser, mas geralmente ruído
+];
+
+function deveIgnorarLinha(desc: string, valor: number): boolean {
+  const descLower = desc.toLowerCase().trim();
+  // Pagamentos e estornos (valores negativos ou descrições específicas)
+  if (SKIP_DESCRIPTIONS.some(s => descLower.includes(s))) return true;
+  // Valores negativos são estornos/créditos — não importar como despesa
+  if (valor < 0) return true;
+  return false;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Parser para CSV de fatura Itaú (formato: data,lançamento,valor)
 // ─────────────────────────────────────────────────────────────────────────────
 function parseCSVFatura(csvText: string): Transaction[] {
   const transactions: Transaction[] = [];
@@ -91,7 +121,7 @@ function parseCSVFatura(csvText: string): Transaction[] {
       } else continue;
     }
 
-    // Parsear valor
+    // Parsear valor (mantém sinal para filtrar negativos)
     let amount = amountRaw.replace(/[R$\s]/g, "");
     if (amount.includes(".") && amount.includes(",")) {
       amount = amount.replace(".", "").replace(",", ".");
@@ -100,6 +130,9 @@ function parseCSVFatura(csvText: string): Transaction[] {
     }
     const parsed = parseFloat(amount);
     if (isNaN(parsed)) continue;
+
+    // ── FIX 1: Filtrar pagamentos, estornos e valores negativos ──────────────
+    if (deveIgnorarLinha(desc, parsed)) continue;
 
     transactions.push({
       id: Date.now().toString() + Math.random(),
@@ -114,13 +147,10 @@ function parseCSVFatura(csvText: string): Transaction[] {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Parser para XLS do Itaú (extrato conta corrente)
-// Colunas: data | lançamento | ag./origem | valor (R$) | saldos (R$)
-// Header na linha 9 (índice 8), dados a partir da linha 10
 // ─────────────────────────────────────────────────────────────────────────────
 function parseItauXLS(data: any[][]): Transaction[] {
   const transactions: Transaction[] = [];
 
-  // Encontrar linha de header com "data" e "lançamento"
   let headerIdx = -1;
   for (let i = 0; i < Math.min(20, data.length); i++) {
     const row = data[i];
@@ -150,7 +180,6 @@ function parseItauXLS(data: any[][]): Transaction[] {
 
     if (!desc || !dateRaw) continue;
 
-    // Ignorar linhas de saldo e subtotais
     const descLower = desc.toLowerCase();
     if (
       descLower.includes("saldo") ||
@@ -160,7 +189,6 @@ function parseItauXLS(data: any[][]): Transaction[] {
       !amtRaw && amtRaw !== 0
     ) continue;
 
-    // Formatar data (DD/MM/YYYY ou DD/MM/YY)
     let formattedDate = "";
     const m = dateRaw.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
     if (m) {
@@ -168,7 +196,6 @@ function parseItauXLS(data: any[][]): Transaction[] {
       formattedDate = `${year}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
     } else continue;
 
-    // Parsear valor (pode ser número ou string)
     let amount: number;
     if (typeof amtRaw === "number") {
       amount = amtRaw;
@@ -179,6 +206,8 @@ function parseItauXLS(data: any[][]): Transaction[] {
       amount = parseFloat(s);
     }
     if (isNaN(amount) || amount === 0) continue;
+
+    if (deveIgnorarLinha(desc, amount)) continue;
 
     transactions.push({
       id: Date.now().toString() + Math.random(),
@@ -192,14 +221,11 @@ function parseItauXLS(data: any[][]): Transaction[] {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parser para XLS do Bradesco (extrato conta corrente)
-// Colunas: Data | Histórico | Docto. | Crédito (R$) | Débito (R$) | Saldo (R$)
-// Linhas de descrição intercaladas (sem data)
+// Parser para XLS do Bradesco
 // ─────────────────────────────────────────────────────────────────────────────
 function parseBradescoXLS(data: any[][]): Transaction[] {
   const transactions: Transaction[] = [];
 
-  // Encontrar linha de header
   let headerIdx = -1;
   for (let i = 0; i < Math.min(20, data.length); i++) {
     const row = data[i];
@@ -225,13 +251,11 @@ function parseBradescoXLS(data: any[][]): Transaction[] {
     if (!row) continue;
 
     const dateRaw = String(row[dateCol] ?? "").trim();
-    // Linha sem data = linha de descrição adicional, ignorar
     if (!dateRaw || !/\d/.test(dateRaw)) continue;
 
     const desc = String(row[descCol] ?? "").trim();
     if (!desc) continue;
 
-    // Ignorar linhas de saldo e totais
     const descLower = desc.toLowerCase();
     if (
       descLower.includes("saldo") ||
@@ -242,25 +266,19 @@ function parseBradescoXLS(data: any[][]): Transaction[] {
       descLower.includes("ouvidoria")
     ) continue;
 
-    // Formatar data
     let formattedDate = "";
     const m = dateRaw.match(/(\d{1,2})\/(\d{2,4})(?:\/(\d{2,4}))?/);
     if (m) {
       let day = m[1], month = m[2], year = m[3];
-      // Bradesco às vezes usa DD/MM/YY sem separador de ano completo
       if (!year) {
         year = new Date().getFullYear().toString();
       } else if (year.length === 2) {
         year = "20" + year;
       }
-      if (month.length > 2) {
-        // DD/YYYY sem mês — formato incomum, pular
-        continue;
-      }
+      if (month.length > 2) continue;
       formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
     } else continue;
 
-    // Parsear crédito e débito
     const parseCell = (val: any): number => {
       if (val === null || val === undefined || val === "") return 0;
       if (typeof val === "number") return Math.abs(val);
@@ -286,20 +304,18 @@ function parseBradescoXLS(data: any[][]): Transaction[] {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parser genérico para XLSX (tenta detectar colunas automaticamente)
+// Parser genérico para XLSX
 // ─────────────────────────────────────────────────────────────────────────────
 function parseXLSXData(data: any[][]): Transaction[] {
   const transactions: Transaction[] = [];
   if (!data || data.length === 0) return transactions;
 
-  // Tentar parsers específicos primeiro
   const itauResult = parseItauXLS(data);
   if (itauResult.length > 0) return itauResult;
 
   const bradescoResult = parseBradescoXLS(data);
   if (bradescoResult.length > 0) return bradescoResult;
 
-  // Fallback genérico
   let headerIndex = -1;
   for (let i = 0; i < Math.min(20, data.length); i++) {
     const row = data[i];
@@ -359,15 +375,42 @@ function parseXLSXData(data: any[][]): Transaction[] {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// FIX 2: Verificação de duplicatas que respeita parcelamentos
+// Parcelas com sufixo XX/YY diferente NUNCA são duplicatas entre si
+// ─────────────────────────────────────────────────────────────────────────────
+function isDuplicateTransaction(
+  tx: { date: string; description: string; amount: string },
+  existingDups: Array<{ date: string; description: string; amount: string }>
+): boolean {
+  const { base: txBase, parcela: txParcela } = extrairParcelamento(tx.description);
+
+  return existingDups.some(dup => {
+    const { base: dupBase, parcela: dupParcela } = extrairParcelamento(dup.description);
+
+    // Se ambas têm parcela e são diferentes → NÃO é duplicata
+    if (txParcela !== null && dupParcela !== null && txParcela !== dupParcela) {
+      return false;
+    }
+
+    const sameDate = new Date(dup.date).toISOString().split("T")[0] === tx.date;
+    const sameAmount = dup.amount === tx.amount;
+    // Compara a base da descrição (sem sufixo de parcela)
+    const sameDesc = dupBase.toLowerCase() === txBase.toLowerCase();
+
+    return sameDate && sameAmount && sameDesc;
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Componente principal
 // ─────────────────────────────────────────────────────────────────────────────
 export default function ImportFile() {
   const { cardId, accountId } = useParams();
-const [location, navigate] = useLocation();
-const importType: ImportType = location.startsWith("/cartoes/") ? "creditCard" : "bankAccount";
-const entityId = importType === "creditCard"
-  ? parseInt(cardId || accountId || "0")
-  : parseInt(accountId || cardId || "0");
+  const [location, navigate] = useLocation();
+  const importType: ImportType = location.startsWith("/cartoes/") ? "creditCard" : "bankAccount";
+  const entityId = importType === "creditCard"
+    ? parseInt(cardId || accountId || "0")
+    : parseInt(accountId || cardId || "0");
 
   const [file, setFile] = useState<File | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -398,7 +441,6 @@ const entityId = importType === "creditCard"
   const entity = importType === "creditCard" ? cardQuery.data : accountQuery.data;
   const isLoadingEntity = importType === "creditCard" ? cardQuery.isLoading : accountQuery.isLoading;
 
-  // Extensões aceitas: adicionado .csv
   const ACCEPTED_EXTENSIONS = [".pdf", ".ofx", ".txt", ".xlsx", ".xls", ".csv"];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -457,13 +499,11 @@ const entityId = importType === "creditCard"
       const fileExtension = file.name.split(".").pop()?.toLowerCase();
 
       if (fileExtension === "csv") {
-        // ── CSV: parsear diretamente ──────────────────────────────────────────
         const text = await file.text();
         bank = detectBank(text);
         extractedTransactions = parseCSVFatura(text);
 
       } else if (fileExtension === "pdf") {
-        // ── PDF ───────────────────────────────────────────────────────────────
         pdfjs.GlobalWorkerOptions.workerSrc = new URL(
           "pdfjs-dist/build/pdf.worker.min.mjs",
           import.meta.url,
@@ -483,16 +523,13 @@ const entityId = importType === "creditCard"
         setExtractedDueDate(result.dueDate || null);
 
       } else if (fileExtension === "xlsx" || fileExtension === "xls") {
-        // ── XLSX / XLS ────────────────────────────────────────────────────────
         const arrayBuffer = await file.arrayBuffer();
         const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: "array" });
 
-        // Usar a primeira aba que tiver dados de lançamentos
         let rawData: any[][] = [];
         for (const sheetName of workbook.SheetNames) {
           const worksheet = workbook.Sheets[sheetName];
           const candidate = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
-          // Verificar se essa aba tem dados de transações (procura por "data" e "valor" ou "hist")
           const csvCheck = candidate.slice(0, 15).map(r => r.join(" ").toLowerCase()).join(" ");
           if (csvCheck.includes("data") && (csvCheck.includes("hist") || csvCheck.includes("valor") || csvCheck.includes("créd"))) {
             rawData = candidate;
@@ -500,16 +537,13 @@ const entityId = importType === "creditCard"
           }
         }
         if (rawData.length === 0) {
-          // Fallback: primeira aba
           const worksheet = workbook.Sheets[workbook.SheetNames[0]];
           rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
         }
 
-        // Detectar banco pelo conteúdo
         const csvText = rawData.map(r => r.join(",")).join("\n");
         bank = detectBank(csvText);
 
-        // Usar parser específico ou genérico
         if (bank === "itau") {
           extractedTransactions = parseItauXLS(rawData);
         } else if (bank === "bradesco") {
@@ -518,7 +552,6 @@ const entityId = importType === "creditCard"
           extractedTransactions = parseXLSXData(rawData);
         }
 
-        // Tentar extrair data de vencimento (só relevante para cartão)
         if (importType === "creditCard") {
           const result = await parseFileWithBankDetection(csvText, "xlsx");
           setExtractedDueDate(result.dueDate || null);
@@ -541,11 +574,9 @@ const entityId = importType === "creditCard"
       const bankName = bankInfo?.name || "Banco desconhecido";
       toast.success(`${extractedTransactions.length} transação(ões) extraída(s) de ${bankName}!`);
 
-      // Mostrar dialog de data de vencimento APENAS para cartão de crédito
       if (importType === "creditCard") {
         setShowDueDateConfirm(true);
       } else {
-        // Para conta corrente: vai direto para verificação de duplicatas
         await checkForDuplicates(extractedTransactions);
       }
 
@@ -569,28 +600,39 @@ const entityId = importType === "creditCard"
         })),
       });
 
+      let updatedTxs = txs;
+
       if (result && result.duplicates && result.duplicates.length > 0) {
-        const updatedTxs = txs.map((tx) => ({
+        // ── FIX 2: Aplicar lógica de parcelamento na marcação de duplicatas ────
+        updatedTxs = txs.map((tx) => ({
           ...tx,
-          isDuplicate: result.duplicates.some(
-            (dup: any) =>
-              new Date(dup.date).toISOString().split("T")[0] === tx.date &&
-              dup.description === tx.description &&
-              dup.amount === tx.amount
-          ),
+          isDuplicate: isDuplicateTransaction(tx, result.duplicates),
         }));
+
+        const realDuplicates = updatedTxs.filter(tx => tx.isDuplicate);
         setTransactions(updatedTxs);
         setDuplicates(result.duplicates);
-        setShowDuplicateWarning(true);
-        toast.warning(
-          `${result.duplicates.length} transação(ões) pode(m) ser duplicada(s). Revise antes de importar.`
-        );
+
+        if (realDuplicates.length > 0) {
+          setShowDuplicateWarning(true);
+          toast.warning(
+            `${realDuplicates.length} transação(ões) pode(m) ser duplicada(s). Revise antes de importar.`
+          );
+        } else {
+          setShowDuplicateWarning(false);
+        }
       } else {
         setDuplicates([]);
         setShowDuplicateWarning(false);
       }
+
+      // ── FIX 3: Abrir categorizer automaticamente após checar duplicatas ─────
+      setShowCategorizer(true);
+
     } catch (error) {
       console.error("Erro ao verificar duplicatas:", error);
+      // Mesmo com erro, abre o categorizer
+      setShowCategorizer(true);
     }
   };
 
@@ -704,6 +746,7 @@ const entityId = importType === "creditCard"
     );
   }
 
+  // ── FIX 3: Tela de categorização (abre automaticamente após carregar arquivo) ─
   if (showCategorizer && transactions.length > 0) {
     return (
       <div className="min-h-screen bg-background p-4">
@@ -712,13 +755,32 @@ const entityId = importType === "creditCard"
             <Button variant="ghost" size="icon" onClick={() => setShowCategorizer(false)}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-3xl font-bold">Categorizar Transações</h1>
+            <div>
+              <h1 className="text-3xl font-bold">Categorizar Transações</h1>
+              <p className="text-muted-foreground text-sm mt-1">
+                {transactions.length} transação(ões) • {transactions.filter(t => t.isDuplicate).length > 0
+                  ? `${transactions.filter(t => t.isDuplicate).length} possível(is) duplicata(s) marcada(s)`
+                  : "Nenhuma duplicata detectada"}
+              </p>
+            </div>
           </div>
           <TransactionCategorizer
             transactions={transactions}
             onCategoriesApplied={handleCategoriesApplied}
             onCancel={() => setShowCategorizer(false)}
           />
+          {/* Botão de importar dentro do categorizer */}
+          <div className="mt-4 flex justify-end">
+            <Button
+              onClick={handleImport}
+              disabled={isLoading || transactions.filter(t => !t.categoryId).length > 0}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {isLoading
+                ? "Importando..."
+                : `Importar ${transactions.length} Transação${transactions.length !== 1 ? "s" : ""}`}
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -811,7 +873,7 @@ const entityId = importType === "creditCard"
                     <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="font-semibold">{duplicates.length} transação(ões) pode(m) ser duplicada(s)</p>
-                      <p className="text-xs mt-1">Verifique as transações marcadas abaixo antes de importar</p>
+                      <p className="text-xs mt-1">Verifique as transações marcadas antes de importar</p>
                     </div>
                   </div>
                 )}
@@ -826,14 +888,24 @@ const entityId = importType === "creditCard"
             <h2 className="text-xl font-semibold">Transações</h2>
             <div className="flex gap-2">
               {transactions.length > 0 && (
-                <Button
-                  onClick={() => setShowDescriptionEditor(true)}
-                  size="sm"
-                  variant="outline"
-                  className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                >
-                  Normalizar Descrições
-                </Button>
+                <>
+                  <Button
+                    onClick={() => setShowDescriptionEditor(true)}
+                    size="sm"
+                    variant="outline"
+                    className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                  >
+                    Normalizar Descrições
+                  </Button>
+                  <Button
+                    onClick={() => setShowCategorizer(true)}
+                    size="sm"
+                    variant="outline"
+                    className="text-purple-600 border-purple-200 hover:bg-purple-50"
+                  >
+                    Categorizar
+                  </Button>
+                </>
               )}
               <Button onClick={addTransaction} size="sm">
                 <Plus className="h-4 w-4 mr-2" />
@@ -893,12 +965,17 @@ const entityId = importType === "creditCard"
                         />
                       </td>
                       <td className="py-2 px-2 text-center">
-                        {tx.isDuplicate && (
+                        {tx.isDuplicate ? (
                           <div className="flex items-center justify-center gap-1 text-xs text-amber-600 bg-amber-100 px-2 py-1 rounded">
                             <AlertCircle className="h-3 w-3" />
                             Duplicada
                           </div>
-                        )}
+                        ) : tx.categoryId ? (
+                          <div className="flex items-center justify-center gap-1 text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
+                            <CheckCircle className="h-3 w-3" />
+                            Categorizada
+                          </div>
+                        ) : null}
                       </td>
                       <td className="py-2 px-2 text-center">
                         <Button
@@ -937,7 +1014,7 @@ const entityId = importType === "creditCard"
         </Card>
       </div>
 
-      {/* DueDate Confirmation Dialog — APENAS para cartão de crédito */}
+      {/* DueDate Confirmation Dialog */}
       {showDueDateConfirm && importType === "creditCard" && (
         <DueDateConfirmDialog
           extractedDate={extractedDueDate}
@@ -949,9 +1026,9 @@ const entityId = importType === "creditCard"
           }}
           onCancel={() => {
             setShowDueDateConfirm(false);
-  setConfirmedDueDate(null);
-  checkForDuplicates(transactions);
-}}
+            setConfirmedDueDate(null);
+            checkForDuplicates(transactions);
+          }}
         />
       )}
     </div>
