@@ -29,6 +29,38 @@ interface Transaction {
   amount: string;
   isDuplicate?: boolean;
   categoryId?: number;
+  isInstallment?: boolean; // parcela de mês anterior
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Extrai ano e mês de referência da fatura pelo nome do arquivo
+// Ex: "fatura-20260506master.csv" → { year: 2026, month: 4 } (mês anterior ao vencimento)
+// Ex: "fatura-20260101visa.csv"   → { year: 2025, month: 12 }
+// ─────────────────────────────────────────────────────────────────────────────
+function extrairMesFatura(fileName: string): { year: number; month: number } | null {
+  // Tenta pegar YYYYMMDD do nome do arquivo
+  const match = fileName.match(/(\d{4})(\d{2})(\d{2})/);
+  if (!match) return null;
+  const year = parseInt(match[1]);
+  const month = parseInt(match[2]); // mês de vencimento
+  // Mês de referência = mês anterior ao vencimento
+  if (month === 1) return { year: year - 1, month: 12 };
+  return { year, month: month - 1 };
+}
+
+// Decide se uma transação é parcela de mês anterior
+// Regra: data da transação está 2+ meses antes do mês de referência da fatura
+function isParcelaAnterior(
+  txDate: string,
+  faturaRef: { year: number; month: number }
+): boolean {
+  const d = new Date(txDate + "T12:00:00");
+  const txYear = d.getFullYear();
+  const txMonth = d.getMonth() + 1;
+  // Diferença em meses
+  const diffMeses = (faturaRef.year - txYear) * 12 + (faturaRef.month - txMonth);
+  // Se a transação foi há 2+ meses antes do mês da fatura, é parcela antiga
+  return diffMeses >= 2;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -567,12 +599,23 @@ export default function ImportFile() {
         return;
       }
 
-      setTransactions(extractedTransactions);
+      // Marcar parcelas de meses anteriores pelo nome do arquivo
+      const faturaRef = extrairMesFatura(file.name);
+      const markedTransactions = extractedTransactions.map(tx => ({
+        ...tx,
+        isInstallment: faturaRef ? isParcelaAnterior(tx.date, faturaRef) : false,
+      }));
+
+      setTransactions(markedTransactions);
       setDetectedBank(bank);
 
+      const comprasMes = markedTransactions.filter(t => !t.isInstallment).length;
+      const parcelas = markedTransactions.filter(t => t.isInstallment).length;
       const bankInfo = bank ? getBankInfo(bank) : null;
       const bankName = bankInfo?.name || "Banco desconhecido";
-      toast.success(`${extractedTransactions.length} transação(ões) extraída(s) de ${bankName}!`);
+      toast.success(
+        `${markedTransactions.length} transação(ões) de ${bankName}: ${comprasMes} do mês${parcelas > 0 ? `, ${parcelas} parcela(s)` : ""}`
+      );
 
       if (importType === "creditCard") {
         setShowDueDateConfirm(true);
