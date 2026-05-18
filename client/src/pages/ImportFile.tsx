@@ -15,6 +15,7 @@ import {
   getBankInfo,
   detectBank,
   type BankType,
+  parseItauXLS,
 } from "@/lib/bankDetection";
 import { TransactionCategorizer, type TransactionWithCategory } from "@/components/TransactionCategorizer";
 import { DescriptionBatchEditor } from "@/components/DescriptionBatchEditor";
@@ -171,81 +172,6 @@ function parseCSVFatura(csvText: string): Transaction[] {
       date: formattedDate,
       description: desc,
       amount: Math.abs(parsed).toFixed(2),
-    });
-  }
-
-  return transactions;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Parser para XLS do Itaú (extrato conta corrente)
-// ─────────────────────────────────────────────────────────────────────────────
-function parseItauXLS(data: any[][]): Transaction[] {
-  const transactions: Transaction[] = [];
-
-  let headerIdx = -1;
-  for (let i = 0; i < Math.min(20, data.length); i++) {
-    const row = data[i];
-    if (!row) continue;
-    const rowStr = row.map(c => String(c ?? "").toLowerCase()).join(" ");
-    if (rowStr.includes("data") && (rowStr.includes("lan") || rowStr.includes("hist"))) {
-      headerIdx = i;
-      break;
-    }
-  }
-  if (headerIdx === -1) return transactions;
-
-  const header = data[headerIdx].map(c => String(c ?? "").toLowerCase());
-  const dateCol = header.findIndex(c => c.includes("data"));
-  const descCol = header.findIndex(c => c.includes("lan") || c.includes("hist") || c.includes("descr"));
-  const amtCol  = header.findIndex(c => c.includes("valor") && !c.includes("saldo"));
-
-  if (dateCol === -1 || descCol === -1 || amtCol === -1) return transactions;
-
-  for (let i = headerIdx + 1; i < data.length; i++) {
-    const row = data[i];
-    if (!row || !row[dateCol]) continue;
-
-    const desc = String(row[descCol] ?? "").trim();
-    const dateRaw = String(row[dateCol] ?? "").trim();
-    const amtRaw = row[amtCol];
-
-    if (!desc || !dateRaw) continue;
-
-    const descLower = desc.toLowerCase();
-    if (
-      descLower.includes("saldo") ||
-      descLower.includes("total") ||
-      descLower.includes("lançamentos") ||
-      descLower.includes("saldo anterior") ||
-      !amtRaw && amtRaw !== 0
-    ) continue;
-
-    let formattedDate = "";
-    const m = dateRaw.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
-    if (m) {
-      const year = m[3] ? (m[3].length === 2 ? "20" + m[3] : m[3]) : new Date().getFullYear().toString();
-      formattedDate = `${year}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
-    } else continue;
-
-    let amount: number;
-    if (typeof amtRaw === "number") {
-      amount = amtRaw;
-    } else {
-      let s = String(amtRaw).replace(/[R$\s]/g, "");
-      if (s.includes(".") && s.includes(",")) s = s.replace(".", "").replace(",", ".");
-      else s = s.replace(",", ".");
-      amount = parseFloat(s);
-    }
-    if (isNaN(amount) || amount === 0) continue;
-
-    if (deveIgnorarLinha(desc, amount)) continue;
-
-    transactions.push({
-      id: Date.now().toString() + Math.random(),
-      date: formattedDate,
-      description: desc,
-      amount: Math.abs(amount).toFixed(2),
     });
   }
 
@@ -558,23 +484,30 @@ export default function ImportFile() {
         const arrayBuffer = await file.arrayBuffer();
         const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: "array" });
 
+        // Priorizar aba "Lançamentos" (Itaú) se existir
         let rawData: any[][] = [];
-        for (const sheetName of workbook.SheetNames) {
-          const worksheet = workbook.Sheets[sheetName];
-          const candidate = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
-          const csvCheck = candidate.slice(0, 15).map(r => r.join(" ").toLowerCase()).join(" ");
-          if (csvCheck.includes("data") && (csvCheck.includes("hist") || csvCheck.includes("valor") || csvCheck.includes("créd"))) {
-            rawData = candidate;
-            break;
+        const lancamentosSheet = workbook.SheetNames.find(n =>
+          n.toLowerCase().includes("lançamentos") || n.toLowerCase().includes("lancamentos")
+        );
+        if (lancamentosSheet) {
+          rawData = XLSX.utils.sheet_to_json(workbook.Sheets[lancamentosSheet], { header: 1 }) as any[][];
+        } else {
+          for (const sheetName of workbook.SheetNames) {
+            const candidate = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 }) as any[][];
+            const csvCheck = candidate.slice(0, 15).map(r => r.join(" ").toLowerCase()).join(" ");
+            if (csvCheck.includes("data") && (csvCheck.includes("lan") || csvCheck.includes("valor") || csvCheck.includes("créd"))) {
+              rawData = candidate;
+              break;
+            }
           }
         }
         if (rawData.length === 0) {
-          const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-          rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+          rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 }) as any[][];
         }
 
         const csvText = rawData.map(r => r.join(",")).join("\n");
-        bank = detectBank(csvText);
+        // Para XLS do Itaú com aba Lançamentos, forçar banco como itau
+        bank = lancamentosSheet ? "itau" : detectBank(csvText);
 
         if (bank === "itau") {
           extractedTransactions = parseItauXLS(rawData);
