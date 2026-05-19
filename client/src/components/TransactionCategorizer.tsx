@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ChevronDown, Save, X, Tag, AlertCircle, CreditCard, Clock } from "lucide-react";
+import { ChevronDown, Save, X, AlertCircle, CreditCard, Clock, Zap } from "lucide-react";
 import { toast } from "sonner";
 
 export interface TransactionWithCategory {
@@ -14,7 +14,7 @@ export interface TransactionWithCategory {
   amount: string;
   categoryId?: number;
   isDuplicate?: boolean;
-  isInstallment?: boolean; // parcela de mês anterior
+  isInstallment?: boolean;
 }
 
 interface TransactionCategorizerProps {
@@ -23,24 +23,34 @@ interface TransactionCategorizerProps {
   onCancel: () => void;
 }
 
+// Parsear keywords de qualquer formato que o banco retorne
+function parseKeywords(raw: any): string[] {
+  if (Array.isArray(raw)) return raw.filter(Boolean);
+  if (typeof raw !== "string") return [];
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("[")) {
+    try { return JSON.parse(trimmed).filter(Boolean); } catch {}
+  }
+  return trimmed.split(",").map((k: string) => k.trim()).filter(Boolean);
+}
+
 // Aplica regras de categorização a uma descrição
 function applyRules(description: string, rules: any[]): number | null {
   const sorted = [...rules].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
   for (const rule of sorted) {
     if (!rule.enabled) continue;
-    let keywords: string[] = [];
-    try {
-      keywords = typeof rule.keywords === "string" ? JSON.parse(rule.keywords) : rule.keywords;
-    } catch { continue; }
-
+    const keywords = parseKeywords(rule.keywords);
+    if (keywords.length === 0) continue;
     const testStr = rule.caseSensitive ? description : description.toLowerCase();
     for (const kw of keywords) {
+      if (!kw) continue;
       const testKw = rule.caseSensitive ? kw : kw.toLowerCase();
       switch (rule.matchType) {
-        case "contains":    if (testStr.includes(testKw)) return rule.categoryId; break;
-        case "exact":       if (testStr === testKw) return rule.categoryId; break;
-        case "startsWith":  if (testStr.startsWith(testKw)) return rule.categoryId; break;
-        case "endsWith":    if (testStr.endsWith(testKw)) return rule.categoryId; break;
+        case "contains":   if (testStr.includes(testKw)) return rule.categoryId; break;
+        case "exact":      if (testStr === testKw) return rule.categoryId; break;
+        case "startsWith": if (testStr.startsWith(testKw)) return rule.categoryId; break;
+        case "endsWith":   if (testStr.endsWith(testKw)) return rule.categoryId; break;
+        default:           if (testStr.includes(testKw)) return rule.categoryId; break;
       }
     }
   }
@@ -58,29 +68,49 @@ export function TransactionCategorizer({
   const [categorizedTransactions, setCategorizedTransactions] = useState<TransactionWithCategory[]>(transactions);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [rulesApplied, setRulesApplied] = useState(false);
 
   const categories = categoriesQuery.data || [];
   const rules = rulesQuery.data || [];
 
-  // Aplicar regras automaticamente quando carregarem
+  // Inicializar com as transactions recebidas
   useEffect(() => {
-    if (rules.length === 0 || rulesApplied) return;
+    setCategorizedTransactions(transactions);
+  }, [transactions]);
 
-    let autoCount = 0;
-    const withRules = categorizedTransactions.map(tx => {
-      if (tx.categoryId) return tx; // já tem categoria, não sobrescreve
+  // Função de aplicar regras — pode ser chamada manualmente ou automático
+  const aplicarRegras = useCallback((txs: TransactionWithCategory[], sobreescrever = false) => {
+    if (rules.length === 0) {
+      toast.error("Nenhuma regra de categorização encontrada");
+      return txs;
+    }
+    let count = 0;
+    const resultado = txs.map(tx => {
+      if (!sobreescrever && tx.categoryId) return tx; // não sobrescreve se já tem
       const matched = applyRules(tx.description, rules);
-      if (matched) { autoCount++; return { ...tx, categoryId: matched }; }
+      if (matched) { count++; return { ...tx, categoryId: matched }; }
       return tx;
     });
+    toast.success(`${count} transação(ões) categorizada(s) automaticamente`);
+    return resultado;
+  }, [rules]);
 
-    if (autoCount > 0) {
-      setCategorizedTransactions(withRules);
-      toast.success(`${autoCount} transação(ões) categorizadas automaticamente pelas suas regras`);
-    }
-    setRulesApplied(true);
-  }, [rules, rulesApplied]);
+  // Aplicar regras automaticamente quando tudo carregar (só uma vez)
+  useEffect(() => {
+    if (rules.length === 0 || categoriesQuery.isLoading || rulesQuery.isLoading) return;
+    setCategorizedTransactions(prev => {
+      const jaTemAlguma = prev.some(tx => tx.categoryId);
+      if (jaTemAlguma) return prev; // já foi aplicado antes, não repetir
+      return aplicarRegras(prev, false);
+    });
+  }, [rules, categoriesQuery.isLoading, rulesQuery.isLoading]);
+
+  const handleAplicarRegras = () => {
+    setCategorizedTransactions(prev => aplicarRegras(prev, false));
+  };
+
+  const handleAplicarRegrasForcar = () => {
+    setCategorizedTransactions(prev => aplicarRegras(prev, true));
+  };
 
   const handleCategoryChange = (transactionId: string, categoryId: number) => {
     setCategorizedTransactions(prev =>
@@ -119,10 +149,8 @@ export function TransactionCategorizer({
     return categories.find((c: any) => c.id === categoryId)?.color || "#e5e7eb";
   };
 
-  // Separar em grupos
   const currentMonth = categorizedTransactions.filter(tx => !tx.isInstallment);
   const installments = categorizedTransactions.filter(tx => tx.isInstallment);
-
   const categorizedCount = categorizedTransactions.filter(tx => tx.categoryId).length;
   const totalCount = categorizedTransactions.length;
   const isLoading = categoriesQuery.isLoading || rulesQuery.isLoading;
@@ -139,9 +167,7 @@ export function TransactionCategorizer({
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-muted-foreground font-mono">
-              {transaction.date}
-            </span>
+            <span className="text-xs text-muted-foreground font-mono">{transaction.date}</span>
             {transaction.isDuplicate && (
               <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" />
@@ -175,10 +201,7 @@ export function TransactionCategorizer({
             {categories.map((category: any) => (
               <button
                 key={category.id}
-                onClick={() => {
-                  handleCategoryChange(transaction.id, category.id);
-                  setExpandedId(null);
-                }}
+                onClick={() => { handleCategoryChange(transaction.id, category.id); setExpandedId(null); }}
                 className={`p-2 rounded-lg text-xs font-medium transition-all text-left ${
                   transaction.categoryId === category.id ? "ring-2 ring-offset-1 ring-gray-400" : "hover:opacity-80"
                 }`}
@@ -194,46 +217,31 @@ export function TransactionCategorizer({
   );
 
   const SectionHeader = ({
-    title,
-    icon,
-    count,
-    categorized,
-    transactions: txs,
-    color,
+    title, count, categorized, transactions: txs, color,
   }: {
-    title: string;
-    icon: React.ReactNode;
-    count: number;
-    categorized: number;
-    transactions: TransactionWithCategory[];
-    color: string;
+    title: string; count: number; categorized: number;
+    transactions: TransactionWithCategory[]; color: string;
   }) => (
     <div className={`rounded-lg p-3 mb-3 flex items-center justify-between ${color}`}>
-      <div className="flex items-center gap-2">
-        {icon}
-        <div>
-          <p className="font-semibold text-sm">{title}</p>
-          <p className="text-xs opacity-75">{categorized} de {count} categorizadas</p>
-        </div>
+      <div>
+        <p className="font-semibold text-sm">{title}</p>
+        <p className="text-xs opacity-75">{categorized} de {count} categorizadas</p>
       </div>
-      {/* Aplicar categoria a todas do grupo */}
-      {categories.length > 0 && (
-        <div className="flex gap-1 flex-wrap justify-end">
-          {categories.slice(0, 3).map((cat: any) => (
-            <button
-              key={cat.id}
-              onClick={() => handleApplyToGroup(cat.id, txs.map(t => t.id))}
-              className="text-xs px-2 py-1 rounded-full font-medium opacity-90 hover:opacity-100 transition-opacity"
-              style={{ backgroundColor: cat.color, color: "#fff" }}
-            >
-              {cat.name}
-            </button>
-          ))}
-          {categories.length > 3 && (
-            <span className="text-xs self-center opacity-60">+{categories.length - 3}</span>
-          )}
-        </div>
-      )}
+      <div className="flex gap-1 flex-wrap justify-end">
+        {categories.slice(0, 3).map((cat: any) => (
+          <button
+            key={cat.id}
+            onClick={() => handleApplyToGroup(cat.id, txs.map(t => t.id))}
+            className="text-xs px-2 py-1 rounded-full font-medium opacity-90 hover:opacity-100"
+            style={{ backgroundColor: cat.color, color: "#fff" }}
+          >
+            {cat.name}
+          </button>
+        ))}
+        {categories.length > 3 && (
+          <span className="text-xs self-center opacity-60">+{categories.length - 3}</span>
+        )}
+      </div>
     </div>
   );
 
@@ -242,22 +250,43 @@ export function TransactionCategorizer({
       {isLoading ? (
         <div className="text-center py-8 text-muted-foreground">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-3" />
-          <p className="text-sm">Aplicando suas regras de categorização...</p>
+          <p className="text-sm">Carregando regras de categorização...</p>
         </div>
       ) : (
         <div className="space-y-4">
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
               <h2 className="text-xl font-semibold">Categorizar Transações</h2>
               <p className="text-sm text-muted-foreground">
                 {categorizedCount} de {totalCount} categorizada(s)
                 {rules.length > 0 && (
-                  <span className="ml-2 text-green-600">• {rules.length} regra(s) aplicada(s)</span>
+                  <span className="ml-2 text-green-600">• {rules.length} regra(s)</span>
                 )}
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              {/* Botão aplicar regras */}
+              <Button
+                variant="outline"
+                onClick={handleAplicarRegras}
+                disabled={rules.length === 0}
+                className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                title="Aplica regras nas transações sem categoria"
+              >
+                <Zap className="h-4 w-4 mr-2" />
+                Aplicar Regras
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleAplicarRegrasForcar}
+                disabled={rules.length === 0}
+                className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                title="Reaplica regras em TODAS, sobrescrevendo categorias manuais"
+              >
+                <Zap className="h-4 w-4 mr-2" />
+                Forçar Regras
+              </Button>
               <Button variant="outline" onClick={onCancel} disabled={isSaving}>
                 <X className="h-4 w-4 mr-2" />
                 Cancelar
@@ -268,17 +297,16 @@ export function TransactionCategorizer({
                 className="bg-green-600 hover:bg-green-700"
               >
                 <Save className="h-4 w-4 mr-2" />
-                {isSaving ? "Salvando..." : "Salvar Categorias"}
+                {isSaving ? "Salvando..." : "Salvar e Importar"}
               </Button>
             </div>
           </div>
 
-          {/* Seção: Compras do mês */}
+          {/* Compras do mês */}
           {currentMonth.length > 0 && (
             <div>
               <SectionHeader
                 title="🛍️ Compras do mês"
-                icon={<CreditCard className="h-4 w-4 text-blue-700" />}
                 count={currentMonth.length}
                 categorized={currentMonth.filter(t => t.categoryId).length}
                 transactions={currentMonth}
@@ -290,19 +318,18 @@ export function TransactionCategorizer({
             </div>
           )}
 
-          {/* Seção: Parcelas de meses anteriores */}
+          {/* Parcelas */}
           {installments.length > 0 && (
             <div className="mt-4">
               <SectionHeader
                 title="📅 Parcelas em andamento"
-                icon={<Clock className="h-4 w-4 text-orange-700" />}
                 count={installments.length}
                 categorized={installments.filter(t => t.categoryId).length}
                 transactions={installments}
                 color="bg-orange-50 border border-orange-200"
               />
               <p className="text-xs text-muted-foreground mb-2 px-1">
-                Compras parceladas de meses anteriores que aparecem nesta fatura.
+                Compras parceladas de meses anteriores nesta fatura.
               </p>
               <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                 {installments.map(tx => <TransactionRow key={tx.id} transaction={tx} />)}
@@ -313,7 +340,7 @@ export function TransactionCategorizer({
           {/* Rodapé */}
           <div className="bg-gray-50 p-3 rounded-lg text-sm flex items-center justify-between">
             <p className="text-muted-foreground">
-              <strong>{categorizedCount}</strong> de <strong>{totalCount}</strong> transações categorizadas
+              <strong>{categorizedCount}</strong> de <strong>{totalCount}</strong> categorizadas
             </p>
             {categorizedCount < totalCount && (
               <p className="text-amber-600 text-xs">
