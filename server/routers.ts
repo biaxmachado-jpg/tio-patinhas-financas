@@ -498,6 +498,7 @@ export const appRouter = router({
           description: z.string(),
           amount: z.string(),
           type: z.enum(["income", "expense"]),
+          categoryId: z.number().optional(),
         })).optional(),
         skipDuplicates: z.boolean().optional(),
         dueDate: z.date().optional(),
