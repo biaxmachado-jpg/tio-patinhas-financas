@@ -612,9 +612,11 @@ export default function ImportFile() {
     }
   };
 
-  const handleCategoriesApplied = (categorizedTransactions: TransactionWithCategory[]) => {
+  const handleCategoriesApplied = async (categorizedTransactions: TransactionWithCategory[]) => {
     setTransactions(categorizedTransactions);
     setShowCategorizer(false);
+    // Importar direto com as transações categorizadas (não depende do estado assíncrono)
+    await handleImportWithTransactions(categorizedTransactions);
   };
 
   const handleDescriptionsNormalized = (normalizedTransactions: Transaction[]) => {
@@ -623,20 +625,20 @@ export default function ImportFile() {
     toast.success("Descrições normalizadas com sucesso!");
   };
 
-  const handleImport = async () => {
-    if (transactions.length === 0) {
-      toast.error("Por favor, adicione pelo menos uma transação");
+  const handleImportWithTransactions = async (txs: TransactionWithCategory[]) => {
+    if (txs.length === 0) {
+      toast.error("Nenhuma transação para importar");
       return;
     }
 
-    const uncategorized = transactions.filter((tx) => !tx.categoryId);
+    const uncategorized = txs.filter((tx) => !tx.categoryId);
     if (uncategorized.length > 0) {
-      toast.error(`${uncategorized.length} transação(ões) sem categoria. Categorize antes de importar.`);
+      toast.error(`${uncategorized.length} transação(ões) sem categoria.`);
       setShowCategorizer(true);
       return;
     }
 
-    for (const tx of transactions) {
+    for (const tx of txs) {
       if (!tx.date || !tx.description || !tx.amount) {
         toast.error("Por favor, preencha todos os campos de cada transação");
         return;
@@ -649,7 +651,7 @@ export default function ImportFile() {
 
     setIsLoading(true);
     try {
-      const formattedTransactions = transactions.map(tx => ({
+      const formattedTransactions = txs.map(tx => ({
         date: new Date(tx.date),
         description: tx.description,
         amount: tx.amount,
@@ -678,6 +680,10 @@ export default function ImportFile() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleImport = async () => {
+    await handleImportWithTransactions(transactions);
   };
 
   if (isLoadingEntity) {
@@ -722,7 +728,7 @@ export default function ImportFile() {
     );
   }
 
-  // ── FIX 3: Tela de categorização (abre automaticamente após carregar arquivo) ─
+  // Tela de categorização — import dispara automaticamente ao clicar "Salvar Categorias"
   if (showCategorizer && transactions.length > 0) {
     return (
       <div className="min-h-screen bg-background p-4">
@@ -745,18 +751,6 @@ export default function ImportFile() {
             onCategoriesApplied={handleCategoriesApplied}
             onCancel={() => setShowCategorizer(false)}
           />
-          {/* Botão de importar dentro do categorizer */}
-          <div className="mt-4 flex justify-end">
-            <Button
-              onClick={handleImport}
-              disabled={isLoading || transactions.filter(t => !t.categoryId).length > 0}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {isLoading
-                ? "Importando..."
-                : `Importar ${transactions.length} Transação${transactions.length !== 1 ? "s" : ""}`}
-            </Button>
-          </div>
         </div>
       </div>
     );
