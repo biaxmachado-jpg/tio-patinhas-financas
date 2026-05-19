@@ -973,7 +973,7 @@ export async function importFile(userId: number, data: {
   fileContent: string; 
   fileName: string; 
   fileType: string;
-  transactions?: Array<{date: Date; description: string; amount: string; type: "income" | "expense"}>;
+  transactions?: Array<{date: Date; description: string; amount: string; type: "income" | "expense"; categoryId?: number}>;
   dueDate?: Date;
 }) {
   try {
@@ -991,7 +991,7 @@ export async function importFile(userId: number, data: {
       }
 
       // Use provided transactions or parse from file
-      let extractedTransactions: Array<{date: Date; description: string; amount: string; type: "income" | "expense"}> = data.transactions || [];
+      let extractedTransactions: Array<{date: Date; description: string; amount: string; type: "income" | "expense"; categoryId?: number}> = data.transactions || [];
       
       if (data.fileType === "application/pdf" || data.fileName.endsWith(".pdf")) {
         console.log('[importFile] Processing PDF, content length:', data.fileContent.length);
@@ -1074,10 +1074,7 @@ export async function importFile(userId: number, data: {
         }
       }
       
-      // Leave categoryId as NULL - user will categorize manually
-      let defaultCategoryId = null;
-      
-      // Get user's categorization rules to apply automatically
+      // Regras como fallback quando categoryId não vem do frontend
       let rules = [];
       try {
         rules = await db.select().from(categorizationRules).where(eq(categorizationRules.userId, userId)).orderBy(desc(categorizationRules.priority));
@@ -1120,11 +1117,11 @@ export async function importFile(userId: number, data: {
             }
           }
           
-          // Apply categorization rules to determine category
-          let categoryId: number | null = defaultCategoryId;
-          if (rules.length > 0) {
+          // Usar categoryId do frontend (já categorizado pelo usuário) ou aplicar regras como fallback
+          let categoryId: number | null = tx.categoryId ?? null;
+          if (!categoryId && rules.length > 0) {
             const { applyCategorizationRules } = await import('./categorizationEngine');
-            categoryId = applyCategorizationRules(tx.description, rules) || defaultCategoryId;
+            categoryId = applyCategorizationRules(tx.description, rules) || null;
           }
           
           await db.insert(creditCardTransactions).values({
@@ -1177,7 +1174,7 @@ export async function importFile(userId: number, data: {
       }
 
       // Parse file and extract transactions (similar logic as credit card)
-      let extractedTransactions: Array<{date: Date; description: string; amount: string; type: "income" | "expense"}> = [];
+      let extractedTransactions: Array<{date: Date; description: string; amount: string; type: "income" | "expense"; categoryId?: number}> = [];
       
       if (data.fileType === "application/pdf" || data.fileName.endsWith(".pdf")) {
         // Decode base64 if needed
@@ -1236,10 +1233,7 @@ export async function importFile(userId: number, data: {
         }
       }
       
-      // Leave categoryId as NULL - user will categorize manually
-      let defaultCategoryId = null;
-      
-      // Get user's categorization rules to apply automatically
+      // Regras como fallback quando categoryId não vem do frontend
       let rules = [];
       try {
         rules = await db.select().from(categorizationRules).where(eq(categorizationRules.userId, userId)).orderBy(desc(categorizationRules.priority));
@@ -1253,11 +1247,11 @@ export async function importFile(userId: number, data: {
         try {
           if (!db) throw new Error("Database not available");
           
-          // Apply categorization rules to determine category
-          let categoryId: number | null = defaultCategoryId;
-          if (rules.length > 0) {
+          // Usar categoryId do frontend (já categorizado pelo usuário) ou aplicar regras como fallback
+          let categoryId: number | null = (tx as any).categoryId ?? null;
+          if (!categoryId && rules.length > 0) {
             const { applyCategorizationRules } = await import('./categorizationEngine');
-            categoryId = applyCategorizationRules(tx.description, rules) || defaultCategoryId;
+            categoryId = applyCategorizationRules(tx.description, rules) || null;
           }
           
           await db.insert(transactions).values({
