@@ -1173,10 +1173,16 @@ export async function importFile(userId: number, data: {
         throw new Error("Conta bancária não encontrada");
       }
 
-      // Parse file and extract transactions (similar logic as credit card)
+      // Se vieram transações prontas do frontend, usar diretamente
       let extractedTransactions: Array<{date: Date; description: string; amount: string; type: "income" | "expense"; categoryId?: number}> = [];
-      
-      if (data.fileType === "application/pdf" || data.fileName.endsWith(".pdf")) {
+
+      if (data.transactions && data.transactions.length > 0) {
+        extractedTransactions = data.transactions.map(tx => ({
+          ...tx,
+          date: new Date(tx.date),
+        }));
+        console.log('[importFile] Usando', extractedTransactions.length, 'transações do frontend para conta bancária');
+      } else if (data.fileType === "application/pdf" || data.fileName.endsWith(".pdf")) {
         // Decode base64 if needed
         let pdfContent = data.fileContent;
         if (!data.fileContent.startsWith('%PDF')) {
@@ -1240,6 +1246,29 @@ export async function importFile(userId: number, data: {
       } catch (e) {
         console.log('[importFile] Could not load categorization rules:', e);
       }
+
+      // Buscar ou criar categoria padrão "Sem categoria" para transações sem categoria
+      let defaultCategoryId: number;
+      try {
+        const existing = await db.select().from(categories)
+          .where(and(eq(categories.userId, userId), eq(categories.name, "Sem categoria")))
+          .limit(1);
+        if (existing.length > 0) {
+          defaultCategoryId = existing[0].id;
+        } else {
+          const result = await db.insert(categories).values({
+            userId,
+            name: "Sem categoria",
+            type: "expense",
+            color: "#9ca3af",
+            icon: "tag",
+          });
+          defaultCategoryId = (result as any).insertId;
+        }
+      } catch (e) {
+        console.log('[importFile] Could not get/create default category:', e);
+        defaultCategoryId = 1; // fallback extremo
+      }
       
       // Create transactions in database
       let transactionsCreated = 0;
@@ -1247,12 +1276,13 @@ export async function importFile(userId: number, data: {
         try {
           if (!db) throw new Error("Database not available");
           
-          // Usar categoryId do frontend (já categorizado pelo usuário) ou aplicar regras como fallback
-          let categoryId: number | null = (tx as any).categoryId ?? null;
+          // Usar categoryId do frontend, regras como fallback, ou categoria padrão
+          let categoryId: number = (tx as any).categoryId ?? null;
           if (!categoryId && rules.length > 0) {
             const { applyCategorizationRules } = await import('./categorizationEngine');
-            categoryId = applyCategorizationRules(tx.description, rules) || null;
+            categoryId = applyCategorizationRules(tx.description, rules) || defaultCategoryId;
           }
+          if (!categoryId) categoryId = defaultCategoryId;
           
           await db.insert(transactions).values({
             accountId: data.entityId,
