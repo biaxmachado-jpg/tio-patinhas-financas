@@ -1097,22 +1097,16 @@ export async function importFile(userId: number, data: {
           let dueDate: Date;
           
           if (data.dueDate) {
-            // Use the confirmed dueDate from the import dialog
             dueDate = new Date(data.dueDate);
           } else {
-            // Calculate dueDate based on transaction date and card's closing/due days
-            // If transaction is before closing day, it's due on dueDay of same month
-            // If transaction is on or after closing day, it's due on dueDay of next month
             dueDate = new Date(tx.date);
             const txDay = tx.date.getDate();
             const txMonth = tx.date.getMonth();
             const txYear = tx.date.getFullYear();
             
             if (txDay >= closingDay) {
-              // Transaction is in next billing cycle
               dueDate = new Date(txYear, txMonth + 1, dueDay);
             } else {
-              // Transaction is in current billing cycle
               dueDate = new Date(txYear, txMonth, dueDay);
             }
           }
@@ -1123,19 +1117,23 @@ export async function importFile(userId: number, data: {
             const { applyCategorizationRules } = await import('./categorizationEngine');
             categoryId = applyCategorizationRules(tx.description, rules) || null;
           }
-          
-          await db.insert(creditCardTransactions).values({
+
+          const insertData = {
             cardId: data.entityId,
             userId,
             categoryId: categoryId as any,
-            date: tx.date,
+            date: new Date(tx.date),
             dueDate: dueDate,
             description: tx.description,
             amount: tx.amount,
-          });
+          };
+          
+          console.log('[importFile] Inserindo tx:', tx.description, 'categoryId:', categoryId, 'date:', insertData.date, 'amount:', tx.amount);
+          
+          await db.insert(creditCardTransactions).values(insertData);
           transactionsCreated++;
         } catch (e) {
-          // Continue with next transaction
+          console.error('[importFile] Erro ao inserir transação:', (e as any)?.message || e, 'tx:', tx.description);
         }
       }
 
