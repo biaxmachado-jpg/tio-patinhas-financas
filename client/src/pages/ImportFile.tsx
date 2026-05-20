@@ -644,13 +644,19 @@ export default function ImportFile() {
 
     setIsLoading(true);
     try {
-      const formattedTransactions = txs.map(tx => ({
-        date: new Date(tx.date),
-        description: tx.description,
-        amount: Math.abs(parseFloat(tx.amount)).toFixed(2), // garante positivo
-        type: "expense" as const,
-        categoryId: tx.categoryId ?? undefined,
-      }));
+      const formattedTransactions = txs.map(tx => {
+        const base = {
+          date: new Date(tx.date),
+          description: tx.description,
+          amount: Math.abs(parseFloat(tx.amount)).toFixed(2),
+          type: "expense" as const,
+        };
+        // Só inclui categoryId se tiver valor — undefined quebra o Zod
+        if (tx.categoryId) {
+          return { ...base, categoryId: tx.categoryId };
+        }
+        return base;
+      });
 
       console.log("[Import] Enviando", formattedTransactions.length, "transações");
       console.log("[Import] Exemplo:", formattedTransactions[0]);
