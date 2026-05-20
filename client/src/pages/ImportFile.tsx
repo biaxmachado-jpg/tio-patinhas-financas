@@ -631,13 +631,6 @@ export default function ImportFile() {
       return;
     }
 
-    const uncategorized = txs.filter((tx) => !tx.categoryId);
-    if (uncategorized.length > 0) {
-      toast.error(`${uncategorized.length} transação(ões) sem categoria.`);
-      setShowCategorizer(true);
-      return;
-    }
-
     for (const tx of txs) {
       if (!tx.date || !tx.description || !tx.amount) {
         toast.error("Por favor, preencha todos os campos de cada transação");
@@ -654,20 +647,29 @@ export default function ImportFile() {
       const formattedTransactions = txs.map(tx => ({
         date: new Date(tx.date),
         description: tx.description,
-        amount: tx.amount,
+        amount: Math.abs(parseFloat(tx.amount)).toFixed(2), // garante positivo
         type: "expense" as const,
-        categoryId: tx.categoryId,
+        categoryId: tx.categoryId ?? undefined,
       }));
+
+      console.log("[Import] Enviando", formattedTransactions.length, "transações");
+      console.log("[Import] Exemplo:", formattedTransactions[0]);
+
+      // Arquivo XLS/binário não pode ser lido como texto — manda vazio
+      const isBinary = file?.name.match(/\.(xls|xlsx)$/i);
+      const fileContent = isBinary ? "" : (file ? await file.text() : "");
 
       const result = await importMutation.mutateAsync({
         entityType: importType,
         entityId,
-        fileContent: file ? await file.text() : "",
+        fileContent,
         fileName: file?.name || "manual-import",
         fileType: file?.type || "text/plain",
         transactions: formattedTransactions,
         dueDate: confirmedDueDate || undefined,
       });
+
+      console.log("[Import] Resultado:", result);
 
       if (result.success) {
         toast.success(`${result.transactionsImported} transações importadas com sucesso!`);
@@ -676,6 +678,7 @@ export default function ImportFile() {
         }, 1000);
       }
     } catch (error) {
+      console.error("[Import] Erro:", error);
       toast.error("Erro ao importar transações: " + (error instanceof Error ? error.message : "Erro desconhecido"));
     } finally {
       setIsLoading(false);
