@@ -299,7 +299,7 @@ export function TransactionCategorizer({
               </Button>
               <Button
                 onClick={handleSave}
-                disabled={isSaving || categorizedCount !== totalCount}
+                disabled={isSaving}
                 className="bg-green-600 hover:bg-green-700"
               >
                 <Save className="h-4 w-4 mr-2" />
