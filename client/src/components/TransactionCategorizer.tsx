@@ -137,11 +137,6 @@ export function TransactionCategorizer({
   };
 
   const handleSave = async () => {
-    const uncategorized = categorizedTransactions.filter(tx => !tx.categoryId);
-    if (uncategorized.length > 0) {
-      toast.error(`${uncategorized.length} transação(ões) sem categoria`);
-      return;
-    }
     setIsSaving(true);
     try {
       onCategoriesApplied(categorizedTransactions);
