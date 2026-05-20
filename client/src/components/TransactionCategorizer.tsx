@@ -34,6 +34,14 @@ function parseKeywords(raw: any): string[] {
   return trimmed.split(",").map((k: string) => k.trim()).filter(Boolean);
 }
 
+// Normalizar string: minúsculo + remove acentos
+function normalizeStr(str: string): string {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 // Aplica regras de categorização a uma descrição
 function applyRules(description: string, rules: any[]): number | null {
   const sorted = [...rules].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
@@ -41,10 +49,13 @@ function applyRules(description: string, rules: any[]): number | null {
     if (!rule.enabled) continue;
     const keywords = parseKeywords(rule.keywords);
     if (keywords.length === 0) continue;
-    const testStr = rule.caseSensitive ? description : description.toLowerCase();
+
+    // Sempre normaliza (remove acentos + lowercase), a menos que caseSensitive
+    const testStr = rule.caseSensitive ? description : normalizeStr(description);
+
     for (const kw of keywords) {
       if (!kw) continue;
-      const testKw = rule.caseSensitive ? kw : kw.toLowerCase();
+      const testKw = rule.caseSensitive ? kw : normalizeStr(kw);
       switch (rule.matchType) {
         case "contains":   if (testStr.includes(testKw)) return rule.categoryId; break;
         case "exact":      if (testStr === testKw) return rule.categoryId; break;
