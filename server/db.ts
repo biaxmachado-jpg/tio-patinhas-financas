@@ -1155,7 +1155,22 @@ export async function importFile(userId: number, data: {
             insertValues.categoryId = categoryId;
           }
 
-          await db.insert(creditCardTransactions).values(insertValues);
+          // Usar SQL raw para contornar bug do Drizzle com MySQL
+          if (_pool) {
+            if (categoryId !== null && categoryId !== undefined) {
+              await _pool.execute(
+                'INSERT INTO `creditCardTransactions` (`cardId`, `userId`, `categoryId`, `date`, `dueDate`, `description`, `amount`) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [data.entityId, userId, categoryId, txDate, dueDate, String(tx.description).substring(0, 255), finalAmount]
+              );
+            } else {
+              await _pool.execute(
+                'INSERT INTO `creditCardTransactions` (`cardId`, `userId`, `date`, `dueDate`, `description`, `amount`) VALUES (?, ?, ?, ?, ?, ?)',
+                [data.entityId, userId, txDate, dueDate, String(tx.description).substring(0, 255), finalAmount]
+              );
+            }
+          } else {
+            await db.insert(creditCardTransactions).values(insertValues);
+          }
           transactionsCreated++;
         } catch (e) {
           const msg = `${tx.description}: ${(e as any)?.message || String(e)}`;
