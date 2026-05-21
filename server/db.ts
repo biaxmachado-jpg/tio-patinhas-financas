@@ -1122,15 +1122,28 @@ export async function importFile(userId: number, data: {
             categoryId = applyCategorizationRules(tx.description, rules) || null;
           }
 
-          await db.insert(creditCardTransactions).values({
+          // Garantir amount como decimal válido
+          const cleanAmount = String(tx.amount).replace(/[^0-9.,\-]/g, '').replace(',', '.');
+          const numericAmount = parseFloat(cleanAmount);
+          if (isNaN(numericAmount)) {
+            errors.push(`${tx.description}: amount inválido: ${tx.amount}`);
+            continue;
+          }
+          const finalAmount = Math.abs(numericAmount).toFixed(2);
+
+          const insertValues: any = {
             cardId: data.entityId,
             userId,
-            categoryId: categoryId as any,
             date: new Date(tx.date),
             dueDate,
-            description: tx.description,
-            amount: tx.amount,
-          });
+            description: String(tx.description).substring(0, 255),
+            amount: finalAmount,
+          };
+          if (categoryId !== null) {
+            insertValues.categoryId = categoryId;
+          }
+
+          await db.insert(creditCardTransactions).values(insertValues);
           transactionsCreated++;
         } catch (e) {
           const msg = `${tx.description}: ${(e as any)?.message || String(e)}`;
