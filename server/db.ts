@@ -990,10 +990,17 @@ export async function importFile(userId: number, data: {
         throw new Error("Cartão não encontrado");
       }
 
-      // Use provided transactions or parse from file
-      let extractedTransactions: Array<{date: Date; description: string; amount: string; type: "income" | "expense"; categoryId?: number}> = data.transactions || [];
-      
-      if (data.fileType === "application/pdf" || data.fileName.endsWith(".pdf")) {
+      // Garantir que todas as datas são objetos Date (tRPC serializa como string)
+      let extractedTransactions: Array<{date: Date; description: string; amount: string; type: "income" | "expense"; categoryId?: number}> = 
+        (data.transactions || []).map(tx => ({
+          ...tx,
+          date: new Date(tx.date),
+        }));
+
+      console.log('[importFile] Transações do frontend:', extractedTransactions.length);
+
+      // Só tenta parsear PDF se não vieram transações prontas do frontend
+      if (extractedTransactions.length === 0 && (data.fileType === "application/pdf" || data.fileName.endsWith(".pdf"))) {
         console.log('[importFile] Processing PDF, content length:', data.fileContent.length);
         
         // Decode base64 if needed
