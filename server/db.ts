@@ -1101,11 +1101,24 @@ export async function importFile(userId: number, data: {
       
       for (const tx of extractedTransactions) {
         try {
+          let categoryId: number | null = tx.categoryId ?? null;
+          if (!categoryId && rules.length > 0) {
+            const { applyCategorizationRules } = await import('./categorizationEngine');
+            categoryId = applyCategorizationRules(tx.description, rules) || null;
+          }
+
+          // Validar datas
+          const txDate = new Date(tx.date);
+          if (isNaN(txDate.getTime())) {
+            errors.push(`${tx.description}: data inválida: ${tx.date}`);
+            continue;
+          }
+
+          // Calcular dueDate
           let dueDate: Date;
           if (data.dueDate) {
             dueDate = new Date(data.dueDate);
           } else {
-            const txDate = new Date(tx.date);
             const txDay = txDate.getDate();
             const txMonth = txDate.getMonth();
             const txYear = txDate.getFullYear();
@@ -1115,31 +1128,30 @@ export async function importFile(userId: number, data: {
               dueDate = new Date(txYear, txMonth, dueDay);
             }
           }
-          
-          let categoryId: number | null = tx.categoryId ?? null;
-          if (!categoryId && rules.length > 0) {
-            const { applyCategorizationRules } = await import('./categorizationEngine');
-            categoryId = applyCategorizationRules(tx.description, rules) || null;
+
+          if (isNaN(dueDate.getTime())) {
+            errors.push(`${tx.description}: dueDate inválida`);
+            continue;
           }
 
           // Garantir amount como decimal válido
-          const cleanAmount = String(tx.amount).replace(/[^0-9.,\-]/g, '').replace(',', '.');
+          const cleanAmount = String(tx.amount).replace(/[^0-9.]/g, '');
           const numericAmount = parseFloat(cleanAmount);
           if (isNaN(numericAmount)) {
             errors.push(`${tx.description}: amount inválido: ${tx.amount}`);
             continue;
           }
-          const finalAmount = Math.abs(numericAmount).toFixed(2);
+          const finalAmount = numericAmount.toFixed(2);
 
           const insertValues: any = {
             cardId: data.entityId,
             userId,
-            date: new Date(tx.date),
+            date: txDate,
             dueDate,
             description: String(tx.description).substring(0, 255),
             amount: finalAmount,
           };
-          if (categoryId !== null) {
+          if (categoryId !== null && categoryId !== undefined) {
             insertValues.categoryId = categoryId;
           }
 
