@@ -372,6 +372,7 @@ export default function ImportFile() {
 
   const [file, setFile] = useState<File | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [pendingTransactions, setPendingTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [detectedBank, setDetectedBank] = useState<BankType | null>(null);
   const [duplicates, setDuplicates] = useState<any[]>([]);
@@ -540,6 +541,7 @@ export default function ImportFile() {
       }));
 
       setTransactions(markedTransactions);
+      setPendingTransactions(markedTransactions);
       setDetectedBank(bank);
 
       const comprasMes = markedTransactions.filter(t => !t.isInstallment).length;
@@ -1001,12 +1003,12 @@ export default function ImportFile() {
           onConfirm={(date) => {
             setConfirmedDueDate(date);
             setShowDueDateConfirm(false);
-            checkForDuplicates(transactions);
+            checkForDuplicates(pendingTransactions);
           }}
           onCancel={() => {
             setShowDueDateConfirm(false);
             setConfirmedDueDate(null);
-            checkForDuplicates(transactions);
+            checkForDuplicates(pendingTransactions);
           }}
         />
       )}
