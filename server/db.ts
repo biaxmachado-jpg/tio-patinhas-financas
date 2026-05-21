@@ -1092,6 +1092,7 @@ export async function importFile(userId: number, data: {
       // Create transactions in database
       console.log('[importFile] Found', extractedTransactions.length, 'transactions to create');
       let transactionsCreated = 0;
+      const errors: string[] = [];
       
       // Use confirmed dueDate from import, or calculate if not provided
       const cardDetails = card[0];
@@ -1100,17 +1101,14 @@ export async function importFile(userId: number, data: {
       
       for (const tx of extractedTransactions) {
         try {
-          // Use confirmed dueDate from import if provided, otherwise calculate
           let dueDate: Date;
-          
           if (data.dueDate) {
             dueDate = new Date(data.dueDate);
           } else {
-            dueDate = new Date(tx.date);
-            const txDay = tx.date.getDate();
-            const txMonth = tx.date.getMonth();
-            const txYear = tx.date.getFullYear();
-            
+            const txDate = new Date(tx.date);
+            const txDay = txDate.getDate();
+            const txMonth = txDate.getMonth();
+            const txYear = txDate.getFullYear();
             if (txDay >= closingDay) {
               dueDate = new Date(txYear, txMonth + 1, dueDay);
             } else {
@@ -1118,29 +1116,26 @@ export async function importFile(userId: number, data: {
             }
           }
           
-          // Usar categoryId do frontend (já categorizado pelo usuário) ou aplicar regras como fallback
           let categoryId: number | null = tx.categoryId ?? null;
           if (!categoryId && rules.length > 0) {
             const { applyCategorizationRules } = await import('./categorizationEngine');
             categoryId = applyCategorizationRules(tx.description, rules) || null;
           }
 
-          const insertData = {
+          await db.insert(creditCardTransactions).values({
             cardId: data.entityId,
             userId,
             categoryId: categoryId as any,
             date: new Date(tx.date),
-            dueDate: dueDate,
+            dueDate,
             description: tx.description,
             amount: tx.amount,
-          };
-          
-          console.log('[importFile] Inserindo tx:', tx.description, 'categoryId:', categoryId, 'date:', insertData.date, 'amount:', tx.amount);
-          
-          await db.insert(creditCardTransactions).values(insertData);
+          });
           transactionsCreated++;
         } catch (e) {
-          console.error('[importFile] Erro ao inserir transação:', (e as any)?.message || e, 'tx:', tx.description);
+          const msg = `${tx.description}: ${(e as any)?.message || String(e)}`;
+          console.error('[importFile] Erro:', msg);
+          errors.push(msg);
         }
       }
 
@@ -1168,6 +1163,8 @@ export async function importFile(userId: number, data: {
         message: `Arquivo importado com sucesso. ${transactionsCreated} transações criadas.`,
         transactionsImported: transactionsCreated,
         fileName: data.fileName,
+        debug: `Recebidas: ${extractedTransactions.length}, Criadas: ${transactionsCreated}, Erros: ${errors.length}`,
+        errors: errors.slice(0, 5), // primeiros 5 erros
       };
     } else if (data.entityType === "bankAccount") {
       const account = await db.select().from(bankAccounts).where(
