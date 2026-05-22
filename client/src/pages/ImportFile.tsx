@@ -647,13 +647,18 @@ export default function ImportFile() {
     setIsLoading(true);
     try {
       const formattedTransactions = txs.map(tx => {
+        const raw = parseFloat(tx.amount);
+        // Cartão: positivo = compra (expense), negativo = estorno/devolução (income)
+        // Conta: positivo = entrada (income), negativo = saída (expense)
+        const type: "income" | "expense" = importType === "creditCard"
+          ? (raw >= 0 ? "expense" : "income")
+          : (raw >= 0 ? "income" : "expense");
         const base = {
           date: new Date(tx.date),
           description: tx.description,
-          amount: Math.abs(parseFloat(tx.amount)).toFixed(2),
-          type: "expense" as const,
+          amount: Math.abs(raw).toFixed(2),
+          type,
         };
-        // Só inclui categoryId se tiver valor — undefined quebra o Zod
         if (tx.categoryId) {
           return { ...base, categoryId: tx.categoryId };
         }
