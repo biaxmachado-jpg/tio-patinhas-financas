@@ -1159,12 +1159,12 @@ export async function importFile(userId: number, data: {
           if (_pool) {
             if (categoryId !== null && categoryId !== undefined) {
               await _pool.execute(
-                'INSERT INTO `creditCardTransactions` (`id`, `cardId`, `userId`, `categoryId`, `date`, `dueDate`, `description`, `amount`) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)',
+                'INSERT INTO `creditCardTransactions` (`cardId`, `userId`, `categoryId`, `date`, `dueDate`, `description`, `amount`) VALUES (?, ?, ?, ?, ?, ?, ?)',
                 [data.entityId, userId, categoryId, txDate, dueDate, String(tx.description).substring(0, 255), finalAmount]
               );
             } else {
               await _pool.execute(
-                'INSERT INTO `creditCardTransactions` (`id`, `cardId`, `userId`, `date`, `dueDate`, `description`, `amount`) VALUES (NULL, ?, ?, ?, ?, ?, ?)',
+                'INSERT INTO `creditCardTransactions` (`cardId`, `userId`, `date`, `dueDate`, `description`, `amount`) VALUES (?, ?, ?, ?, ?, ?)',
                 [data.entityId, userId, txDate, dueDate, String(tx.description).substring(0, 255), finalAmount]
               );
             }
@@ -1338,7 +1338,7 @@ export async function importFile(userId: number, data: {
 
           if (_pool) {
             await _pool.execute(
-              'INSERT INTO `transactions` (`id`, `userId`, `categoryId`, `accountId`, `type`, `description`, `amount`, `date`, `reconciled`) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, 0)',
+              'INSERT INTO `transactions` (`userId`, `categoryId`, `accountId`, `type`, `description`, `amount`, `date`, `reconciled`) VALUES (?, ?, ?, ?, ?, ?, ?, 0)',
               [userId, categoryId, data.entityId, tx.type || 'expense', String(tx.description).substring(0, 255), finalAmt, txDate]
             );
           } else {
