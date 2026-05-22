@@ -1356,7 +1356,6 @@ export async function importFile(userId: number, data: {
         } catch (e) {
           bankErrors.push(`${tx.description}: ${(e as any)?.message || String(e)}`);
         }
-        }
       }
 
       return {
