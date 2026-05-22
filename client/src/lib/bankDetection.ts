@@ -29,17 +29,29 @@ export interface ParseResult {
 // ─────────────────────────────────────────────────────────────────────────────
 const ITAU_SKIP_PATTERNS = [
   "saldo anterior",
-  "saldo total dispon",   // "SALDO TOTAL DISPONÍVEL DIA"
+  "saldo total dispon",
+  "saldo total disponavel",
   "saldo em conta",
+  "saldo do dia",
   "limite da conta",
-  "período de visualização",
+  "limite contratado",
+  "periodo de visualiz",
+  "período de visualiz",
   "emitido em",
   "lançamentos futuros",
+  "lancamentos futuros",
   "saídas futuras",
+  "saidas futuras",
   "posição consolidada",
-  "rend pago aplic",      // rendimento automático (centavos, ruído)
-  "juros limite da conta",
+  "posicao consolidada",
+  "rend pago aplic",
+  "rendimento pago",
+  "juros limite",
+  "juros do limite",
+  "iof",
   "aviso",
+  "informações adicionais",
+  "informacoes adicionais",
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
