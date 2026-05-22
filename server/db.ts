@@ -1159,12 +1159,12 @@ export async function importFile(userId: number, data: {
           if (_pool) {
             if (categoryId !== null && categoryId !== undefined) {
               await _pool.execute(
-                'INSERT INTO `creditCardTransactions` (`cardId`, `userId`, `categoryId`, `date`, `dueDate`, `description`, `amount`) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                'INSERT INTO `creditCardTransactions` (`id`, `cardId`, `userId`, `categoryId`, `date`, `dueDate`, `description`, `amount`) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)',
                 [data.entityId, userId, categoryId, txDate, dueDate, String(tx.description).substring(0, 255), finalAmount]
               );
             } else {
               await _pool.execute(
-                'INSERT INTO `creditCardTransactions` (`cardId`, `userId`, `date`, `dueDate`, `description`, `amount`) VALUES (?, ?, ?, ?, ?, ?)',
+                'INSERT INTO `creditCardTransactions` (`id`, `cardId`, `userId`, `date`, `dueDate`, `description`, `amount`) VALUES (NULL, ?, ?, ?, ?, ?, ?)',
                 [data.entityId, userId, txDate, dueDate, String(tx.description).substring(0, 255), finalAmount]
               );
             }
@@ -1314,30 +1314,48 @@ export async function importFile(userId: number, data: {
       
       // Create transactions in database
       let transactionsCreated = 0;
+      const bankErrors: string[] = [];
       for (const tx of extractedTransactions) {
         try {
           if (!db) throw new Error("Database not available");
           
           // Usar categoryId do frontend, regras como fallback, ou categoria padrão
-          let categoryId: number = (tx as any).categoryId ?? null;
+          let categoryId: number = (tx as any).categoryId ?? 0;
           if (!categoryId && rules.length > 0) {
             const { applyCategorizationRules } = await import('./categorizationEngine');
             categoryId = applyCategorizationRules(tx.description, rules) || defaultCategoryId;
           }
           if (!categoryId) categoryId = defaultCategoryId;
-          
-          await db.insert(transactions).values({
-            accountId: data.entityId,
-            userId,
-            categoryId: categoryId as any, // NULL - user will categorize manually
-            date: tx.date,
-            description: tx.description,
-            amount: tx.amount,
-            type: (tx.type as "income" | "expense"),
-          });
+
+          // Garantir amount válido
+          const cleanAmt = String(tx.amount).replace(/[^0-9.]/g, '');
+          const numAmt = parseFloat(cleanAmt);
+          if (isNaN(numAmt)) { bankErrors.push(`${tx.description}: amount inválido`); continue; }
+          const finalAmt = Math.abs(numAmt).toFixed(2);
+
+          const txDate = new Date(tx.date);
+          if (isNaN(txDate.getTime())) { bankErrors.push(`${tx.description}: data inválida`); continue; }
+
+          if (_pool) {
+            await _pool.execute(
+              'INSERT INTO `transactions` (`id`, `userId`, `categoryId`, `accountId`, `type`, `description`, `amount`, `date`, `reconciled`) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, 0)',
+              [userId, categoryId, data.entityId, tx.type || 'expense', String(tx.description).substring(0, 255), finalAmt, txDate]
+            );
+          } else {
+            await db.insert(transactions).values({
+              accountId: data.entityId,
+              userId,
+              categoryId,
+              date: txDate,
+              description: String(tx.description).substring(0, 255),
+              amount: finalAmt,
+              type: (tx.type as "income" | "expense"),
+            });
+          }
           transactionsCreated++;
         } catch (e) {
-          // Continue with next transaction
+          bankErrors.push(`${tx.description}: ${(e as any)?.message || String(e)}`);
+        }
         }
       }
 
@@ -1346,6 +1364,8 @@ export async function importFile(userId: number, data: {
         message: `Arquivo importado com sucesso. ${transactionsCreated} transações criadas.`,
         transactionsImported: transactionsCreated,
         fileName: data.fileName,
+        debug: `Recebidas: ${extractedTransactions.length}, Criadas: ${transactionsCreated}, Erros: ${bankErrors.length}`,
+        errors: bankErrors.slice(0, 5),
       };
     } else {
       throw new Error("Tipo de entidade inválido");
