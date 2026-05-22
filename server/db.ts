@@ -47,21 +47,28 @@ async function getTesseractWorker() {
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL && !_initAttempted) {
-    _initAttempted = true;
-    try {
-      if (!_pool) {
+  if (_db && _pool) return _db; // já conectado
+
+  if (!process.env.DATABASE_URL) return null;
+
+  try {
+    if (!_pool) {
       const dbUrl = process.env.DATABASE_URL || "";
-_pool = mysql.createPool({
-  uri: dbUrl.replace(/\?ssl=.*$/, ""),
-  ssl: { rejectUnauthorized: false },
-  waitForConnections: true,
-  connectionLimit: 5,
-});
-      }
+      _pool = mysql.createPool({
+        uri: dbUrl.replace(/\?ssl=.*$/, ""),
+        ssl: { rejectUnauthorized: false },
+        waitForConnections: true,
+        connectionLimit: 5,
+      });
+    }
+
+    if (!_db) {
       _db = drizzle(_pool, { mode: 'default', schema: { users, categories, bankAccounts, transactions, budgets, categorizationRules, creditCards, creditCardTransactions, monthlyBalances, profileHistory } });
-      
-      // Ensure profileHistory table exists
+    }
+
+    // Ensure profileHistory table exists
+    if (!_initAttempted) {
+      _initAttempted = true;
       try {
         await _pool.execute(`
           CREATE TABLE IF NOT EXISTS \`profileHistory\` (
@@ -78,12 +85,13 @@ _pool = mysql.createPool({
       } catch (tableError) {
         console.warn("[Database] Could not create profileHistory table:", tableError);
       }
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
-      _pool = null;
     }
+  } catch (error) {
+    console.warn("[Database] Failed to connect:", error);
+    _db = null;
+    _pool = null;
   }
+
   return _db;
 }
 
@@ -990,6 +998,14 @@ export async function importFile(userId: number, data: {
         throw new Error("Cartão não encontrado");
       }
 
+      // Garantir AUTO_INCREMENT no campo id
+      try {
+        await getDb(); // garante que _pool está inicializado
+        if (_pool) {
+          await _pool.execute('ALTER TABLE `creditCardTransactions` MODIFY `id` INT NOT NULL AUTO_INCREMENT');
+        }
+      } catch (e) { /* ignora se já existir */ }
+
       // Garantir que todas as datas são objetos Date (tRPC serializa como string)
       let extractedTransactions: Array<{date: Date; description: string; amount: string; type: "income" | "expense"; categoryId?: number}> = 
         (data.transactions || []).map(tx => ({
@@ -1156,20 +1172,20 @@ export async function importFile(userId: number, data: {
           }
 
           // Usar SQL raw para contornar bug do Drizzle com MySQL
-          if (_pool) {
-            if (categoryId !== null && categoryId !== undefined) {
-              await _pool.execute(
-                'INSERT INTO `creditCardTransactions` (`cardId`, `userId`, `categoryId`, `date`, `dueDate`, `description`, `amount`) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [data.entityId, userId, categoryId, txDate, dueDate, String(tx.description).substring(0, 255), finalAmount]
-              );
-            } else {
-              await _pool.execute(
-                'INSERT INTO `creditCardTransactions` (`cardId`, `userId`, `date`, `dueDate`, `description`, `amount`) VALUES (?, ?, ?, ?, ?, ?)',
-                [data.entityId, userId, txDate, dueDate, String(tx.description).substring(0, 255), finalAmount]
-              );
-            }
+          if (!_pool) throw new Error('Database pool not available');
+          
+          const toMySQLDate = (d: Date) => d.toISOString().slice(0, 19).replace('T', ' ');
+
+          if (categoryId !== null && categoryId !== undefined) {
+            await _pool.execute(
+              'INSERT INTO `creditCardTransactions` (`cardId`, `userId`, `categoryId`, `date`, `dueDate`, `description`, `amount`) VALUES (?, ?, ?, ?, ?, ?, ?)',
+              [data.entityId, userId, categoryId, toMySQLDate(txDate), toMySQLDate(dueDate), String(tx.description).substring(0, 255), parseFloat(finalAmount)]
+            );
           } else {
-            await db.insert(creditCardTransactions).values(insertValues);
+            await _pool.execute(
+              'INSERT INTO `creditCardTransactions` (`cardId`, `userId`, `date`, `dueDate`, `description`, `amount`) VALUES (?, ?, ?, ?, ?, ?)',
+              [data.entityId, userId, toMySQLDate(txDate), toMySQLDate(dueDate), String(tx.description).substring(0, 255), parseFloat(finalAmount)]
+            );
           }
           transactionsCreated++;
         } catch (e) {
@@ -1214,6 +1230,13 @@ export async function importFile(userId: number, data: {
       if (!account.length) {
         throw new Error("Conta bancária não encontrada");
       }
+
+      // Garantir AUTO_INCREMENT no campo id
+      try {
+        if (_pool) {
+          await _pool.execute('ALTER TABLE `transactions` MODIFY `id` INT NOT NULL AUTO_INCREMENT');
+        }
+      } catch (e) { /* ignora se já existir */ }
 
       // Se vieram transações prontas do frontend, usar diretamente
       let extractedTransactions: Array<{date: Date; description: string; amount: string; type: "income" | "expense"; categoryId?: number}> = [];
@@ -1336,22 +1359,13 @@ export async function importFile(userId: number, data: {
           const txDate = new Date(tx.date);
           if (isNaN(txDate.getTime())) { bankErrors.push(`${tx.description}: data inválida`); continue; }
 
-          if (_pool) {
-            await _pool.execute(
-              'INSERT INTO `transactions` (`userId`, `categoryId`, `accountId`, `type`, `description`, `amount`, `date`, `reconciled`) VALUES (?, ?, ?, ?, ?, ?, ?, 0)',
-              [userId, categoryId, data.entityId, tx.type || 'expense', String(tx.description).substring(0, 255), finalAmt, txDate]
-            );
-          } else {
-            await db.insert(transactions).values({
-              accountId: data.entityId,
-              userId,
-              categoryId,
-              date: txDate,
-              description: String(tx.description).substring(0, 255),
-              amount: finalAmt,
-              type: (tx.type as "income" | "expense"),
-            });
-          }
+          const toMySQLDate = (d: Date) => d.toISOString().slice(0, 19).replace('T', ' ');
+
+          if (!_pool) throw new Error('Database pool not available');
+          await _pool.execute(
+            'INSERT INTO `transactions` (`userId`, `categoryId`, `accountId`, `type`, `description`, `amount`, `date`, `reconciled`) VALUES (?, ?, ?, ?, ?, ?, ?, 0)',
+            [userId, categoryId, data.entityId, tx.type || 'expense', String(tx.description).substring(0, 255), parseFloat(finalAmt), toMySQLDate(txDate)]
+          );
           transactionsCreated++;
         } catch (e) {
           bankErrors.push(`${tx.description}: ${(e as any)?.message || String(e)}`);
