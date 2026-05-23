@@ -50,7 +50,7 @@ function extrairMesFatura(fileName: string): { year: number; month: number } | n
 }
 
 // Decide se uma transação é parcela de mês anterior
-// Regra: data da transação está 2+ meses antes do mês de referência da fatura
+// Regra: data da transação está entre 1 e 24 meses antes do mês de referência da fatura
 function isParcelaAnterior(
   txDate: string,
   faturaRef: { year: number; month: number }
@@ -58,10 +58,9 @@ function isParcelaAnterior(
   const d = new Date(txDate + "T12:00:00");
   const txYear = d.getFullYear();
   const txMonth = d.getMonth() + 1;
-  // Diferença em meses
   const diffMeses = (faturaRef.year - txYear) * 12 + (faturaRef.month - txMonth);
-  // Se a transação foi há 2+ meses antes do mês da fatura, é parcela antiga
-  return diffMeses >= 2;
+  // Parcela = entre 1 e 24 meses antes do mês da fatura
+  return diffMeses >= 1 && diffMeses <= 24;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -77,20 +76,24 @@ function extrairParcelamento(desc: string): { base: string; parcela: string | nu
   return { base: desc.trim(), parcela: null };
 }
 
-// Descrições que indicam que a linha NÃO é uma transação real de compra
-const SKIP_DESCRIPTIONS = [
+// Descrições que devem ser ignoradas na importação de cartão/conta
+const SKIP_DESCRIPTIONS_CARTAO = [
   "pagamento efetuado",
   "pagamento recebido",
-  "estorno",
-  "iof compra internaciona",  // IOF é cobrado separado — manter se quiser, mas geralmente ruído
+  "pagamento debito",
 ];
 
-function deveIgnorarLinha(desc: string, valor: number): boolean {
+const SKIP_DESCRIPTIONS_CONTA = [
+  "saldo total dispon",
+  "saldo anterior",
+  "saldo do dia",
+  "limite da conta",
+];
+
+function deveIgnorarLinha(desc: string, valor: number, tipo: "cartao" | "conta" = "cartao"): boolean {
   const descLower = desc.toLowerCase().trim();
-  // Pagamentos e estornos (valores negativos ou descrições específicas)
-  if (SKIP_DESCRIPTIONS.some(s => descLower.includes(s))) return true;
-  // Valores negativos são estornos/créditos — não importar como despesa
-  if (valor < 0) return true;
+  const skipList = tipo === "cartao" ? SKIP_DESCRIPTIONS_CARTAO : SKIP_DESCRIPTIONS_CONTA;
+  if (skipList.some(s => descLower.includes(s))) return true;
   return false;
 }
 
@@ -165,13 +168,13 @@ function parseCSVFatura(csvText: string): Transaction[] {
     if (isNaN(parsed)) continue;
 
     // ── FIX 1: Filtrar pagamentos, estornos e valores negativos ──────────────
-    if (deveIgnorarLinha(desc, parsed)) continue;
+    if (deveIgnorarLinha(desc, parsed, "cartao")) continue;
 
     transactions.push({
       id: Date.now().toString() + Math.random(),
       date: formattedDate,
       description: desc,
-      amount: Math.abs(parsed).toFixed(2),
+      amount: parsed.toFixed(2), // mantém sinal para definir income/expense depois
     });
   }
 
