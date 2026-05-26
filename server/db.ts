@@ -821,16 +821,63 @@ export async function getInitialBalanceForMonth(userId: number, accountId: numbe
   if (!db) return 0;
 
   try {
-    // NOVA REGRA: Saldo inicial eh SEMPRE 0, a menos que o usuario tenha digitado manualmente
-    // Buscar apenas saldo customizado (digitado pelo usuario)
-    const monthlyBalance = await getMonthlyBalance(userId, accountId, month, year);
-    if (monthlyBalance) {
-      const balance = parseFloat(monthlyBalance.initialBalance.toString());
-      return balance;
+    // Se há saldo definido manualmente para este mês, usa esse valor
+    const thisMonthBalance = await getMonthlyBalance(userId, accountId, month, year);
+    if (thisMonthBalance) {
+      return parseFloat(thisMonthBalance.initialBalance.toString());
     }
-    
-    // Se nenhum saldo foi digitado manualmente, retorna 0
-    return 0;
+
+    // Auto-calcular: buscar o saldo customizado mais recente antes deste mês
+    const allCustomBalances = await db.select()
+      .from(monthlyBalances)
+      .where(and(
+        eq(monthlyBalances.userId, userId),
+        eq(monthlyBalances.accountId, accountId)
+      ))
+      .orderBy(desc(monthlyBalances.year), desc(monthlyBalances.month));
+
+    const targetDate = new Date(year, month - 1, 1);
+    const previousCustomBalance = allCustomBalances.find((b: any) => {
+      return new Date(b.year, b.month - 1, 1) < targetDate;
+    });
+
+    let startDate: Date;
+    let baseBalance: number;
+
+    if (previousCustomBalance) {
+      // Parte do mês em que foi definido o saldo customizado
+      startDate = new Date(previousCustomBalance.year, previousCustomBalance.month - 1, 1);
+      baseBalance = parseFloat(previousCustomBalance.initialBalance.toString());
+    } else {
+      // Sem nenhum saldo customizado anterior: começa do zero
+      startDate = new Date(0);
+      baseBalance = 0;
+    }
+
+    // Fim = último momento do mês anterior ao solicitado
+    let prevMonth = month - 1;
+    let prevYear = year;
+    if (prevMonth === 0) {
+      prevMonth = 12;
+      prevYear -= 1;
+    }
+    const endDate = new Date(prevYear, prevMonth, 0, 23, 59, 59);
+
+    // Somar todas as transações do intervalo para calcular saldo acumulado
+    const rangeTransactions = await getTransactions(userId, {
+      accountId,
+      startDate,
+      endDate,
+    });
+
+    const totalIncome = rangeTransactions
+      .filter((t: any) => t.type === 'income')
+      .reduce((sum: number, t: any) => sum + parseFloat(t.amount.toString()), 0);
+    const totalExpenses = rangeTransactions
+      .filter((t: any) => t.type === 'expense')
+      .reduce((sum: number, t: any) => sum + Math.abs(parseFloat(t.amount.toString())), 0);
+
+    return baseBalance + totalIncome - totalExpenses;
   } catch (error) {
     console.error("[Database] Error getting initial balance for month:", error);
     return 0;
