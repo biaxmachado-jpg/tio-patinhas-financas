@@ -37,7 +37,6 @@ export default function BankAccountDetail() {
   const [deleteConfirmationId, setDeleteConfirmationId] = useState<number | null>(null);
   const [editingBalances, setEditingBalances] = useState(false);
   const [initialBalanceValue, setInitialBalanceValue] = useState<string>("");
-  const [previousMonthFinalBalance, setPreviousMonthFinalBalance] = useState<number>(0);
   const [showNewTransactionDialog, setShowNewTransactionDialog] = useState(false);
   const [newTransactionType, setNewTransactionType] = useState<'income' | 'expense'>('income');
   const [newTransactionData, setNewTransactionData] = useState({
@@ -138,6 +137,7 @@ export default function BankAccountDetail() {
       toast.success("Saldo inicial atualizado com sucesso");
       setEditingBalances(false);
       transactionsQuery.refetch();
+      monthlyBalanceQuery.refetch();
     },
     onError: () => {
       toast.error("Erro ao atualizar saldo inicial");
@@ -149,46 +149,12 @@ export default function BankAccountDetail() {
       toast.success("Saldo inicial resetado para o valor calculado");
       setEditingBalances(false);
       transactionsQuery.refetch();
+      monthlyBalanceQuery.refetch();
     },
     onError: () => {
       toast.error("Erro ao resetar saldo inicial");
     },
   });
-
-  // All useEffect hooks must come after all useState and useRef
-  // Calculate previous month's final balance
-  useEffect(() => {
-    if (!transactionsQuery.data) return;
-    
-    const transactions = transactionsQuery.data || [];
-    let prevMonth = selectedMonth - 1;
-    let prevYear = selectedYear;
-    if (prevMonth === 0) {
-      prevMonth = 12;
-      prevYear -= 1;
-    }
-    
-    const prevMonthStart = new Date(prevYear, prevMonth - 1, 1);
-    const prevMonthEnd = new Date(prevYear, prevMonth, 0, 23, 59, 59);
-    
-    const prevMonthTransactions = transactions.filter((t: any) => {
-      const transactionDate = new Date(t.date);
-      return transactionDate >= prevMonthStart && transactionDate <= prevMonthEnd;
-    });
-    
-    const prevIncome = prevMonthTransactions.filter((t: any) => t.type === "income");
-    const prevExpenses = prevMonthTransactions.filter((t: any) => t.type === "expense");
-    const prevTotalIncome = prevIncome.reduce((sum: number, t: any) => sum + parseFloat(t.amount.toString()), 0);
-    const prevTotalExpenses = prevExpenses.reduce((sum: number, t: any) => sum + parseFloat(t.amount.toString()), 0);
-    
-    // Get the account to calculate previous month's final balance
-    const account = accountsQuery.data?.find((a: any) => a.id === parseInt(accountId || "0"));
-    if (!account) return;
-    
-    const prevInitialBalance = parseFloat(account.initialBalance || "0");
-    const prevFinalBalance = prevInitialBalance + prevTotalIncome - prevTotalExpenses;
-    setPreviousMonthFinalBalance(prevFinalBalance);
-  }, [selectedMonth, selectedYear, transactionsQuery.data, accountsQuery.data, accountId]);
 
   // Computed values
   const account = accountsQuery.data?.find((a: any) => a.id === parseInt(accountId || "0"));
@@ -445,11 +411,8 @@ export default function BankAccountDetail() {
               size="sm"
               onClick={() => {
                 setEditingBalances(true);
-                // Use previous month's final balance as default, or account's initial balance if it's the first month
-                const defaultInitialBalance = selectedMonth === 1 && selectedYear === new Date().getFullYear() 
-                  ? account.initialBalance 
-                  : previousMonthFinalBalance.toString();
-                const formattedValue = formatBRL(defaultInitialBalance || "0").replace('R$', '').trim();
+                const currentBalance = monthlyBalanceQuery.data?.balance ?? 0;
+                const formattedValue = formatBRL(currentBalance.toString()).replace('R$', '').trim();
                 setInitialBalanceValue(formattedValue);
               }}
             >
@@ -524,25 +487,19 @@ export default function BankAccountDetail() {
             <div className="p-4 bg-card border border-border rounded-lg">
               <p className="text-sm font-medium text-foreground mb-1">Saldo Inicial</p>
               <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {monthlyBalanceQuery.data !== undefined && monthlyBalanceQuery.data !== null
-                  ? formatBRL(monthlyBalanceQuery.data.toString())
-                  : formatBRL("0")}
+                {formatBRL((monthlyBalanceQuery.data?.balance ?? 0).toString())}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                {monthlyBalanceQuery.data !== undefined && monthlyBalanceQuery.data !== null
+                {monthlyBalanceQuery.data?.isCustom
                   ? "Saldo inicial customizado"
-                  : "Comeca com zero - edite para alterar"}
+                  : "Calculado do mês anterior"}
               </p>
             </div>
             <div className="p-4 bg-card border border-border rounded-lg">
               <p className="text-sm font-medium text-foreground mb-1">Saldo Final (Calculado)</p>
               <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                 {formatBRL(
-                  (
-                    monthlyBalanceQuery.data !== undefined && monthlyBalanceQuery.data !== null
-                      ? monthlyBalanceQuery.data
-                      : convertBRLToNumber(account.initialBalance || "0")
-                  ) + totalIncome - totalExpenses
+                  ((monthlyBalanceQuery.data?.balance ?? 0) + totalIncome - totalExpenses).toString()
                 )}
               </p>
             </div>

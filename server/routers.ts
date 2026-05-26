@@ -208,9 +208,13 @@ export const appRouter = router({
         month: z.number().min(1).max(12),
         year: z.number(),
       }))
-      .query(({ ctx, input }) => 
-        db.getInitialBalanceForMonth(ctx.user.id, input.accountId, input.month, input.year)
-      ),
+      .query(async ({ ctx, input }) => {
+        const [customBalance, balance] = await Promise.all([
+          db.getMonthlyBalance(ctx.user.id, input.accountId, input.month, input.year),
+          db.getInitialBalanceForMonth(ctx.user.id, input.accountId, input.month, input.year),
+        ]);
+        return { balance, isCustom: !!customBalance };
+      }),
   }),
 
   // ============= TRANSACTIONS =============
