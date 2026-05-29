@@ -824,7 +824,8 @@ export async function getInitialBalanceForMonth(userId: number, accountId: numbe
     // Se há saldo definido manualmente para este mês, usa esse valor
     const thisMonthBalance = await getMonthlyBalance(userId, accountId, month, year);
     if (thisMonthBalance) {
-      return parseFloat(thisMonthBalance.initialBalance.toString());
+      const v = parseFloat(String(thisMonthBalance.initialBalance));
+      return isNaN(v) ? 0 : v;
     }
 
     // Auto-calcular: buscar o saldo customizado mais recente antes deste mês
@@ -847,7 +848,8 @@ export async function getInitialBalanceForMonth(userId: number, accountId: numbe
     if (previousCustomBalance) {
       // Parte do mês em que foi definido o saldo customizado
       startDate = new Date(previousCustomBalance.year, previousCustomBalance.month - 1, 1);
-      baseBalance = parseFloat(previousCustomBalance.initialBalance.toString());
+      const parsedBase = parseFloat(String(previousCustomBalance.initialBalance));
+      baseBalance = isNaN(parsedBase) ? 0 : parsedBase;
     } else {
       // Sem nenhum saldo customizado anterior: começa do zero
       startDate = new Date(0);
@@ -877,7 +879,8 @@ export async function getInitialBalanceForMonth(userId: number, accountId: numbe
       .filter((t: any) => t.type === 'expense')
       .reduce((sum: number, t: any) => sum + Math.abs(parseFloat(t.amount.toString())), 0);
 
-    return baseBalance + totalIncome - totalExpenses;
+    const result = baseBalance + totalIncome - totalExpenses;
+    return isNaN(result) ? 0 : result;
   } catch (error) {
     console.error("[Database] Error getting initial balance for month:", error);
     return 0;

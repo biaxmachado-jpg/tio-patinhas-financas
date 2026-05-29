@@ -219,6 +219,8 @@ export default function BankAccountDetail() {
   const totalIncome = income.reduce((sum: number, t: any) => sum + parseFloat(t.amount.toString()), 0);
   // Use Math.abs to handle negative values correctly (e.g., -R$-92,76 should be treated as positive)
   const totalExpenses = expenses.reduce((sum: number, t: any) => sum + Math.abs(parseFloat(t.amount.toString())), 0);
+  const rawInitialBalance = monthlyBalanceQuery.data?.balance;
+  const safeInitialBalance = (rawInitialBalance == null || isNaN(rawInitialBalance)) ? 0 : rawInitialBalance;
 
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
@@ -411,8 +413,7 @@ export default function BankAccountDetail() {
               size="sm"
               onClick={() => {
                 setEditingBalances(true);
-                const currentBalance = monthlyBalanceQuery.data?.balance ?? 0;
-                const formattedValue = formatBRL(currentBalance.toString()).replace('R$', '').trim();
+                const formattedValue = formatBRL(safeInitialBalance.toString()).replace('R$', '').trim();
                 setInitialBalanceValue(formattedValue);
               }}
             >
@@ -487,7 +488,7 @@ export default function BankAccountDetail() {
             <div className="p-4 bg-card border border-border rounded-lg">
               <p className="text-sm font-medium text-foreground mb-1">Saldo Inicial</p>
               <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {formatBRL((monthlyBalanceQuery.data?.balance ?? 0).toString())}
+                {formatBRL((safeInitialBalance).toString())}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {monthlyBalanceQuery.data?.isCustom
@@ -499,7 +500,7 @@ export default function BankAccountDetail() {
               <p className="text-sm font-medium text-foreground mb-1">Saldo Final (Calculado)</p>
               <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                 {formatBRL(
-                  ((monthlyBalanceQuery.data?.balance ?? 0) + totalIncome - totalExpenses).toString()
+                  (safeInitialBalance + totalIncome - totalExpenses).toString()
                 )}
               </p>
             </div>
