@@ -297,26 +297,15 @@ export async function deleteBankAccount(id: number, userId: number) {
 export async function getTransactions(userId: number, filters?: { accountId?: number; categoryId?: number; type?: "income" | "expense"; startDate?: Date; endDate?: Date }) {
   const db = await getDb();
   if (!db) return [];
-  
-  let query = db.select().from(transactions).where(eq(transactions.userId, userId)).$dynamic();
-  
-  if (filters?.accountId) {
-    query = query.where(eq(transactions.accountId, filters.accountId));
-  }
-  if (filters?.categoryId) {
-    query = query.where(eq(transactions.categoryId, filters.categoryId));
-  }
-  if (filters?.type) {
-    query = query.where(eq(transactions.type, filters.type));
-  }
-  if (filters?.startDate) {
-    query = query.where(gte(transactions.date, filters.startDate));
-  }
-  if (filters?.endDate) {
-    query = query.where(lte(transactions.date, filters.endDate));
-  }
-  
-  return query.orderBy(desc(transactions.date));
+
+  const conditions: ReturnType<typeof eq>[] = [eq(transactions.userId, userId) as any];
+  if (filters?.accountId) conditions.push(eq(transactions.accountId, filters.accountId) as any);
+  if (filters?.categoryId) conditions.push(eq(transactions.categoryId, filters.categoryId) as any);
+  if (filters?.type) conditions.push(eq(transactions.type, filters.type) as any);
+  if (filters?.startDate) conditions.push(gte(transactions.date, filters.startDate) as any);
+  if (filters?.endDate) conditions.push(lte(transactions.date, filters.endDate) as any);
+
+  return db.select().from(transactions).where(and(...conditions)).orderBy(desc(transactions.date));
 }
 
 export async function getTransactionById(id: number, userId: number) {
