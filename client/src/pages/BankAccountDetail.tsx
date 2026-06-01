@@ -876,7 +876,7 @@ export default function BankAccountDetail() {
               <div>
                 <label className="text-sm font-medium mb-1 block">Categoria</label>
                 <Select
-                  value={editingField === 'category' ? editingValue : selectedTransaction.categoryId.toString()}
+                  value={editingField === 'category' ? editingValue : (selectedTransaction.categoryId?.toString() ?? '')}
                   onValueChange={(value) => {
                     setEditingField('category');
                     setEditingValue(value);
