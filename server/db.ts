@@ -338,17 +338,12 @@ export async function deleteTransaction(id: number, userId: number) {
 export async function getBudgets(userId: number, month?: number, year?: number) {
   const db = await getDb();
   if (!db) return [];
-  
-  let query = db.select().from(budgets).where(eq(budgets.userId, userId)).$dynamic();
-  
-  if (month !== undefined) {
-    query = query.where(eq(budgets.month, month));
-  }
-  if (year !== undefined) {
-    query = query.where(eq(budgets.year, year));
-  }
-  
-  return query.orderBy(asc(budgets.categoryId));
+
+  const conditions: any[] = [eq(budgets.userId, userId)];
+  if (month !== undefined) conditions.push(eq(budgets.month, month));
+  if (year !== undefined) conditions.push(eq(budgets.year, year));
+
+  return db.select().from(budgets).where(and(...conditions)).orderBy(asc(budgets.categoryId));
 }
 
 export async function getBudgetById(id: number, userId: number) {
@@ -569,14 +564,11 @@ export async function deleteCreditCard(id: number, userId: number) {
 export async function getCreditCardTransactions(userId: number, cardId?: number) {
   const db = await getDb();
   if (!db) return [];
-  
-  let query = db.select().from(creditCardTransactions).where(eq(creditCardTransactions.userId, userId)).$dynamic();
-  
-  if (cardId) {
-    query = query.where(eq(creditCardTransactions.cardId, cardId));
-  }
-  
-  return query.orderBy(desc(creditCardTransactions.date));
+
+  const conditions: any[] = [eq(creditCardTransactions.userId, userId)];
+  if (cardId) conditions.push(eq(creditCardTransactions.cardId, cardId));
+
+  return db.select().from(creditCardTransactions).where(and(...conditions)).orderBy(desc(creditCardTransactions.date));
 }
 
 export async function getCreditCardTransactionById(id: number, userId: number) {
