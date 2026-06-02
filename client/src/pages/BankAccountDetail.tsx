@@ -178,16 +178,16 @@ export default function BankAccountDetail() {
   }
 
   const transactions = transactionsQuery.data || [];
-  
+
   // Apply filters
   let filteredTransactions = transactions;
-  
-  // Filter by selected month/year
-  const monthStart = new Date(selectedYear, selectedMonth - 1, 1);
-  const monthEnd = new Date(selectedYear, selectedMonth, 0, 23, 59, 59);
+
+  // Filter by selected month/year using UTC to match server-side calculation.
+  // Transactions are stored as TIMESTAMP in UTC; comparing with local time
+  // shifts midnight-UTC transactions to the wrong month in Brazil (UTC-3).
   filteredTransactions = filteredTransactions.filter((t: any) => {
-    const transactionDate = new Date(t.date);
-    return transactionDate >= monthStart && transactionDate <= monthEnd;
+    const d = new Date(t.date);
+    return d.getUTCFullYear() === selectedYear && (d.getUTCMonth() + 1) === selectedMonth;
   });
   
   if (filterCategory) {

@@ -828,7 +828,7 @@ export async function getInitialBalanceForMonth(userId: number, accountId: numbe
 
     if (previousCustomBalance) {
       // Parte do mês em que foi definido o saldo customizado
-      startDate = new Date(previousCustomBalance.year, previousCustomBalance.month - 1, 1);
+      startDate = new Date(Date.UTC(previousCustomBalance.year, previousCustomBalance.month - 1, 1));
       const parsedBase = parseFloat(String(previousCustomBalance.initialBalance));
       baseBalance = isNaN(parsedBase) ? 0 : parsedBase;
     } else {
@@ -837,14 +837,14 @@ export async function getInitialBalanceForMonth(userId: number, accountId: numbe
       baseBalance = 0;
     }
 
-    // Fim = último momento do mês anterior ao solicitado
+    // Fim = último momento UTC do mês anterior ao solicitado
     let prevMonth = month - 1;
     let prevYear = year;
     if (prevMonth === 0) {
       prevMonth = 12;
       prevYear -= 1;
     }
-    const endDate = new Date(prevYear, prevMonth, 0, 23, 59, 59);
+    const endDate = new Date(Date.UTC(prevYear, prevMonth, 0, 23, 59, 59));
 
     // Somar todas as transações do intervalo para calcular saldo acumulado
     const rangeTransactions = await getTransactions(userId, {
