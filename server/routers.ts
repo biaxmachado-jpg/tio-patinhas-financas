@@ -5,6 +5,7 @@ import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
 import { storagePut } from "./storage";
+import { classifyStatementWithAI } from "./aiClassifier";
 
 export const appRouter = router({
   system: systemRouter,
@@ -508,6 +509,45 @@ export const appRouter = router({
         dueDate: z.date().optional(),
       }))
       .mutation(({ ctx, input }) => db.importFile(ctx.user.id, input)),
+
+    classifyWithAI: protectedProcedure
+      .input(z.object({
+        entityType: z.enum(["creditCard", "bankAccount"]),
+        fileName: z.string(),
+        // PDF: base64 do arquivo. CSV/XLSX/OFX/TXT: texto já extraído.
+        pdfBase64: z.string().optional(),
+        textContent: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const categories = await db.getCategories(ctx.user.id);
+
+        const historicalRows = input.entityType === "creditCard"
+          ? await db.getCreditCardTransactions(ctx.user.id)
+          : await db.getTransactions(ctx.user.id);
+
+        const historicalExamples = historicalRows
+          .filter((t: { categoryId: number | null }) => t.categoryId != null)
+          .slice(0, 200)
+          .map((t: { description: string; categoryId: number | null }) => ({
+            description: t.description,
+            categoryId: t.categoryId as number,
+          }));
+
+        const transactions = await classifyStatementWithAI({
+          entityType: input.entityType,
+          fileName: input.fileName,
+          pdfBase64: input.pdfBase64,
+          textContent: input.textContent,
+          categories: categories.map((c: { id: number; name: string; type: "income" | "expense" }) => ({
+            id: c.id,
+            name: c.name,
+            type: c.type,
+          })),
+          historicalExamples,
+        });
+
+        return { transactions };
+      }),
   }),
 
   importHistory: router({

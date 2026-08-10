@@ -15,6 +15,7 @@ export interface TransactionWithCategory {
   categoryId?: number;
   isDuplicate?: boolean;
   isInstallment?: boolean;
+  aiType?: "income" | "expense"; // tipo já classificado pela IA no momento da importação
 }
 
 interface TransactionCategorizerProps {
