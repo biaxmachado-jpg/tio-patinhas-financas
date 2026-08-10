@@ -22,6 +22,18 @@ export interface ClassifiedTransaction {
 }
 
 /**
+ * Converte o valor de uma transação em número com segurança. Dados antigos
+ * ou corrompidos no banco podem trazer amount null/undefined/inválido —
+ * sem essa proteção, uma única transação assim derruba a página inteira
+ * (TypeError: Cannot read properties of null (reading 'toString')).
+ */
+function toSafeAmount(value: unknown): number {
+  if (value === null || value === undefined) return 0;
+  const parsed = parseFloat(String(value));
+  return isNaN(parsed) ? 0 : parsed;
+}
+
+/**
  * Detects if a description contains an installment pattern (e.g., "1/12", "2/10")
  * @param description - Transaction description
  * @returns true if installment pattern is found
@@ -49,15 +61,15 @@ export function classifyTransaction(
   transaction: any,
   billingDueDate?: Date
 ): TransactionType {
-  const amount = parseFloat(transaction.amount.toString());
-  
+  const amount = toSafeAmount(transaction.amount);
+
   // Rule 1: Créditos (Credits) - negative values
   if (amount < 0) {
     return 'credito';
   }
 
   // Rule 2: Parceladas (Installments) - multiple installments or installment pattern in description
-  if (transaction.installments > 1 || hasInstallmentPattern(transaction.description)) {
+  if (transaction.installments > 1 || hasInstallmentPattern(transaction.description ?? "")) {
     return 'parcelada';
   }
 
@@ -125,18 +137,9 @@ export function calculateGroupTotals(grouped: {
   credito: number;
   total: number;
 } {
-  const vista = grouped.vista.reduce((sum, t) => {
-    const amount = parseFloat(t.amount.toString());
-    return sum + (isNaN(amount) ? 0 : amount);
-  }, 0);
-  const parcelada = grouped.parcelada.reduce((sum, t) => {
-    const amount = parseFloat(t.amount.toString());
-    return sum + (isNaN(amount) ? 0 : amount);
-  }, 0);
-  const credito = grouped.credito.reduce((sum, t) => {
-    const amount = parseFloat(t.amount.toString());
-    return sum + (isNaN(amount) ? 0 : amount);
-  }, 0);
+  const vista = grouped.vista.reduce((sum, t) => sum + toSafeAmount(t.amount), 0);
+  const parcelada = grouped.parcelada.reduce((sum, t) => sum + toSafeAmount(t.amount), 0);
+  const credito = grouped.credito.reduce((sum, t) => sum + toSafeAmount(t.amount), 0);
 
   return {
     vista,

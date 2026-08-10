@@ -47,7 +47,7 @@ export default function Budgets() {
             transactionYear === year
           );
         })
-        .reduce((sum: number, t: any) => sum + parseFloat(t.amount.toString()), 0) || 0
+        .reduce((sum: number, t: any) => sum + parseFloat(String(t.amount ?? 0)), 0) || 0
     );
 
     // Transações de cartão de crédito (apenas despesas)
@@ -65,7 +65,7 @@ export default function Budgets() {
               transactionYear === year
             );
           })
-          .reduce((sum: number, t: any) => sum + parseFloat(t.amount.toString()), 0) || 0
+          .reduce((sum: number, t: any) => sum + parseFloat(String(t.amount ?? 0)), 0) || 0
       );
     }
 

@@ -1133,7 +1133,7 @@ export default function CreditCardDetail() {
                           if (open) {
                             setEditingTransactionId(transaction.id);
                             setEditingField('installments');
-                            setEditingInstallments(transaction.installments.toString());
+                            setEditingInstallments(String(transaction.installments ?? 1));
                           } else {
                             setEditingTransactionId(null);
                             setEditingField(null);
