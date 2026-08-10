@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Upload, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, AlertCircle, Edit2, Plus, X, Check, RefreshCw, Loader2, Wand2 } from "lucide-react";
+import { Upload, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, AlertCircle, Edit2, Plus, X, Check, RefreshCw, Loader2, Wand2, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -44,6 +44,8 @@ export default function CreditCardDetail() {
   const [selectedTransactionIds, setSelectedTransactionIds] = useState<Set<number>>(new Set());
   const [isBulkCategoryDialogOpen, setIsBulkCategoryDialogOpen] = useState(false);
   const [bulkCategoryId, setBulkCategoryId] = useState("");
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [newTransaction, setNewTransaction] = useState({
     description: "",
     amount: "",
@@ -166,18 +168,40 @@ export default function CreditCardDetail() {
       toast.error("Selecione transações e uma categoria");
       return;
     }
+    const ids = Array.from(selectedTransactionIds);
     try {
-      // await bulkUpdateCategoryMutation.mutateAsync({
-      //   transactionIds: Array.from(selectedTransactionIds),
-      //   categoryId: parseInt(bulkCategoryId),
-      // });
-      // await transactionsQuery.refetch();
+      await Promise.all(
+        ids.map((id) =>
+          updateCreditCardTransactionMutation.mutateAsync({ id, categoryId: parseInt(bulkCategoryId, 10) })
+        )
+      );
+      await transactionsQuery.refetch();
       setSelectedTransactionIds(new Set());
       setBulkCategoryId("");
       setIsBulkCategoryDialogOpen(false);
-      toast.success(`${selectedTransactionIds.size} transações atualizadas!`);
+      toast.success(`${ids.length} transações atualizadas!`);
     } catch (error) {
       toast.error("Erro ao atualizar categorias");
+    }
+  };
+
+  // Exclusão em massa das transações selecionadas — útil pra limpar uma
+  // fatura inteira antes de reimportar (ex: fatura importada antes de um
+  // fix de classificação, com dados errados já gravados).
+  const handleBulkDeleteSelected = async () => {
+    if (selectedTransactionIds.size === 0) return;
+    const ids = Array.from(selectedTransactionIds);
+    setIsBulkDeleting(true);
+    try {
+      await Promise.all(ids.map((id) => deleteCreditCardTransactionMutation.mutateAsync({ id })));
+      await transactionsQuery.refetch();
+      setSelectedTransactionIds(new Set());
+      setIsBulkDeleteDialogOpen(false);
+      toast.success(`${ids.length} transação(ões) excluída(s)!`);
+    } catch (error) {
+      toast.error("Erro ao excluir transações selecionadas");
+    } finally {
+      setIsBulkDeleting(false);
     }
   };
 
@@ -721,6 +745,37 @@ export default function CreditCardDetail() {
                             Aplicar
                           </Button>
                         </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
+                {selectedTransactionIds.size > 0 && (
+                  <Dialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Excluir ({selectedTransactionIds.size})
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Excluir Transações?</DialogTitle>
+                        <DialogDescription>
+                          {selectedTransactionIds.size} transação(ões) será(ão) excluída(s) permanentemente.
+                          Útil pra limpar uma fatura antes de reimportar. Essa ação não pode ser desfeita.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="flex gap-2 justify-end">
+                        <Button variant="outline" onClick={() => setIsBulkDeleteDialogOpen(false)} disabled={isBulkDeleting}>
+                          Cancelar
+                        </Button>
+                        <Button variant="destructive" onClick={handleBulkDeleteSelected} disabled={isBulkDeleting}>
+                          {isBulkDeleting ? "Excluindo..." : "Excluir"}
+                        </Button>
                       </div>
                     </DialogContent>
                   </Dialog>
