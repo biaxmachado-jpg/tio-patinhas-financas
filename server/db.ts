@@ -1014,7 +1014,7 @@ export async function importFile(userId: number, data: {
   fileContent: string; 
   fileName: string; 
   fileType: string;
-  transactions?: Array<{date: Date; description: string; amount: string; type: "income" | "expense"; categoryId?: number}>;
+  transactions?: Array<{date: Date; description: string; amount: string; type: "income" | "expense"; categoryId?: number; installments?: number; currentInstallment?: number}>;
   dueDate?: Date;
 }) {
   try {
@@ -1040,7 +1040,7 @@ export async function importFile(userId: number, data: {
       } catch (e) { /* ignora se já existir */ }
 
       // Garantir que todas as datas são objetos Date (tRPC serializa como string)
-      let extractedTransactions: Array<{date: Date; description: string; amount: string; type: "income" | "expense"; categoryId?: number}> = 
+      let extractedTransactions: Array<{date: Date; description: string; amount: string; type: "income" | "expense"; categoryId?: number; installments?: number; currentInstallment?: number}> =
         (data.transactions || []).map(tx => ({
           ...tx,
           date: new Date(tx.date),
@@ -1183,41 +1183,47 @@ export async function importFile(userId: number, data: {
             continue;
           }
 
-          // Garantir amount como decimal válido
-          const cleanAmount = String(tx.amount).replace(/[^0-9.]/g, '');
+          // Garantir amount como decimal válido, preservando o sinal (o "-"
+          // é o que a regex anterior removia, fazendo todo estorno/crédito
+          // virar despesa positiva).
+          const cleanAmount = String(tx.amount).replace(/[^0-9.-]/g, '');
           const numericAmount = parseFloat(cleanAmount);
           if (isNaN(numericAmount)) {
             errors.push(`${tx.description}: amount inválido: ${tx.amount}`);
             continue;
           }
-          const finalAmount = numericAmount.toFixed(2);
+          // creditCardTransactions não tem coluna "type" — quem diferencia
+          // estorno/crédito (valor negativo) de compra/despesa (valor
+          // positivo) nas telas que consomem essa tabela é o sinal do
+          // amount (ver client/src/lib/transactionClassifier.ts). O type
+          // vindo da classificação (IA ou ajuste manual do usuário) é a
+          // fonte da verdade aqui, em vez de confiar que o valor já chegou
+          // com o sinal certo do frontend.
+          const signedAmount = tx.type === "income" ? -Math.abs(numericAmount) : Math.abs(numericAmount);
+          const finalAmount = signedAmount.toFixed(2);
 
-          const insertValues: any = {
-            cardId: data.entityId,
-            userId,
-            date: txDate,
-            dueDate,
-            description: String(tx.description).substring(0, 255),
-            amount: finalAmount,
-          };
-          if (categoryId !== null && categoryId !== undefined) {
-            insertValues.categoryId = categoryId;
-          }
+          // Parcelamento: extraído pela IA (ou informado pelo usuário) a
+          // partir da notação impressa na fatura (ex: "03/10"). 1/1 quando
+          // não é parcelado.
+          const installmentsTotal =
+            tx.installments && tx.installments > 0 ? Math.trunc(tx.installments) : 1;
+          const installmentsCurrent =
+            tx.currentInstallment && tx.currentInstallment > 0 ? Math.trunc(tx.currentInstallment) : 1;
 
           // Usar SQL raw para contornar bug do Drizzle com MySQL
           if (!_pool) throw new Error('Database pool not available');
-          
+
           const toMySQLDate = (d: Date) => d.toISOString().slice(0, 19).replace('T', ' ');
 
           if (categoryId !== null && categoryId !== undefined) {
             await _pool.execute(
-              'INSERT INTO `creditCardTransactions` (`cardId`, `userId`, `categoryId`, `date`, `dueDate`, `description`, `amount`) VALUES (?, ?, ?, ?, ?, ?, ?)',
-              [data.entityId, userId, categoryId, toMySQLDate(txDate), toMySQLDate(dueDate), String(tx.description).substring(0, 255), parseFloat(finalAmount)]
+              'INSERT INTO `creditCardTransactions` (`cardId`, `userId`, `categoryId`, `date`, `dueDate`, `description`, `amount`, `installments`, `currentInstallment`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+              [data.entityId, userId, categoryId, toMySQLDate(txDate), toMySQLDate(dueDate), String(tx.description).substring(0, 255), parseFloat(finalAmount), installmentsTotal, installmentsCurrent]
             );
           } else {
             await _pool.execute(
-              'INSERT INTO `creditCardTransactions` (`cardId`, `userId`, `date`, `dueDate`, `description`, `amount`) VALUES (?, ?, ?, ?, ?, ?)',
-              [data.entityId, userId, toMySQLDate(txDate), toMySQLDate(dueDate), String(tx.description).substring(0, 255), parseFloat(finalAmount)]
+              'INSERT INTO `creditCardTransactions` (`cardId`, `userId`, `date`, `dueDate`, `description`, `amount`, `installments`, `currentInstallment`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+              [data.entityId, userId, toMySQLDate(txDate), toMySQLDate(dueDate), String(tx.description).substring(0, 255), parseFloat(finalAmount), installmentsTotal, installmentsCurrent]
             );
           }
           transactionsCreated++;

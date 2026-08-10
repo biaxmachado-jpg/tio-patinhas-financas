@@ -504,6 +504,8 @@ export const appRouter = router({
           amount: z.string(),
           type: z.enum(["income", "expense"]),
           categoryId: z.number().optional(),
+          installments: z.number().int().min(1).optional(),
+          currentInstallment: z.number().int().min(1).optional(),
         })).optional(),
         skipDuplicates: z.boolean().optional(),
         dueDate: z.date().optional(),

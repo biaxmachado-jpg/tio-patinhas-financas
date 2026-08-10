@@ -55,7 +55,7 @@ export default function CreditCards() {
     setOpen(newOpen);
   };
 
-  const totalLimit = cardsQuery.data?.reduce((sum: number, card: any) => sum + parseFloat(card.limit.toString()), 0) || 0;
+  const totalLimit = cardsQuery.data?.reduce((sum: number, card: any) => sum + parseFloat(String(card.limit ?? 0)), 0) || 0;
 
   return (
     <div className="space-y-6">

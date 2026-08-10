@@ -16,12 +16,17 @@ export interface TransactionWithCategory {
   isDuplicate?: boolean;
   isInstallment?: boolean;
   aiType?: "income" | "expense"; // tipo já classificado pela IA no momento da importação
+  installments?: number; // total de parcelas, extraído da fatura pela IA (1 = não parcelado)
+  currentInstallment?: number; // parcela atual cobrada nesta fatura
 }
 
 interface TransactionCategorizerProps {
   transactions: TransactionWithCategory[];
   onCategoriesApplied: (categorizedTransactions: TransactionWithCategory[]) => void;
   onCancel: () => void;
+  // Faturas de cartão têm uma terceira seção (Créditos/Estornos) que
+  // extratos bancários não têm — sem isso a tela não sabe separar.
+  entityType?: "creditCard" | "bankAccount";
 }
 
 // Parsear keywords de qualquer formato que o banco retorne
@@ -73,6 +78,7 @@ export function TransactionCategorizer({
   transactions,
   onCategoriesApplied,
   onCancel,
+  entityType,
 }: TransactionCategorizerProps) {
   const categoriesQuery = trpc.categories.list.useQuery();
   const rulesQuery = trpc.categorizationRules.list.useQuery();
@@ -176,8 +182,19 @@ export function TransactionCategorizer({
     return categories.find((c: any) => c.id === categoryId)?.color || "#e5e7eb";
   };
 
-  const currentMonth = categorizedTransactions.filter(tx => !tx.isInstallment);
-  const installments = categorizedTransactions.filter(tx => tx.isInstallment);
+  // Faturas de cartão vêm com 3 grupos, lidos direto do que está escrito na
+  // fatura: créditos/estornos (aiType "income" — dinheiro voltando) sempre
+  // ganham prioridade sobre o resto, depois parceladas (installments > 1),
+  // depois compras à vista do mês. Extratos bancários continuam com a
+  // divisão antiga (mês atual vs. parcela carregada de fatura anterior).
+  const isCard = entityType === "creditCard";
+  const creditos = isCard ? categorizedTransactions.filter(tx => tx.aiType === "income") : [];
+  const currentMonth = categorizedTransactions.filter(tx =>
+    isCard ? tx.aiType !== "income" && !tx.isInstallment : !tx.isInstallment
+  );
+  const installments = categorizedTransactions.filter(tx =>
+    isCard ? tx.aiType !== "income" && tx.isInstallment : tx.isInstallment
+  );
   const categorizedCount = categorizedTransactions.filter(tx => tx.categoryId).length;
   const totalCount = categorizedTransactions.length;
   const isLoading = categoriesQuery.isLoading || rulesQuery.isLoading;
@@ -195,6 +212,11 @@ export function TransactionCategorizer({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-muted-foreground font-mono">{transaction.date}</span>
+            {(transaction.installments ?? 1) > 1 && (
+              <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
+                {transaction.currentInstallment ?? 1}/{transaction.installments}
+              </span>
+            )}
             {transaction.isDuplicate && (
               <>
                 <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -374,6 +396,25 @@ export function TransactionCategorizer({
               </p>
               <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                 {installments.map(tx => <TransactionRow key={tx.id} transaction={tx} />)}
+              </div>
+            </div>
+          )}
+
+          {/* Créditos / Estornos (só faz sentido em fatura de cartão) */}
+          {creditos.length > 0 && (
+            <div className="mt-4">
+              <SectionHeader
+                title="💰 Créditos / Estornos"
+                count={creditos.length}
+                categorized={creditos.filter(t => t.categoryId).length}
+                transactions={creditos}
+                color="bg-green-50 border border-green-200"
+              />
+              <p className="text-xs text-muted-foreground mb-2 px-1">
+                Estornos, cashback e cancelamentos identificados na fatura — dinheiro voltando, reduzem o total.
+              </p>
+              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                {creditos.map(tx => <TransactionRow key={tx.id} transaction={tx} />)}
               </div>
             </div>
           )}

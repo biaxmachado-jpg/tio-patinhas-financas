@@ -22,8 +22,10 @@ interface Transaction {
   amount: string;
   isDuplicate?: boolean;
   categoryId?: number;
-  isInstallment?: boolean; // parcela de mês anterior
+  isInstallment?: boolean; // parcela (installments > 1, lido da fatura)
   aiType?: "income" | "expense"; // tipo já classificado pela IA (evita depender do sinal do valor)
+  installments?: number; // total de parcelas, lido da notação impressa na fatura (ex: "03/10")
+  currentInstallment?: number; // parcela atual cobrada nesta fatura
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -252,6 +254,8 @@ export default function ImportFile() {
         amount: t.amount,
         categoryId: t.categoryId ?? undefined,
         aiType: t.type,
+        installments: t.installments ?? 1,
+        currentInstallment: t.currentInstallment ?? 1,
       }));
 
       if (extractedTransactions.length === 0) {
@@ -259,11 +263,16 @@ export default function ImportFile() {
         return;
       }
 
-      // Marcar parcelas de meses anteriores pelo nome do arquivo
+      // Parcelada = o que está escrito na própria fatura (installments > 1,
+      // extraído pela IA da notação "03/10" etc.), não mais um chute pela
+      // data do arquivo. Mantemos o heurístico antigo só como reforço, pra
+      // fatura/texto onde a IA não tenha achado a notação de parcela.
       const faturaRef = extrairMesFatura(file.name);
       const markedTransactions = extractedTransactions.map(tx => ({
         ...tx,
-        isInstallment: faturaRef ? isParcelaAnterior(tx.date, faturaRef) : false,
+        isInstallment:
+          (tx.installments ?? 1) > 1 ||
+          (faturaRef ? isParcelaAnterior(tx.date, faturaRef) : false),
       }));
 
       setTransactions(markedTransactions);
@@ -271,10 +280,14 @@ export default function ImportFile() {
       setExtractedDueDate(null);
       setAiProcessed(true);
 
-      const comprasMes = markedTransactions.filter(t => !t.isInstallment).length;
-      const parcelas = markedTransactions.filter(t => t.isInstallment).length;
+      const isCardImport = importType === "creditCard";
+      const creditosCount = isCardImport ? markedTransactions.filter(t => t.aiType === "income").length : 0;
+      const comprasMes = markedTransactions.filter(t => !t.isInstallment && t.aiType !== "income").length;
+      const parcelas = markedTransactions.filter(t => t.isInstallment && t.aiType !== "income").length;
       toast.success(
-        `${markedTransactions.length} transação(ões) classificada(s) por IA: ${comprasMes} do mês${parcelas > 0 ? `, ${parcelas} parcela(s)` : ""}`
+        `${markedTransactions.length} transação(ões) classificada(s) por IA: ${comprasMes} do mês` +
+          (parcelas > 0 ? `, ${parcelas} parcela(s)` : "") +
+          (creditosCount > 0 ? `, ${creditosCount} crédito(s)/estorno(s)` : "")
       );
 
       if (importType === "creditCard") {
@@ -383,16 +396,25 @@ export default function ImportFile() {
             ? (raw >= 0 ? "expense" : "income")
             : (raw >= 0 ? "income" : "expense")
         );
-        const base = {
+        // Fatura de cartão não tem coluna "type" no banco — o sinal do
+        // valor é quem diferencia estorno/crédito (negativo) de compra
+        // (positivo) nas telas que consomem a tabela (ver
+        // transactionClassifier.ts). Sem isso, todo estorno virava despesa
+        // positiva e nunca aparecia como crédito.
+        const amount =
+          importType === "creditCard"
+            ? (type === "income" ? -Math.abs(raw) : Math.abs(raw)).toFixed(2)
+            : Math.abs(raw).toFixed(2);
+        return {
           date: new Date(tx.date),
           description: tx.description,
-          amount: Math.abs(raw).toFixed(2),
+          amount,
           type,
+          ...(tx.categoryId ? { categoryId: tx.categoryId } : {}),
+          ...(importType === "creditCard"
+            ? { installments: tx.installments ?? 1, currentInstallment: tx.currentInstallment ?? 1 }
+            : {}),
         };
-        if (tx.categoryId) {
-          return { ...base, categoryId: tx.categoryId };
-        }
-        return base;
       });
 
       console.log("[Import] Enviando", formattedTransactions.length, "transações");
@@ -496,6 +518,7 @@ export default function ImportFile() {
             transactions={transactions}
             onCategoriesApplied={handleCategoriesApplied}
             onCancel={() => setShowCategorizer(false)}
+            entityType={importType}
           />
         </div>
       </div>

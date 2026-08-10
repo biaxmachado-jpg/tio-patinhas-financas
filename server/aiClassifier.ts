@@ -19,6 +19,22 @@ const TransactionSchema = z.object({
   type: z.enum(["income", "expense"]).describe(
     "income = entrada de dinheiro (receita, depósito, estorno/crédito); expense = saída (despesa, compra, pagamento)"
   ),
+  installments: z
+    .number()
+    .int()
+    .min(1)
+    .default(1)
+    .describe(
+      "Número TOTAL de parcelas da compra, lido diretamente da notação impressa na fatura (ex: '03/10' = 10 parcelas ao todo). Se a compra não é parcelada (à vista, crédito/estorno, pagamento, anuidade em parcela única), use 1."
+    ),
+  currentInstallment: z
+    .number()
+    .int()
+    .min(1)
+    .default(1)
+    .describe(
+      "Número da parcela sendo cobrada NESTA fatura, lido da mesma notação (ex: '03/10' = parcela 3). Se não é parcelada, use 1."
+    ),
   categoryId: z.number().nullable().describe("id da categoria mais adequada, ou null se não tiver certeza"),
   confidence: z.enum(["high", "medium", "low"]),
 });
@@ -59,17 +75,29 @@ function buildInstructions(params: {
           .join("\n")
       : "(sem histórico ainda — use seu melhor julgamento pela descrição)";
 
+  const cardStructureNotes = isCard
+    ? `
+
+ESTRUTURA DA FATURA (importante — a fatura já vem organizada em seções, use os títulos impressos como sinal forte, não só o valor):
+- Faturas de cartão brasileiras normalmente separam as transações em blocos/seções com títulos como "Compras" / "Lançamentos do mês" / "Compras à vista" (compras feitas dentro do próprio ciclo, cobradas em parcela única), "Parcelamentos" / "Compras parceladas" / "Compras a prazo" (compras cobradas em várias faturas) e "Créditos" / "Estornos" / "Pagamentos e créditos" (dinheiro voltando para o cliente: estorno de compra, cashback, contestação). Use esses cabeçalhos de seção para decidir installments/currentInstallment e type — eles costumam estar explicitamente escritos no documento.
+- Notação de parcela: quando a descrição traz algo como "03/10", "PARC 02/06", "2 de 12", isso é currentInstallment/installments — extraia os dois números exatamente como aparecem, não invente.
+- Estornos/créditos às vezes vêm com um "-" na frente do valor, mas em várias faturas eles só ficam claros pela seção em que estão ou por palavras como "ESTORNO", "CRÉDITO", "CASHBACK", "CANCELAMENTO", "DEVOLUÇÃO" — mesmo sem sinal negativo explícito, classifique como type "income" (é dinheiro voltando).
+- Uma compra parcelada é type "expense" mesmo que installments > 1 — parcelamento não é crédito, é despesa dividida em várias faturas.`
+    : "";
+
   return `Você vai analisar um extrato ${isCard ? "de fatura de cartão de crédito" : "bancário"} e extrair cada transação real encontrada no documento.
 
 Para CADA transação, retorne:
 - date: data no formato YYYY-MM-DD (use o ano correto do extrato, não assuma o ano atual)
 - description: a descrição da transação, limpa (sem lixo de formatação, sem repetir a data ou o valor)
 - amount: valor ABSOLUTO (sempre positivo), com 2 casas decimais
-- type: "income" se é ENTRADA de dinheiro (receita${isCard ? ", estorno/crédito na fatura" : ", depósito, transferência recebida, estorno"}) ou "expense" se é SAÍDA (despesa${isCard ? ", compra" : ", pagamento, saque, transferência enviada"})
+- type: "income" se é ENTRADA de dinheiro (receita${isCard ? ", estorno/crédito na fatura" : ", depósito, transferência recebida, estorno"}) ou "expense" se é SAÍDA (despesa${isCard ? ", compra, seja à vista ou parcelada" : ", pagamento, saque, transferência enviada"})${isCard ? `
+- installments: número TOTAL de parcelas da compra, lido da notação impressa (ex: "03/10" → 10). Compra à vista, crédito/estorno ou pagamento de fatura = 1.
+- currentInstallment: número da parcela cobrada NESTA fatura (ex: "03/10" → 3). Se não é parcelada = 1.` : ""}
 - categoryId: o id da categoria mais adequada da lista abaixo, baseado na descrição e no histórico de categorização já feito por esta pessoa. Se não tiver nenhuma certeza razoável, use null — não force uma categoria errada.
 - confidence: "high", "medium" ou "low" — sua confiança na categoria escolhida
 
-IGNORE linhas que não são transações reais: saldo anterior, saldo do dia, limite disponível, totais, cabeçalhos de tabela${isCard ? ', "pagamento efetuado"/"pagamento recebido" (isso é o pagamento da própria fatura, não uma compra)' : ""}.
+IGNORE linhas que não são transações reais: saldo anterior, saldo do dia, limite disponível, totais, subtotais de seção, cabeçalhos de tabela${isCard ? ', "pagamento efetuado"/"pagamento recebido" (isso é o pagamento da própria fatura, não uma compra)' : ""}.${cardStructureNotes}
 
 Categorias disponíveis:
 ${categoryList}
