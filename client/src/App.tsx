@@ -14,6 +14,7 @@ import Budgets from "./pages/Budgets";
 import CreditCards from "./pages/CreditCards";
 import CreditCardDetail from "./pages/CreditCardDetail";
 import ImportFile from "./pages/ImportFile";
+import Importar from "./pages/Importar";
 import Profile from "./pages/Profile";
 import Database from "./pages/Database";
 import Expenses from "./pages/Expenses";
@@ -92,10 +93,15 @@ function Router() {
           <Database />
         </DashboardLayout>
       </Route>
-      {/* Link antigo, nunca teve uma tela própria — manda para a lista de
-          contas, de onde dá para entrar em uma conta e importar o extrato. */}
+      <Route path="/importar">
+        <DashboardLayout>
+          <Importar />
+        </DashboardLayout>
+      </Route>
+      {/* Link antigo do menu (era "Importar OFX") — mantido pra não quebrar
+          favoritos salvos, agora mandando pra tela de importação de verdade. */}
       <Route path="/importar-ofx">
-        <Redirect to="/contas" />
+        <Redirect to="/importar" />
       </Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />

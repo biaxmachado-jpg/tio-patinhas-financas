@@ -39,7 +39,7 @@ const menuItems = [
   { icon: TrendingDown, label: "Despesas", path: "/despesas" },
   { icon: TrendingUp, label: "Receitas", path: "/receitas" },
   { icon: Target, label: "Orçado x Real", path: "/orcamentos" },
-  { icon: Upload, label: "Importar OFX", path: "/importar-ofx" },
+  { icon: Upload, label: "Importar", path: "/importar" },
   { icon: Database, label: "Banco de Dados", path: "/banco-de-dados" },
 ]
 
