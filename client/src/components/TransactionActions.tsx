@@ -21,7 +21,11 @@ import { trpc } from "@/lib/trpc";
 
 interface TransactionActionsProps {
   transactionId: number;
-  categoryId: number;
+  // Transações importadas sem categoria certa (a IA deixa null quando não
+  // tem confiança) chegam aqui com categoryId null — sem isso, o
+  // useState(categoryId.toString()) abaixo derrubava a página inteira do
+  // cartão com "Cannot read properties of null (reading 'toString')".
+  categoryId: number | null;
   description: string;
   dueDate: Date;
   onDelete?: () => void;
@@ -40,7 +44,7 @@ export function TransactionActions({
 }: TransactionActionsProps) {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(categoryId.toString());
+  const [selectedCategory, setSelectedCategory] = useState(categoryId?.toString() ?? "");
 
   const { data: categories } = trpc.categories.list.useQuery();
   const updateMutation = trpc.creditCardTransactions.update.useMutation();
@@ -48,10 +52,15 @@ export function TransactionActions({
   const moveMutation = trpc.creditCardTransactions.moveToNextBilling.useMutation();
 
   const handleReclassify = async () => {
+    const newCategoryId = parseInt(selectedCategory, 10);
+    if (isNaN(newCategoryId)) {
+      toast.error("Selecione uma categoria");
+      return;
+    }
     try {
       await updateMutation.mutateAsync({
         id: transactionId,
-        categoryId: parseInt(selectedCategory),
+        categoryId: newCategoryId,
       });
       toast.success("Transação reclassificada com sucesso!");
       setShowEditDialog(false);
