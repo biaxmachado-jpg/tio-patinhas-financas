@@ -72,10 +72,6 @@ APP_PASSWORD="sua_senha_de_acesso"
 OWNER_NAME="Bia"
 OWNER_OPEN_ID="seu_identificador_interno"
 
-# APIs opcionais (geração de imagem / transcrição de voz)
-BUILT_IN_FORGE_API_URL="https://api.manus.im"
-BUILT_IN_FORGE_API_KEY="sua_api_key"
-
 # Analytics (opcional)
 VITE_ANALYTICS_ENDPOINT="seu_analytics_endpoint"
 VITE_ANALYTICS_WEBSITE_ID="seu_website_id"
@@ -159,7 +155,6 @@ pnpm test          # roda os testes uma vez
 | `OWNER_NAME` | Nome do proprietário da conta | ❌ (default: `Bia`) |
 | `OWNER_OPEN_ID` | Identificador interno do proprietário | ❌ (default: `bia-owner`) |
 | `PORT` | Porta do servidor | ❌ (default: `3000`, Docker usa `8080`) |
-| `BUILT_IN_FORGE_API_URL` / `BUILT_IN_FORGE_API_KEY` | Credenciais para geração de imagem/transcrição de voz | ❌ |
 | `VITE_ANALYTICS_ENDPOINT` / `VITE_ANALYTICS_WEBSITE_ID` | Analytics do frontend | ❌ |
 | `VITE_API_URL` | URL pública da API, embutida no build do frontend | ❌ |
 
