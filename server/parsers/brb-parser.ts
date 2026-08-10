@@ -159,8 +159,9 @@ export function parseBRBStatement(pdfContent: string): ParsedTransaction[] {
           }
         }
         
-        // Parse the amount
-        const amountMatch = amountStr.match(/R\$\s*([+-])?(\d[\d.,]*)/);
+        // Parse the amount. Signs may come as an ASCII hyphen (-) or, when
+        // extracted from PDF text, as a Unicode minus sign (− U+2212).
+        const amountMatch = amountStr.match(/R\$\s*([+\-−])?(\d[\d.,]*)/);
         if (amountMatch) {
           const sign = amountMatch[1] || '+';
           const amountValue = amountMatch[2].replace(/\./g, '').replace(',', '.');
