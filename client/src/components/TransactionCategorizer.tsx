@@ -137,10 +137,30 @@ export function TransactionCategorizer({
     toast.success("Categoria aplicada ao grupo");
   };
 
+  // Permite desmarcar uma transação sinalizada como duplicata (falso positivo) —
+  // sem isso, ela nunca poderia ser importada mesmo sendo legítima.
+  const handleToggleDuplicate = (transactionId: string) => {
+    setCategorizedTransactions(prev =>
+      prev.map(tx => tx.id === transactionId ? { ...tx, isDuplicate: !tx.isDuplicate } : tx)
+    );
+  };
+
+  // ── FIX: Duplicatas sinalizadas NUNCA são enviadas pro salvamento ───────
+  // Antes disso, "possível duplicata" era só um aviso visual — se a pessoa
+  // clicasse em Salvar sem remover a linha manualmente, a transação era
+  // inserida de novo no banco. Agora o filtro é automático; quem quiser
+  // importar uma duplicata "falsa" pode desmarcá-la antes (botão na linha).
+  const duplicateCount = categorizedTransactions.filter(tx => tx.isDuplicate).length;
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      onCategoriesApplied(categorizedTransactions);
+      const toImport = categorizedTransactions.filter(tx => !tx.isDuplicate);
+      const skipped = categorizedTransactions.length - toImport.length;
+      if (skipped > 0) {
+        toast.info(`${skipped} transação(ões) marcada(s) como duplicata foram ignoradas`);
+      }
+      onCategoriesApplied(toImport);
     } finally {
       setIsSaving(false);
     }
@@ -176,10 +196,19 @@ export function TransactionCategorizer({
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-muted-foreground font-mono">{transaction.date}</span>
             {transaction.isDuplicate && (
-              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1">
-                <AlertCircle className="h-3 w-3" />
-                Duplicada
-              </span>
+              <>
+                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Duplicada — não será importada
+                </span>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleToggleDuplicate(transaction.id); }}
+                  className="text-xs text-blue-600 underline hover:text-blue-800"
+                  title="Marcar como não sendo duplicata, pra importar mesmo assim"
+                >
+                  não é duplicata
+                </button>
+              </>
             )}
           </div>
           <p className="text-sm font-medium truncate mt-0.5">{transaction.description}</p>
@@ -269,6 +298,11 @@ export function TransactionCategorizer({
                 {categorizedCount} de {totalCount} categorizada(s)
                 {rules.length > 0 && (
                   <span className="ml-2 text-green-600">• {rules.length} regra(s)</span>
+                )}
+                {duplicateCount > 0 && (
+                  <span className="ml-2 text-amber-600">
+                    • {duplicateCount} duplicata(s) — não serão importadas
+                  </span>
                 )}
               </p>
             </div>
