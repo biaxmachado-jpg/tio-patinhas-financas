@@ -9,14 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Upload, ArrowLeft, Plus, Trash2, FileText, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
-import * as pdfjs from "pdfjs-dist";
-import {
-  parseFileWithBankDetection,
-  getBankInfo,
-  detectBank,
-  type BankType,
-  parseItauXLS,
-} from "@/lib/bankDetection";
 import { TransactionCategorizer, type TransactionWithCategory } from "@/components/TransactionCategorizer";
 import { DescriptionBatchEditor } from "@/components/DescriptionBatchEditor";
 import { DueDateConfirmDialog } from "@/components/DueDateConfirmDialog";
@@ -31,6 +23,7 @@ interface Transaction {
   isDuplicate?: boolean;
   categoryId?: number;
   isInstallment?: boolean; // parcela de mês anterior
+  aiType?: "income" | "expense"; // tipo já classificado pela IA (evita depender do sinal do valor)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -76,265 +69,6 @@ function extrairParcelamento(desc: string): { base: string; parcela: string | nu
   return { base: desc.trim(), parcela: null };
 }
 
-// Descrições que devem ser ignoradas na importação de cartão/conta
-const SKIP_DESCRIPTIONS_CARTAO = [
-  "pagamento efetuado",
-  "pagamento recebido",
-  "pagamento debito",
-];
-
-const SKIP_DESCRIPTIONS_CONTA = [
-  "saldo total dispon",
-  "saldo anterior",
-  "saldo do dia",
-  "limite da conta",
-];
-
-function deveIgnorarLinha(desc: string, valor: number, tipo: "cartao" | "conta" = "cartao"): boolean {
-  const descLower = desc.toLowerCase().trim();
-  const skipList = tipo === "cartao" ? SKIP_DESCRIPTIONS_CARTAO : SKIP_DESCRIPTIONS_CONTA;
-  if (skipList.some(s => descLower.includes(s))) return true;
-  return false;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Parser para CSV de fatura Itaú (formato: data,lançamento,valor)
-// ─────────────────────────────────────────────────────────────────────────────
-function parseCSVFatura(csvText: string): Transaction[] {
-  const transactions: Transaction[] = [];
-  const lines = csvText.split(/\r?\n/).filter(l => l.trim());
-
-  // Detectar linha de cabeçalho
-  let dataIdx = -1, descIdx = -1, valorIdx = -1;
-  let startLine = 0;
-
-  for (let i = 0; i < Math.min(5, lines.length); i++) {
-    const cols = lines[i].split(",").map(c => c.replace(/^"|"$/g, "").trim().toLowerCase());
-    const dI = cols.findIndex(c => c.includes("data") || c === "date");
-    const descI = cols.findIndex(c => c.includes("lan") || c.includes("descr") || c.includes("hist"));
-    const vI = cols.findIndex(c => c.includes("valor") || c === "value" || c === "amount");
-    if (dI !== -1 && vI !== -1) {
-      dataIdx = dI;
-      descIdx = descI !== -1 ? descI : (dI === 0 ? 1 : 0);
-      valorIdx = vI;
-      startLine = i + 1;
-      break;
-    }
-  }
-
-  if (dataIdx === -1) return transactions;
-
-  for (let i = startLine; i < lines.length; i++) {
-    const raw = lines[i];
-    if (!raw.trim()) continue;
-
-    // Parsear CSV respeitando aspas
-    const cols: string[] = [];
-    let cur = "";
-    let inQuote = false;
-    for (const ch of raw) {
-      if (ch === '"') { inQuote = !inQuote; }
-      else if (ch === "," && !inQuote) { cols.push(cur.trim()); cur = ""; }
-      else { cur += ch; }
-    }
-    cols.push(cur.trim());
-
-    const dateRaw = cols[dataIdx]?.replace(/^"|"$/g, "").trim();
-    const desc = cols[descIdx]?.replace(/^"|"$/g, "").trim();
-    const amountRaw = cols[valorIdx]?.replace(/^"|"$/g, "").trim();
-
-    if (!dateRaw || !desc || !amountRaw) continue;
-
-    // Formatar data: aceita YYYY-MM-DD ou DD/MM/YYYY
-    let formattedDate = "";
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateRaw)) {
-      formattedDate = dateRaw;
-    } else {
-      const m = dateRaw.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
-      if (m) {
-        const year = m[3].length === 2 ? "20" + m[3] : m[3];
-        formattedDate = `${year}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
-      } else continue;
-    }
-
-    // Parsear valor (mantém sinal para filtrar negativos)
-    let amount = amountRaw.replace(/[R$\s]/g, "");
-    if (amount.includes(".") && amount.includes(",")) {
-      amount = amount.replace(".", "").replace(",", ".");
-    } else {
-      amount = amount.replace(",", ".");
-    }
-    const parsed = parseFloat(amount);
-    if (isNaN(parsed)) continue;
-
-    // ── FIX 1: Filtrar pagamentos, estornos e valores negativos ──────────────
-    if (deveIgnorarLinha(desc, parsed, "cartao")) continue;
-
-    transactions.push({
-      id: Date.now().toString() + Math.random(),
-      date: formattedDate,
-      description: desc,
-      amount: parsed.toFixed(2), // mantém sinal para definir income/expense depois
-    });
-  }
-
-  return transactions;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Parser para XLS do Bradesco
-// ─────────────────────────────────────────────────────────────────────────────
-function parseBradescoXLS(data: any[][]): Transaction[] {
-  const transactions: Transaction[] = [];
-
-  let headerIdx = -1;
-  for (let i = 0; i < Math.min(20, data.length); i++) {
-    const row = data[i];
-    if (!row) continue;
-    const rowStr = row.map(c => String(c ?? "").toLowerCase()).join(" ");
-    if (rowStr.includes("data") && rowStr.includes("hist") && (rowStr.includes("créd") || rowStr.includes("déb") || rowStr.includes("cred") || rowStr.includes("deb"))) {
-      headerIdx = i;
-      break;
-    }
-  }
-  if (headerIdx === -1) return transactions;
-
-  const header = data[headerIdx].map(c => String(c ?? "").toLowerCase());
-  const dateCol   = header.findIndex(c => c.includes("data"));
-  const descCol   = header.findIndex(c => c.includes("hist"));
-  const creditCol = header.findIndex(c => c.includes("cred") || c.includes("créd"));
-  const debitCol  = header.findIndex(c => c.includes("deb") || c.includes("déb"));
-
-  if (dateCol === -1 || descCol === -1) return transactions;
-
-  for (let i = headerIdx + 1; i < data.length; i++) {
-    const row = data[i];
-    if (!row) continue;
-
-    const dateRaw = String(row[dateCol] ?? "").trim();
-    if (!dateRaw || !/\d/.test(dateRaw)) continue;
-
-    const desc = String(row[descCol] ?? "").trim();
-    if (!desc) continue;
-
-    const descLower = desc.toLowerCase();
-    if (
-      descLower.includes("saldo") ||
-      descLower.includes("total") ||
-      descLower === "" ||
-      descLower.includes("sac ") ||
-      descLower.includes("alô brad") ||
-      descLower.includes("ouvidoria")
-    ) continue;
-
-    let formattedDate = "";
-    const m = dateRaw.match(/(\d{1,2})\/(\d{2,4})(?:\/(\d{2,4}))?/);
-    if (m) {
-      let day = m[1], month = m[2], year = m[3];
-      if (!year) {
-        year = new Date().getFullYear().toString();
-      } else if (year.length === 2) {
-        year = "20" + year;
-      }
-      if (month.length > 2) continue;
-      formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-    } else continue;
-
-    const parseCell = (val: any): number => {
-      if (val === null || val === undefined || val === "") return 0;
-      if (typeof val === "number") return Math.abs(val);
-      let s = String(val).replace(/[R$\s.]/g, "").replace(",", ".");
-      return Math.abs(parseFloat(s) || 0);
-    };
-
-    const credit = creditCol !== -1 ? parseCell(row[creditCol]) : 0;
-    const debit  = debitCol  !== -1 ? parseCell(row[debitCol])  : 0;
-    const amount = credit > 0 ? credit : debit;
-
-    if (!amount || amount === 0) continue;
-
-    transactions.push({
-      id: Date.now().toString() + Math.random(),
-      date: formattedDate,
-      description: desc,
-      amount: amount.toFixed(2),
-    });
-  }
-
-  return transactions;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Parser genérico para XLSX
-// ─────────────────────────────────────────────────────────────────────────────
-function parseXLSXData(data: any[][]): Transaction[] {
-  const transactions: Transaction[] = [];
-  if (!data || data.length === 0) return transactions;
-
-  const itauResult = parseItauXLS(data);
-  if (itauResult.length > 0) return itauResult;
-
-  const bradescoResult = parseBradescoXLS(data);
-  if (bradescoResult.length > 0) return bradescoResult;
-
-  let headerIndex = -1;
-  for (let i = 0; i < Math.min(20, data.length); i++) {
-    const row = data[i];
-    if (!row) continue;
-    const rowStr = row.map(c => String(c ?? "")).join(" ").toLowerCase();
-    if (rowStr.includes("data") && (rowStr.includes("hist") || rowStr.includes("descr") || rowStr.includes("valor"))) {
-      headerIndex = i;
-      break;
-    }
-  }
-  if (headerIndex === -1) return transactions;
-
-  const headerRow = data[headerIndex].map(c => String(c ?? "").toLowerCase());
-  let dateCol = -1, descCol = -1, amountCol = -1;
-  for (let i = 0; i < headerRow.length; i++) {
-    const cell = headerRow[i];
-    if (cell.includes("data") || cell.includes("date")) dateCol = i;
-    if (cell.includes("hist") || cell.includes("descr") || cell.includes("lanca")) descCol = i;
-    if (cell.includes("valor") || cell.includes("r$") || cell.includes("amount")) amountCol = i;
-  }
-
-  for (let i = headerIndex + 1; i < data.length; i++) {
-    const row = data[i];
-    if (!row || row.length === 0) continue;
-    const dateStr   = row[dateCol];
-    const description = row[descCol];
-    const amountStr = row[amountCol];
-    if (!dateStr || !description || !amountStr) continue;
-
-    const descLower = String(description).toLowerCase();
-    if (descLower.includes("total") || descLower.includes("saldo") || descLower.includes("limite")) continue;
-
-    const dateMatch = String(dateStr).match(/(\d{1,2})\/(\d{1,2})/);
-    if (!dateMatch) continue;
-    const [, day, month] = dateMatch;
-    const year = new Date().getFullYear();
-    const formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-
-    let amount = String(amountStr).trim().replace(/[R$]/g, "").trim();
-    if (amount.includes(".") && amount.includes(",")) {
-      amount = amount.replace(".", "").replace(",", ".");
-    } else {
-      amount = amount.replace(",", ".");
-    }
-    const parsed = parseFloat(amount);
-    if (isNaN(parsed)) continue;
-
-    transactions.push({
-      id: Date.now().toString() + Math.random(),
-      date: formattedDate,
-      description: String(description).trim(),
-      amount: Math.abs(parsed).toFixed(2),
-    });
-  }
-
-  return transactions;
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // FIX 2: Verificação de duplicatas que respeita parcelamentos
 // Parcelas com sufixo XX/YY diferente NUNCA são duplicatas entre si
@@ -377,7 +111,7 @@ export default function ImportFile() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [pendingTransactions, setPendingTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [detectedBank, setDetectedBank] = useState<BankType | null>(null);
+  const [aiProcessed, setAiProcessed] = useState(false);
   const [duplicates, setDuplicates] = useState<any[]>([]);
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
   const [showCategorizer, setShowCategorizer] = useState(false);
@@ -397,6 +131,7 @@ export default function ImportFile() {
   );
 
   const importMutation = trpc.files.import.useMutation();
+  const classifyMutation = trpc.files.classifyWithAI.useMutation();
   const categoriesQuery = trpc.categories.list.useQuery();
   const utils = trpc.useUtils();
 
@@ -420,7 +155,7 @@ export default function ImportFile() {
       }
 
       setFile(selectedFile);
-      setDetectedBank(null);
+      setAiProcessed(false);
       setTransactions([]);
       setDuplicates([]);
       setShowDuplicateWarning(false);
@@ -448,6 +183,32 @@ export default function ImportFile() {
     setTransactions(transactions.filter(tx => tx.id !== id));
   };
 
+  // Converte um workbook XLSX em texto (CSV), priorizando a aba "Lançamentos"
+  // quando existir — a IA lê o texto, não precisamos mais adivinhar colunas aqui.
+  const xlsxToText = (workbook: XLSX.WorkBook): string => {
+    const lancamentosSheet = workbook.SheetNames.find(n =>
+      n.toLowerCase().includes("lançamentos") || n.toLowerCase().includes("lancamentos")
+    );
+    const sheetName = lancamentosSheet || workbook.SheetNames[0];
+    return workbook.SheetNames
+      .map(name => `--- Aba: ${name} ---\n${XLSX.utils.sheet_to_csv(workbook.Sheets[name])}`)
+      .sort((a) => (sheetName && a.includes(`--- Aba: ${sheetName} ---`) ? -1 : 1)) // aba relevante primeiro
+      .join("\n\n");
+  };
+
+  const fileToBase64 = (buffer: ArrayBuffer): string => {
+    let binary = "";
+    const bytes = new Uint8Array(buffer);
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, i + chunkSize);
+      for (let j = 0; j < chunk.length; j++) {
+        binary += String.fromCharCode(chunk[j]);
+      }
+    }
+    return btoa(binary);
+  };
+
   const handleProcessFile = async () => {
     if (!file) {
       toast.error("Por favor, selecione um arquivo primeiro");
@@ -456,80 +217,42 @@ export default function ImportFile() {
 
     setIsLoading(true);
     try {
-      let extractedTransactions: Transaction[] = [];
-      let bank: BankType | null = null;
       const fileExtension = file.name.split(".").pop()?.toLowerCase();
 
-      if (fileExtension === "csv") {
-        const text = await file.text();
-        bank = detectBank(text);
-        extractedTransactions = parseCSVFatura(text);
+      let pdfBase64: string | undefined;
+      let textContent: string | undefined;
 
-      } else if (fileExtension === "pdf") {
-        pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-          "pdfjs-dist/build/pdf.worker.min.mjs",
-          import.meta.url,
-        ).toString();
+      if (fileExtension === "pdf") {
         const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjs.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
-        let fullText = "";
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-          const page = await pdf.getPage(pageNum);
-          const textContent = await page.getTextContent();
-          const text = textContent.items.map((item: any) => item.str).join(" ");
-          fullText += text + "\n";
-        }
-        const result = await parseFileWithBankDetection(fullText, "pdf");
-        extractedTransactions = result.transactions;
-        bank = result.bank;
-        setExtractedDueDate(result.dueDate || null);
-
+        pdfBase64 = fileToBase64(arrayBuffer);
       } else if (fileExtension === "xlsx" || fileExtension === "xls") {
         const arrayBuffer = await file.arrayBuffer();
         const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: "array" });
-
-        // Priorizar aba "Lançamentos" (Itaú) se existir
-        let rawData: any[][] = [];
-        const lancamentosSheet = workbook.SheetNames.find(n =>
-          n.toLowerCase().includes("lançamentos") || n.toLowerCase().includes("lancamentos")
-        );
-        if (lancamentosSheet) {
-          rawData = XLSX.utils.sheet_to_json(workbook.Sheets[lancamentosSheet], { header: 1 }) as any[][];
-        } else {
-          for (const sheetName of workbook.SheetNames) {
-            const candidate = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 }) as any[][];
-            const csvCheck = candidate.slice(0, 15).map(r => r.join(" ").toLowerCase()).join(" ");
-            if (csvCheck.includes("data") && (csvCheck.includes("lan") || csvCheck.includes("valor") || csvCheck.includes("créd"))) {
-              rawData = candidate;
-              break;
-            }
-          }
-        }
-        if (rawData.length === 0) {
-          rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 }) as any[][];
-        }
-
-        const csvText = rawData.map(r => r.join(",")).join("\n");
-        // Para XLS do Itaú com aba Lançamentos, forçar banco como itau
-        bank = lancamentosSheet ? "itau" : detectBank(csvText);
-
-        if (bank === "itau") {
-          extractedTransactions = parseItauXLS(rawData);
-        } else if (bank === "bradesco") {
-          extractedTransactions = parseBradescoXLS(rawData);
-        } else {
-          extractedTransactions = parseXLSXData(rawData);
-        }
-
-        if (importType === "creditCard") {
-          const result = await parseFileWithBankDetection(csvText, "xlsx");
-          setExtractedDueDate(result.dueDate || null);
-        }
-
+        textContent = xlsxToText(workbook);
+      } else if (fileExtension === "csv" || fileExtension === "txt" || fileExtension === "ofx") {
+        textContent = await file.text();
       } else {
         toast.error("Formato de arquivo não suportado para processamento automático");
         return;
       }
+
+      // A IA lê o arquivo (PDF nativo ou texto), extrai as transações e já
+      // sugere tipo (receita/despesa) e categoria com base no seu histórico.
+      const result = await classifyMutation.mutateAsync({
+        entityType: importType,
+        fileName: file.name,
+        pdfBase64,
+        textContent,
+      });
+
+      const extractedTransactions: Transaction[] = result.transactions.map((t, idx) => ({
+        id: `${Date.now()}-${idx}-${Math.random()}`,
+        date: t.date,
+        description: t.description,
+        amount: t.amount,
+        categoryId: t.categoryId ?? undefined,
+        aiType: t.type,
+      }));
 
       if (extractedTransactions.length === 0) {
         toast.warning("Nenhuma transação encontrada no arquivo. Tente adicionar manualmente.");
@@ -545,14 +268,13 @@ export default function ImportFile() {
 
       setTransactions(markedTransactions);
       setPendingTransactions(markedTransactions);
-      setDetectedBank(bank);
+      setExtractedDueDate(null);
+      setAiProcessed(true);
 
       const comprasMes = markedTransactions.filter(t => !t.isInstallment).length;
       const parcelas = markedTransactions.filter(t => t.isInstallment).length;
-      const bankInfo = bank ? getBankInfo(bank) : null;
-      const bankName = bankInfo?.name || "Banco desconhecido";
       toast.success(
-        `${markedTransactions.length} transação(ões) de ${bankName}: ${comprasMes} do mês${parcelas > 0 ? `, ${parcelas} parcela(s)` : ""}`
+        `${markedTransactions.length} transação(ões) classificada(s) por IA: ${comprasMes} do mês${parcelas > 0 ? `, ${parcelas} parcela(s)` : ""}`
       );
 
       if (importType === "creditCard") {
@@ -651,11 +373,16 @@ export default function ImportFile() {
     try {
       const formattedTransactions = txs.map(tx => {
         const raw = parseFloat(tx.amount);
+        // Se a IA já classificou o tipo na importação, usa isso — é mais confiável
+        // do que inferir pelo sinal do valor. Fallback (transações adicionadas
+        // manualmente, sem passar pela IA):
         // Cartão: positivo = compra (expense), negativo = estorno/devolução (income)
         // Conta: positivo = entrada (income), negativo = saída (expense)
-        const type: "income" | "expense" = importType === "creditCard"
-          ? (raw >= 0 ? "expense" : "income")
-          : (raw >= 0 ? "income" : "expense");
+        const type: "income" | "expense" = tx.aiType ?? (
+          importType === "creditCard"
+            ? (raw >= 0 ? "expense" : "income")
+            : (raw >= 0 ? "income" : "expense")
+        );
         const base = {
           date: new Date(tx.date),
           description: tx.description,
@@ -851,10 +578,10 @@ export default function ImportFile() {
                     <>Carregar Transações do Arquivo</>
                   )}
                 </Button>
-                {detectedBank && (
+                {aiProcessed && (
                   <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded">
                     <CheckCircle className="h-4 w-4" />
-                    <span>Banco detectado: <strong>{getBankInfo(detectedBank).name}</strong></span>
+                    <span>Transações classificadas por IA ✨</span>
                   </div>
                 )}
                 {showDuplicateWarning && duplicates.length > 0 && (
@@ -1007,7 +734,7 @@ export default function ImportFile() {
       {showDueDateConfirm && importType === "creditCard" && (
         <DueDateConfirmDialog
           extractedDate={extractedDueDate}
-          bankName={detectedBank ? getBankInfo(detectedBank).name : "Banco"}
+          bankName="Cartão"
           onConfirm={(date) => {
             setConfirmedDueDate(date);
             setShowDueDateConfirm(false);
