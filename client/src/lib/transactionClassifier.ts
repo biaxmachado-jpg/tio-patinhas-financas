@@ -27,9 +27,16 @@ export interface ClassifiedTransaction {
  * @returns true if installment pattern is found
  */
 export function hasInstallmentPattern(description: string): boolean {
-  // Match patterns like "1/12", "2/10", etc.
-  const installmentRegex = /\b\d{1,2}\/\d{1,2}\b/;
-  return installmentRegex.test(description);
+  // Installment counters look like "current/total" (e.g. "1/12", "2/10"),
+  // where the current installment never exceeds the total. Calendar dates
+  // in the DD/MM format used on Brazilian statements (e.g. "15/04") match
+  // the same digit/digit shape but usually break that constraint, since
+  // day-of-month commonly exceeds month-of-year — use that to tell them apart.
+  const match = description.match(/\b(\d{1,2})\/(\d{1,2})\b/);
+  if (!match) return false;
+  const current = parseInt(match[1], 10);
+  const total = parseInt(match[2], 10);
+  return current > 0 && total > 0 && current <= total;
 }
 
 /**
@@ -54,12 +61,18 @@ export function classifyTransaction(
     return 'parcelada';
   }
 
-  // Rule 3: À Vista (Upfront) - single installment
-  if (transaction.installments === 1) {
-    return 'vista';
+  // Rule 3: À Vista (Upfront) - single installment made within the last 5
+  // days of the billing cycle. A single-installment purchase far from the
+  // due date (or dated after it) is more likely carried over from a
+  // previous cycle, so it's classified as parcelada instead of assumed
+  // à vista. Without a due date to compare against, default to à vista.
+  if (billingDueDate) {
+    const txDate = new Date(transaction.date);
+    const daysBeforeDue =
+      (billingDueDate.getTime() - txDate.getTime()) / (1000 * 60 * 60 * 24);
+    return daysBeforeDue >= 0 && daysBeforeDue <= 5 ? 'vista' : 'parcelada';
   }
 
-  // Default to vista if no other rules match
   return 'vista';
 }
 
