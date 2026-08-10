@@ -368,5 +368,60 @@ describe('Transaction Classifier', () => {
       };
       expect(classifyTransaction(transaction, dueDate)).toBe('parcelada');
     });
+
+    // Regressão: uma transação com amount null/undefined (dado antigo ou
+    // corrompido no banco) derrubava a página inteira do cartão com
+    // "TypeError: Cannot read properties of null (reading 'toString')",
+    // porque classifyTransaction chamava transaction.amount.toString() sem
+    // checar null. Não deve lançar, e deve tratar como valor zero.
+    it('should not throw when amount is null', () => {
+      const transaction = {
+        id: 1,
+        amount: null,
+        date: baseDate,
+        dueDate,
+        installments: 1,
+        description: 'Transação com valor nulo',
+      };
+      expect(() => classifyTransaction(transaction, dueDate)).not.toThrow();
+      expect(classifyTransaction(transaction, dueDate)).toBe('vista');
+    });
+
+    it('should not throw when amount is undefined', () => {
+      const transaction = {
+        id: 1,
+        amount: undefined,
+        date: baseDate,
+        dueDate,
+        installments: 1,
+        description: 'Transação sem valor',
+      };
+      expect(() => classifyTransaction(transaction, dueDate)).not.toThrow();
+    });
+
+    it('calculateGroupTotals should treat null/undefined amounts as zero, not throw', () => {
+      const grouped = {
+        vista: [
+          {
+            id: 1,
+            amount: null as any,
+            type: 'vista' as const,
+            date: new Date(),
+            dueDate: null,
+            installments: 1,
+            currentInstallment: 1,
+            categoryId: 1,
+            paid: false,
+            paidAt: null,
+            notes: null,
+            description: '',
+          },
+        ],
+        parcelada: [],
+        credito: [],
+      };
+      expect(() => calculateGroupTotals(grouped)).not.toThrow();
+      expect(calculateGroupTotals(grouped).vista).toBe(0);
+    });
   });
 });

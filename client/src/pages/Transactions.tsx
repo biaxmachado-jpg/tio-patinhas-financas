@@ -52,7 +52,7 @@ export default function Transactions() {
             id,
             categoryId: bulkCategoryId,
             description: transaction.description,
-            amount: transaction.amount.toString(),
+            amount: String(transaction.amount ?? 0),
             date: new Date(transaction.date),
             notes: transaction.notes || "",
           });

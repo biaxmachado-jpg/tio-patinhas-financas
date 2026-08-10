@@ -198,11 +198,11 @@ export default function BankAccountDetail() {
   }
   if (filterMinValue) {
     const minVal = parseFloat(filterMinValue);
-    filteredTransactions = filteredTransactions.filter((t: any) => parseFloat(t.amount.toString()) >= minVal);
+    filteredTransactions = filteredTransactions.filter((t: any) => parseFloat(String(t.amount ?? 0)) >= minVal);
   }
   if (filterMaxValue) {
     const maxVal = parseFloat(filterMaxValue);
-    filteredTransactions = filteredTransactions.filter((t: any) => parseFloat(t.amount.toString()) <= maxVal);
+    filteredTransactions = filteredTransactions.filter((t: any) => parseFloat(String(t.amount ?? 0)) <= maxVal);
   }
   if (useCustomDateRange && filterStartDate && filterEndDate) {
     const startDate = new Date(filterStartDate);
@@ -216,9 +216,9 @@ export default function BankAccountDetail() {
   
   const income = filteredTransactions.filter((t: any) => t.type === "income");
   const expenses = filteredTransactions.filter((t: any) => t.type === "expense");
-  const totalIncome = income.reduce((sum: number, t: any) => sum + parseFloat(t.amount.toString()), 0);
+  const totalIncome = income.reduce((sum: number, t: any) => sum + parseFloat(String(t.amount ?? 0)), 0);
   // Use Math.abs to handle negative values correctly (e.g., -R$-92,76 should be treated as positive)
-  const totalExpenses = expenses.reduce((sum: number, t: any) => sum + Math.abs(parseFloat(t.amount.toString())), 0);
+  const totalExpenses = expenses.reduce((sum: number, t: any) => sum + Math.abs(parseFloat(String(t.amount ?? 0))), 0);
   const rawInitialBalance = monthlyBalanceQuery.data?.balance;
   const safeInitialBalance = (rawInitialBalance == null || isNaN(rawInitialBalance)) ? 0 : rawInitialBalance;
 
@@ -521,7 +521,7 @@ export default function BankAccountDetail() {
               income.map((t: any) => (
                 <div key={t.id} className="flex justify-between items-center p-2 bg-muted rounded">
                   <span className="text-sm">{t.description}</span>
-                  <span className="text-sm font-semibold text-green-600">+{formatBRL(t.amount.toString())}</span>
+                  <span className="text-sm font-semibold text-green-600">+{formatBRL(String(t.amount ?? 0))}</span>
                 </div>
               ))
             ) : (
@@ -541,7 +541,7 @@ export default function BankAccountDetail() {
               expenses.map((t: any) => (
                 <div key={t.id} className="flex justify-between items-center p-2 bg-muted rounded">
                   <span className="text-sm">{t.description}</span>
-                  <span className="text-sm font-semibold text-red-600">-{formatBRL(t.amount.toString())}</span>
+                  <span className="text-sm font-semibold text-red-600">-{formatBRL(String(t.amount ?? 0))}</span>
                 </div>
               ))
             ) : (
@@ -694,7 +694,7 @@ export default function BankAccountDetail() {
                         </span>
                       </td>
                       <td className={`py-2 px-2 text-right font-semibold ${t.type === "income" ? "text-green-600" : "text-red-600"}`}>
-                        {t.type === "income" ? "+" : "-"}{formatBRL(t.amount.toString())}
+                        {t.type === "income" ? "+" : "-"}{formatBRL(String(t.amount ?? 0))}
                       </td>
                       <td className="py-2 px-2 text-center">
                         {isEditMode ? (
@@ -865,7 +865,7 @@ export default function BankAccountDetail() {
               <div>
                 <label className="text-sm font-medium mb-1 block">Valor</label>
                 <Input
-                  value={editingField === 'amount' ? editingValue : formatBRL(selectedTransaction.amount.toString())}
+                  value={editingField === 'amount' ? editingValue : formatBRL(String(selectedTransaction.amount ?? 0))}
                   onChange={(e: any) => {
                     setEditingField('amount');
                     setEditingValue(e.target.value);
