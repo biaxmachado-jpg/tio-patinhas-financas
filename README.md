@@ -1,41 +1,40 @@
 # Tio Patinhas Finanças - Bia
 
-Sistema web de gestão financeira pessoal com visual elegante e sofisticado. Permite controle completo sobre suas finanças do dia a dia com suporte a contas bancárias, cartões de crédito, categorização automática de transações, orçamentos e análise de gastos.
+Sistema web de gestão financeira pessoal com visual elegante e sofisticado. Permite controle completo sobre finanças do dia a dia com suporte a contas bancárias, cartões de crédito, categorização automática de transações, orçamentos e análise de gastos.
 
 ## 🎯 Funcionalidades
 
-1. **Dashboard Principal** - Resumo financeiro com gráficos (receitas vs despesas, despesas por categoria)
-2. **Gestão de Contas Bancárias** - CRUD de contas com saldo e histórico
-3. **Gestão de Cartões de Crédito** - Cadastro com limite, dia de vencimento, dia de fechamento
-4. **Registro de Transações** - Receitas e despesas com data, categoria, conta vinculada e descrição
-5. **Categorias Personalizadas** - Cores e ícones configuráveis pelo usuário
-6. **Orçamentos Mensais** - Acompanhamento do limite definido vs gasto real
-7. **Regras de Categorização** - Categorização automática com matchType, prioridade e ativação
-8. **Reconciliação de Transações** - Marcação visual de transações reconciliadas
-9. **Importação de Extratos** - Suporte para PDF (Bradesco, Itaú) e OFX (funcionalidade avançada)
-10. **Painel Administrativo** - Gerenciamento de dados (funcionalidade avançada)
+1. **Dashboard Principal** — Resumo financeiro com gráficos (receitas vs despesas, despesas por categoria)
+2. **Gestão de Contas Bancárias** — CRUD de contas, com saldo inicial de cada mês calculado automaticamente a partir do saldo final do mês anterior
+3. **Gestão de Cartões de Crédito** — Cadastro com limite, dia de vencimento e dia de fechamento
+4. **Receitas e Despesas** — Registro de transações com data, categoria, conta vinculada e descrição
+5. **Categorias Personalizadas** — Cores e ícones configuráveis, com regras de categorização automática (por palavra-chave, prioridade e ativação) gerenciadas na própria página de Categorias
+6. **Orçamentos (Orçado x Real)** — Acompanhamento do limite mensal definido por categoria vs. gasto real
+7. **Importação de Extratos** — Upload de PDF, OFX, XLSX, XLS, CSV e TXT, com detecção automática do banco (Itaú, Bradesco, Nubank, Caixa Econômica, Santander, Banco do Brasil e BRB) e checagem de duplicatas antes de importar
+8. **Banco de Dados** — Painel administrativo com visão geral das tabelas do sistema
+9. **Perfil** — Edição de dados do usuário com histórico de alterações
 
 ## 🛠️ Stack Tecnológico
 
 ### Frontend
-- **React 19** - UI moderna e reativa
-- **Tailwind CSS 4** - Estilização com OKLCH colors
-- **TypeScript** - Type safety
-- **tRPC** - Type-safe API calls
-- **Recharts** - Gráficos e visualizações
-- **shadcn/ui** - Componentes UI sofisticados
-- **Vite** - Build tool rápido
+- **React 19** — UI moderna e reativa
+- **Tailwind CSS 4** — Estilização com cores OKLCH
+- **TypeScript** — Type safety
+- **tRPC** — Chamadas de API type-safe
+- **Recharts** — Gráficos e visualizações
+- **shadcn/ui** — Componentes UI
+- **wouter** — Roteamento
+- **Vite** — Build tool
 
 ### Backend
-- **Express 4** - Servidor web
-- **tRPC 11** - RPC framework type-safe
-- **Drizzle ORM** - Query builder type-safe
-- **MySQL/TiDB** - Banco de dados
-- **Node.js** - Runtime
+- **Express 4** — Servidor web
+- **tRPC 11** — RPC framework type-safe
+- **Drizzle ORM** — Query builder type-safe
+- **MySQL/TiDB** — Banco de dados
+- **Node.js 22**
 
 ### Testes
-- **Vitest** - Framework de testes unitários
-- **28 testes** passando com sucesso
+- **Vitest** — Framework de testes unitários (parsers de importação bancária)
 
 ## 📋 Pré-requisitos
 
@@ -67,54 +66,37 @@ Crie um arquivo `.env` na raiz do projeto:
 # Banco de dados
 DATABASE_URL="mysql://usuario:senha@host:porta/nome_banco?ssl={\"rejectUnauthorized\":true}"
 
-# Autenticação OAuth (Manus)
-VITE_APP_ID="seu_app_id"
-OAUTH_SERVER_URL="https://api.manus.im"
-VITE_OAUTH_PORTAL_URL="https://oauth.manus.im"
+# Autenticação (login único do proprietário, protegido por senha — ver seção abaixo)
 JWT_SECRET="seu_jwt_secret"
-
-# Informações do proprietário
+APP_PASSWORD="sua_senha_de_acesso"
 OWNER_NAME="Bia"
-OWNER_OPEN_ID="seu_open_id"
+OWNER_OPEN_ID="seu_identificador_interno"
 
-# APIs Manus (opcional)
+# APIs opcionais (geração de imagem / transcrição de voz)
 BUILT_IN_FORGE_API_URL="https://api.manus.im"
 BUILT_IN_FORGE_API_KEY="sua_api_key"
-VITE_FRONTEND_FORGE_API_URL="https://api.manus.im"
-VITE_FRONTEND_FORGE_API_KEY="sua_frontend_api_key"
 
 # Analytics (opcional)
 VITE_ANALYTICS_ENDPOINT="seu_analytics_endpoint"
 VITE_ANALYTICS_WEBSITE_ID="seu_website_id"
+
+# URL pública da API (usada no build do frontend quando front e back
+# são publicados separadamente, ex.: Firebase Hosting + Cloud Run)
+VITE_API_URL="https://sua-api.exemplo.com"
 ```
 
 ### 4. Configurar banco de dados
 
 ```bash
-# Gerar migrations
-pnpm drizzle-kit generate
-
-# Aplicar migrations
-pnpm drizzle-kit migrate
+# Gerar e aplicar migrations
+pnpm db:push
 ```
 
-### 5. Importar dados (opcional)
+## 🔐 Autenticação
 
-Se você tem dados do banco original, use os scripts de migração:
+O acesso é feito por uma tela de login simples (`/login`) protegida por senha única (`APP_PASSWORD`), pensada para um único usuário proprietário da conta — não há cadastro de múltiplos usuários nem fluxo OAuth externo. No primeiro login, o usuário proprietário (`OWNER_NAME` / `OWNER_OPEN_ID`) é criado automaticamente no banco.
 
-```bash
-# Migrar dados gerais
-node migrate-complete.mjs
-
-# Migrar regras de categorização
-node migrate-rules.mjs
-
-# Remapear usuários
-node remap-user-id.mjs
-
-# Validar migração
-node validate-migration.mjs
-```
+> ⚠️ Defina `APP_PASSWORD` e `JWT_SECRET` com valores próprios antes de publicar em produção — ambos têm um valor padrão de desenvolvimento no código, usado apenas quando a variável não está definida.
 
 ## 🏃 Executar o projeto
 
@@ -138,16 +120,8 @@ pnpm start
 
 ## 🧪 Testes
 
-Executar todos os testes:
-
 ```bash
-pnpm test
-```
-
-Executar testes em modo watch:
-
-```bash
-pnpm test:watch
+pnpm test          # roda os testes uma vez
 ```
 
 ## 📁 Estrutura do Projeto
@@ -155,25 +129,24 @@ pnpm test:watch
 ```
 .
 ├── client/                 # Frontend React
-│   ├── src/
-│   │   ├── pages/         # Páginas (Dashboard, Contas, etc)
-│   │   ├── components/    # Componentes reutilizáveis
-│   │   ├── contexts/      # React contexts
-│   │   ├── hooks/         # Custom hooks
-│   │   ├── lib/           # Utilitários (tRPC client)
-│   │   ├── App.tsx        # Roteamento principal
-│   │   └── index.css      # Estilos globais
-│   └── public/            # Assets estáticos
-├── server/                # Backend Express + tRPC
-│   ├── routers.ts         # Procedures tRPC
-│   ├── db.ts              # Query helpers
-│   ├── _core/             # Framework core (não editar)
-│   └── *.test.ts          # Testes unitários
-├── drizzle/               # Schema e migrations
-│   └── schema.ts          # Definição de tabelas
-├── shared/                # Código compartilhado
-└── storage/               # Helpers S3
-
+│   └── src/
+│       ├── pages/          # Dashboard, Contas, Cartões, Categorias, etc.
+│       ├── components/     # Componentes reutilizáveis
+│       ├── contexts/       # React contexts
+│       ├── hooks/          # Custom hooks
+│       ├── lib/            # Utilitários (cliente tRPC, detecção de banco)
+│       ├── App.tsx         # Roteamento principal
+│       └── index.css       # Estilos globais
+├── server/                 # Backend Express + tRPC
+│   ├── routers.ts          # Procedures tRPC
+│   ├── db.ts               # Camada de acesso a dados (Drizzle)
+│   ├── categorizationEngine.ts
+│   ├── duplicateDetection.ts
+│   ├── parsers/            # Parsers de extrato bancário (ex.: BRB)
+│   └── _core/               # Framework core (não editar)
+├── drizzle/                 # Schema e migrations
+│   └── schema.ts
+└── shared/                  # Tipos e constantes compartilhados
 ```
 
 ## 🔑 Variáveis de Ambiente Explicadas
@@ -181,65 +154,40 @@ pnpm test:watch
 | Variável | Descrição | Obrigatório |
 |----------|-----------|-----------|
 | `DATABASE_URL` | String de conexão MySQL/TiDB | ✅ |
-| `VITE_APP_ID` | ID da aplicação OAuth Manus | ✅ |
-| `JWT_SECRET` | Chave secreta para sessões | ✅ |
-| `OWNER_NAME` | Nome do proprietário | ✅ |
-| `OWNER_OPEN_ID` | OpenID do proprietário | ✅ |
-| `OAUTH_SERVER_URL` | URL do servidor OAuth | ✅ |
-| `VITE_OAUTH_PORTAL_URL` | URL do portal OAuth | ✅ |
-| `BUILT_IN_FORGE_API_URL` | URL da API Manus | ❌ |
-| `BUILT_IN_FORGE_API_KEY` | Chave da API Manus | ❌ |
-| `VITE_ANALYTICS_ENDPOINT` | Endpoint de analytics | ❌ |
-| `VITE_ANALYTICS_WEBSITE_ID` | ID do website para analytics | ❌ |
+| `JWT_SECRET` | Chave secreta para assinar a sessão | ✅ |
+| `APP_PASSWORD` | Senha de acesso ao sistema | ✅ |
+| `OWNER_NAME` | Nome do proprietário da conta | ❌ (default: `Bia`) |
+| `OWNER_OPEN_ID` | Identificador interno do proprietário | ❌ (default: `bia-owner`) |
+| `PORT` | Porta do servidor | ❌ (default: `3000`, Docker usa `8080`) |
+| `BUILT_IN_FORGE_API_URL` / `BUILT_IN_FORGE_API_KEY` | Credenciais para geração de imagem/transcrição de voz | ❌ |
+| `VITE_ANALYTICS_ENDPOINT` / `VITE_ANALYTICS_WEBSITE_ID` | Analytics do frontend | ❌ |
+| `VITE_API_URL` | URL pública da API, embutida no build do frontend | ❌ |
 
 ## 🎨 Design e Estilo
-
-O projeto utiliza uma paleta de cores elegante e sofisticada:
 
 - **Cores primárias**: OKLCH colors para melhor percepção visual
 - **Tipografia**: Poppins (headings) + Inter (body)
 - **Componentes**: shadcn/ui com customizações Tailwind
-- **Espaçamento**: Generoso para melhor legibilidade
 - **Tema**: Light/Dark mode suportado
 
-## 📊 Dados Inclusos
+## 🚀 Deploy
 
-O projeto vem com dados pré-carregados:
-
-- 11 contas bancárias
-- 3 cartões de crédito
-- 162 transações
-- 258 transações de cartão de crédito
-- 38 categorias
-- 20 orçamentos
-- 7 regras de categorização
-
-## 🔐 Segurança
-
-- ✅ Autenticação OAuth Manus integrada
-- ✅ Sessões seguras com JWT
-- ✅ Proteção CSRF
-- ✅ Validação de entrada com Zod
-- ✅ Queries parametrizadas (Drizzle ORM)
-- ✅ Proteção de dados sensíveis
+O workflow em `.github/workflows/firebase-deploy.yml` publica automaticamente a cada push em `main`:
+- **Frontend** (`dist/public`) → Firebase Hosting
+- **Backend** (Express/tRPC) → Google Cloud Run, via imagem construída a partir do `Dockerfile`
 
 ## 🚨 Troubleshooting
-
-### Erro: "Já existe um repositório com este nome"
-- Solução: Use um nome diferente ou desconecte o repositório antigo
 
 ### Erro: "DATABASE_URL inválida"
 - Verifique a string de conexão MySQL/TiDB
 - Certifique-se que o banco existe
 - Teste a conexão manualmente
 
-### Erro: "OAuth não configurado"
-- Verifique `VITE_APP_ID` e `OAUTH_SERVER_URL`
-- Certifique-se que a aplicação está registrada no Manus
+### Erro: "Senha incorreta" ao logar
+- Confirme o valor de `APP_PASSWORD` configurado no ambiente
 
-### Erro: "Testes falhando"
+### Testes falhando
 - Execute `pnpm install` novamente
-- Limpe cache: `rm -rf node_modules/.vite`
 - Execute `pnpm test` para ver detalhes
 
 ## 📝 Scripts Disponíveis
@@ -249,8 +197,8 @@ pnpm dev              # Iniciar servidor de desenvolvimento
 pnpm build            # Build para produção
 pnpm start            # Iniciar servidor de produção
 pnpm test             # Executar testes
-pnpm format           # Formatar código com Prettier
 pnpm check            # Type check com TypeScript
+pnpm format           # Formatar código com Prettier
 pnpm db:push          # Gerar e aplicar migrations
 ```
 
@@ -267,13 +215,7 @@ MIT
 
 ## 👤 Autor
 
-**Bia** (biaxmachado@hotmail.com)
-
-## 🙏 Agradecimentos
-
-- Manus por fornecer a plataforma e ferramentas
-- shadcn/ui pelos componentes UI
-- Comunidade open-source
+**Bia** (bia.x.machado@gmail.com)
 
 ## 📞 Suporte
 
@@ -281,6 +223,5 @@ Para dúvidas ou problemas, abra uma issue no repositório GitHub.
 
 ---
 
-**Versão:** 1.0.0  
-**Última atualização:** Abril 2026  
+**Versão:** 1.0.0
 **Status:** ✅ Produção
