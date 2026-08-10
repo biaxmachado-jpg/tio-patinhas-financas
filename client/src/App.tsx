@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Redirect, Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import DashboardLayout from "./components/DashboardLayout";
@@ -91,6 +91,11 @@ function Router() {
         <DashboardLayout>
           <Database />
         </DashboardLayout>
+      </Route>
+      {/* Link antigo, nunca teve uma tela própria — manda para a lista de
+          contas, de onde dá para entrar em uma conta e importar o extrato. */}
+      <Route path="/importar-ofx">
+        <Redirect to="/contas" />
       </Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
