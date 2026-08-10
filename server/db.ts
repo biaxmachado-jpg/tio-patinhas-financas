@@ -25,9 +25,11 @@ import {
   type ProfileHistory,
   type ImportHistory,
 } from "../drizzle/schema";
-import { ENV } from './_core/env';
 import { createWorker } from 'tesseract.js';
 import { PDFDocument } from 'pdf-lib';
+
+// Matches the fallback used in server/_core/oauth.ts when provisioning the owner account.
+const OWNER_OPEN_ID = process.env.OWNER_OPEN_ID || "bia-owner";
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -132,7 +134,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     if (user.role !== undefined) {
       values.role = user.role;
       updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
+    } else if (user.openId === OWNER_OPEN_ID) {
       values.role = 'admin';
       updateSet.role = 'admin';
     }

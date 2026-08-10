@@ -341,7 +341,7 @@ function parseXLSXData(data: any[][]): Transaction[] {
 // ─────────────────────────────────────────────────────────────────────────────
 function isDuplicateTransaction(
   tx: { date: string; description: string; amount: string },
-  existingDups: Array<{ date: string; description: string; amount: string }>
+  existingDups: Array<{ date: string | Date; description: string; amount: string }>
 ): boolean {
   const { base: txBase, parcela: txParcela } = extrairParcelamento(tx.description);
 
