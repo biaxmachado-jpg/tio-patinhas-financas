@@ -30,6 +30,25 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+  // Log bruto de toda requisição /api/trpc ANTES do body-parser e de
+  // qualquer outro middleware — se um dia a resposta chegar corrompida no
+  // navegador (ex.: "Unexpected non-whitespace character after JSON..."),
+  // dá pra conferir no Cloud Run Logging se a requisição chegou inteira
+  // no container (content-length bate) e quanto tempo o processamento levou,
+  // sem depender de conseguir reproduzir o bug localmente.
+  app.use("/api/trpc", (req, res, next) => {
+    const start = Date.now();
+    console.log(
+      `[req] ${req.method} ${req.originalUrl} content-length=${req.headers["content-length"] ?? "?"}`
+    );
+    res.on("finish", () => {
+      console.log(
+        `[res] ${req.method} ${req.originalUrl} status=${res.statusCode} ` +
+          `duration=${Date.now() - start}ms`
+      );
+    });
+    next();
+  });
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
