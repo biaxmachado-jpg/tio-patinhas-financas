@@ -46,6 +46,36 @@ const trpcClient = trpc.createClient({
         return globalThis.fetch(input, {
           ...(init ?? {}),
           credentials: "include",
+        }).then((res) => {
+          // Diagnóstico: clonamos a resposta (sem consumir o body original,
+          // que o tRPC ainda vai ler) e checamos se ela é JSON válido. Se
+          // não for, isso loga o corpo bruto no console — é a única forma
+          // de descobrir o que realmente veio do servidor quando o erro é
+          // um "Unexpected ... after JSON" genérico do navegador, que hoje
+          // não dá pista nenhuma de causa.
+          res
+            .clone()
+            .text()
+            .then((text) => {
+              try {
+                JSON.parse(text);
+              } catch (parseError) {
+                console.error(
+                  "[API] Resposta HTTP não é JSON válido — status:",
+                  res.status,
+                  "content-type:",
+                  res.headers.get("content-type"),
+                  "erro:",
+                  parseError,
+                  "corpo (até 2000 chars):",
+                  text.slice(0, 2000)
+                );
+              }
+            })
+            .catch(() => {
+              // corpo não pôde ser lido como texto (ex.: já consumido); ignora
+            });
+          return res;
         });
       },
     }),

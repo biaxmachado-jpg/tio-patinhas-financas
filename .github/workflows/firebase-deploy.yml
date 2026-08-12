@@ -62,4 +62,6 @@ jobs:
             --image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:${{ github.sha }} \
             --region=${{ env.REGION }} \
             --project=${{ env.PROJECT_ID }} \
-            --allow-unauthenticated
+            --allow-unauthenticated \
+            --timeout=540 \
+            --memory=1Gi
