@@ -217,7 +217,12 @@ export async function classifyStatementWithAI(params: {
   }
 
   const response = await anthropic.messages.create({
-    model: "claude-opus-5",
+    // Haiku 4.5 é o modelo mais barato da Anthropic (~5x mais barato que o
+    // Opus 5 usado antes, em entrada e saída). Suficiente pra extração
+    // estruturada de fatura/extrato — não é uma tarefa que exige raciocínio
+    // pesado. Se a qualidade da classificação cair muito, o Sonnet 5 é o
+    // meio-termo (mais caro que o Haiku, bem mais barato que o Opus).
+    model: "claude-haiku-4-5",
     max_tokens: 16000,
     output_config: {
       format: zodOutputFormat(ClassificationResultSchema),
