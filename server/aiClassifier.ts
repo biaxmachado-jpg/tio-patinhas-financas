@@ -216,19 +216,33 @@ export async function classifyStatementWithAI(params: {
     });
   }
 
-  const response = await anthropic.messages.create({
-    // Haiku 4.5 é o modelo mais barato da Anthropic (~5x mais barato que o
-    // Opus 5 usado antes, em entrada e saída). Suficiente pra extração
-    // estruturada de fatura/extrato — não é uma tarefa que exige raciocínio
-    // pesado. Se a qualidade da classificação cair muito, o Sonnet 5 é o
-    // meio-termo (mais caro que o Haiku, bem mais barato que o Opus).
-    model: "claude-haiku-4-5",
-    max_tokens: 16000,
-    output_config: {
-      format: zodOutputFormat(ClassificationResultSchema),
-    },
-    messages: [{ role: "user", content: contentBlocks }],
-  });
+  let response: Anthropic.Messages.Message;
+  try {
+    response = await anthropic.messages.create({
+      // Haiku 4.5 é o modelo mais barato da Anthropic (~5x mais barato que o
+      // Opus 5 usado antes, em entrada e saída). Suficiente pra extração
+      // estruturada de fatura/extrato — não é uma tarefa que exige raciocínio
+      // pesado. Se a qualidade da classificação cair muito, o Sonnet 5 é o
+      // meio-termo (mais caro que o Haiku, bem mais barato que o Opus).
+      model: "claude-haiku-4-5",
+      max_tokens: 16000,
+      output_config: {
+        format: zodOutputFormat(ClassificationResultSchema),
+      },
+      messages: [{ role: "user", content: contentBlocks }],
+    });
+  } catch (error) {
+    // Um erro aqui pode ser da própria API da Anthropic (rede, limite de
+    // taxa, resposta inesperada de algum proxy no meio do caminho) — sem
+    // esse catch, o erro técnico bruto (ex: "Unexpected non-whitespace
+    // character after JSON...") vazava direto pra tela da pessoa sem
+    // explicação nenhuma.
+    console.error("[aiClassifier] Erro ao chamar a API da Anthropic:", error);
+    throw new Error(
+      "Não consegui falar com o serviço de IA agora (erro de conexão ou resposta inesperada). " +
+        "Confirme se há crédito disponível na conta da API e tente novamente em instantes."
+    );
+  }
 
   if (response.stop_reason === "refusal") {
     throw new Error("A IA recusou processar este arquivo. Tente importar manualmente.");
@@ -244,7 +258,11 @@ export async function classifyStatementWithAI(params: {
   let parsedJson: unknown;
   try {
     parsedJson = JSON.parse(textBlock.text);
-  } catch {
+  } catch (error) {
+    console.error(
+      "[aiClassifier] Resposta da IA não é JSON válido. Trecho:",
+      textBlock.text.slice(0, 500)
+    );
     throw new Error("Resposta da IA não veio em formato válido. Tente novamente.");
   }
 
