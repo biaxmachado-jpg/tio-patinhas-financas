@@ -4,6 +4,33 @@ import { CategorizationRule } from "../drizzle/schema";
  * Engine for applying categorization rules to transactions
  */
 
+/**
+ * A causa raiz do "Unexpected non-whitespace character after JSON..." era
+ * AQUI, não na importação de fatura em si: regras de categorização mais
+ * antigas podem ter "keywords" salvo como string simples (não como array
+ * JSON), e um JSON.parse direto nisso quebra pra QUALQUER transação de
+ * QUALQUER arquivo, sempre com o mesmo erro — batendo exatamente com o
+ * sintoma (mesmo erro, arquivos diferentes, 100% reproduzível). server/db.ts
+ * já tinha essa mesma proteção numa função equivalente; replicada aqui.
+ */
+function parseKeywords(keywordsData: string | string[]): string[] {
+  if (Array.isArray(keywordsData)) {
+    return keywordsData;
+  }
+
+  try {
+    const parsed = JSON.parse(keywordsData);
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+  } catch {
+    // Não é JSON válido — trata a string toda como uma única palavra-chave
+    // em vez de derrubar a importação inteira.
+  }
+
+  return [keywordsData];
+}
+
 export interface MatchResult {
   matched: boolean;
   ruleId: number;
@@ -17,7 +44,7 @@ export interface MatchResult {
 export function matchesRule(description: string, rule: CategorizationRule): boolean {
   if (!rule.enabled) return false;
 
-  const keywords = JSON.parse(rule.keywords) as string[];
+  const keywords = parseKeywords(rule.keywords);
   const testString = rule.caseSensitive ? description : description.toLowerCase();
 
   for (const keyword of keywords) {
