@@ -6,6 +6,7 @@ import { z } from "zod";
 import * as db from "./db";
 import { storagePut } from "./storage";
 import { classifyStatementWithAI } from "./aiClassifier";
+import { applyCategorizationRules } from "./categorizationEngine";
 
 export const appRouter = router({
   system: systemRouter,
@@ -514,7 +515,12 @@ export const appRouter = router({
 
     classifyWithAI: protectedProcedure
       .input(z.object({
-        entityType: z.enum(["creditCard", "bankAccount"]),
+        // Opcional: no fluxo antigo (/cartoes/:id/importar, /contas/:id/importar)
+        // a pessoa já escolheu o cartão/conta antes de subir o arquivo. No
+        // fluxo novo "Importar" (sem pré-seleção), isso vem vazio — a IA
+        // identifica o tipo de documento sozinha e o servidor tenta detectar
+        // o cartão/conta automaticamente (ver "detectedEntity" no retorno).
+        entityType: z.enum(["creditCard", "bankAccount"]).optional(),
         fileName: z.string(),
         // PDF: base64 do arquivo. CSV/XLSX/OFX/TXT: texto já extraído.
         pdfBase64: z.string().optional(),
@@ -523,9 +529,18 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const categories = await db.getCategories(ctx.user.id);
 
+        // Sem entityType (fluxo novo) ainda não sabemos se é fatura de
+        // cartão ou extrato de conta, então juntamos o histórico dos dois
+        // como referência pra IA — as regras de categorização (aplicadas
+        // logo abaixo) é que mandam de verdade, isso aqui é só contexto.
         const historicalRows = input.entityType === "creditCard"
           ? await db.getCreditCardTransactions(ctx.user.id)
-          : await db.getTransactions(ctx.user.id);
+          : input.entityType === "bankAccount"
+          ? await db.getTransactions(ctx.user.id)
+          : [
+              ...(await db.getCreditCardTransactions(ctx.user.id)),
+              ...(await db.getTransactions(ctx.user.id)),
+            ];
 
         const historicalExamples = historicalRows
           .filter((t: { categoryId: number | null }) => t.categoryId != null)
@@ -535,7 +550,7 @@ export const appRouter = router({
             categoryId: t.categoryId as number,
           }));
 
-        const transactions = await classifyStatementWithAI({
+        const result = await classifyStatementWithAI({
           entityType: input.entityType,
           fileName: input.fileName,
           pdfBase64: input.pdfBase64,
@@ -548,7 +563,27 @@ export const appRouter = router({
           historicalExamples,
         });
 
-        return { transactions };
+        // Regras de categorização da pessoa mandam mais que o palpite da IA:
+        // qualquer transação que bata com uma regra ativa usa a categoria da
+        // regra, sem depender do histórico ou do "achismo" do modelo. Só o
+        // que nenhuma regra cobre fica com a sugestão da IA (e confiança
+        // dela), pra revisão manual.
+        const rules = await db.getActiveCategorizationRules(ctx.user.id);
+        const transactions = result.transactions.map((t) => {
+          const ruleCategoryId = rules.length > 0 ? applyCategorizationRules(t.description, rules) : null;
+          if (ruleCategoryId != null) {
+            return { ...t, categoryId: ruleCategoryId, confidence: "high" as const, categorySource: "rule" as const };
+          }
+          return { ...t, categorySource: "ai" as const };
+        });
+
+        // Detecção automática do cartão/conta: só faz sentido quando quem
+        // chamou não informou entityType (fluxo "Importar" sem pré-seleção).
+        const detectedEntity = input.entityType
+          ? null
+          : await db.detectEntityFromDocument(ctx.user.id, result.document);
+
+        return { document: result.document, transactions, detectedEntity };
       }),
   }),
 

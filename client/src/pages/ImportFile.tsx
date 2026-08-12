@@ -1,17 +1,18 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Upload, ArrowLeft, Plus, Trash2, FileText, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { Upload, ArrowLeft, Plus, Trash2, FileText, Loader2, CheckCircle, AlertCircle, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
 import { TransactionCategorizer, type TransactionWithCategory } from "@/components/TransactionCategorizer";
 import { DescriptionBatchEditor } from "@/components/DescriptionBatchEditor";
 import { DueDateConfirmDialog } from "@/components/DueDateConfirmDialog";
+import { ACCEPTED_IMPORT_EXTENSIONS, readFileForClassification } from "@/lib/fileConversion";
+import { takePendingImport } from "@/lib/importHandoff";
 
 type ImportType = "creditCard" | "bankAccount";
 
@@ -26,6 +27,7 @@ interface Transaction {
   aiType?: "income" | "expense"; // tipo já classificado pela IA (evita depender do sinal do valor)
   installments?: number; // total de parcelas, lido da notação impressa na fatura (ex: "03/10")
   currentInstallment?: number; // parcela atual cobrada nesta fatura
+  categorySource?: "rule" | "ai"; // categoria veio de uma regra (Configurações) ou de sugestão da IA
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -110,6 +112,8 @@ export default function ImportFile() {
     : parseInt(accountId || cardId || "0");
 
   const [file, setFile] = useState<File | null>(null);
+  const [fileName, setFileName] = useState<string>("");
+  const [fromSmartImport, setFromSmartImport] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [pendingTransactions, setPendingTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -140,14 +144,25 @@ export default function ImportFile() {
   const entity = importType === "creditCard" ? cardQuery.data : accountQuery.data;
   const isLoadingEntity = importType === "creditCard" ? cardQuery.isLoading : accountQuery.isLoading;
 
-  const ACCEPTED_EXTENSIONS = [".pdf", ".ofx", ".txt", ".xlsx", ".xls", ".csv"];
+  // Handoff da importação inteligente (Importar.tsx): quando a IA já
+  // identificou sozinha o cartão/conta e classificou o arquivo, chegamos
+  // aqui com o resultado pronto — sem reclassificar (mais rápido, e evita
+  // a IA dar uma resposta ligeiramente diferente numa segunda chamada).
+  useEffect(() => {
+    const handoff = takePendingImport();
+    if (!handoff) return;
+    setFileName(handoff.fileName);
+    setFromSmartImport(true);
+    void applyClassifiedResult(handoff.transactions, handoff.fileName);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       const fileExtension = "." + selectedFile.name.split(".").pop()?.toLowerCase();
 
-      if (!ACCEPTED_EXTENSIONS.includes(fileExtension)) {
+      if (!ACCEPTED_IMPORT_EXTENSIONS.includes(fileExtension)) {
         toast.error("Por favor, selecione um arquivo PDF, OFX, TXT, XLSX, XLS ou CSV");
         return;
       }
@@ -157,6 +172,8 @@ export default function ImportFile() {
       }
 
       setFile(selectedFile);
+      setFileName(selectedFile.name);
+      setFromSmartImport(false);
       setAiProcessed(false);
       setTransactions([]);
       setDuplicates([]);
@@ -185,30 +202,74 @@ export default function ImportFile() {
     setTransactions(transactions.filter(tx => tx.id !== id));
   };
 
-  // Converte um workbook XLSX em texto (CSV), priorizando a aba "Lançamentos"
-  // quando existir — a IA lê o texto, não precisamos mais adivinhar colunas aqui.
-  const xlsxToText = (workbook: XLSX.WorkBook): string => {
-    const lancamentosSheet = workbook.SheetNames.find(n =>
-      n.toLowerCase().includes("lançamentos") || n.toLowerCase().includes("lancamentos")
-    );
-    const sheetName = lancamentosSheet || workbook.SheetNames[0];
-    return workbook.SheetNames
-      .map(name => `--- Aba: ${name} ---\n${XLSX.utils.sheet_to_csv(workbook.Sheets[name])}`)
-      .sort((a) => (sheetName && a.includes(`--- Aba: ${sheetName} ---`) ? -1 : 1)) // aba relevante primeiro
-      .join("\n\n");
-  };
+  // Recebe o resultado já classificado (de uma chamada fresca à IA ou de um
+  // handoff da importação inteligente) e conduz o resto do fluxo: marca
+  // parceladas, mostra o resumo, e segue pra confirmação de vencimento
+  // (cartão) ou checagem de duplicatas (conta).
+  const applyClassifiedResult = async (
+    aiTransactions: Array<{
+      date: string;
+      description: string;
+      amount: string;
+      type: "income" | "expense";
+      categoryId: number | null;
+      installments?: number;
+      currentInstallment?: number;
+      categorySource?: "rule" | "ai";
+    }>,
+    sourceFileName: string
+  ) => {
+    const extractedTransactions: Transaction[] = aiTransactions.map((t, idx) => ({
+      id: `${Date.now()}-${idx}-${Math.random()}`,
+      date: t.date,
+      description: t.description,
+      amount: t.amount,
+      categoryId: t.categoryId ?? undefined,
+      aiType: t.type,
+      installments: t.installments ?? 1,
+      currentInstallment: t.currentInstallment ?? 1,
+      categorySource: t.categorySource,
+    }));
 
-  const fileToBase64 = (buffer: ArrayBuffer): string => {
-    let binary = "";
-    const bytes = new Uint8Array(buffer);
-    const chunkSize = 0x8000;
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-      const chunk = bytes.subarray(i, i + chunkSize);
-      for (let j = 0; j < chunk.length; j++) {
-        binary += String.fromCharCode(chunk[j]);
-      }
+    if (extractedTransactions.length === 0) {
+      toast.warning("Nenhuma transação encontrada no arquivo. Tente adicionar manualmente.");
+      return;
     }
-    return btoa(binary);
+
+    // Parcelada = o que está escrito na própria fatura (installments > 1,
+    // extraído pela IA da notação "03/10" etc.), não mais um chute pela
+    // data do arquivo. Mantemos o heurístico antigo só como reforço, pra
+    // fatura/texto onde a IA não tenha achado a notação de parcela.
+    const faturaRef = extrairMesFatura(sourceFileName);
+    const markedTransactions = extractedTransactions.map(tx => ({
+      ...tx,
+      isInstallment:
+        (tx.installments ?? 1) > 1 ||
+        (faturaRef ? isParcelaAnterior(tx.date, faturaRef) : false),
+    }));
+
+    setTransactions(markedTransactions);
+    setPendingTransactions(markedTransactions);
+    setExtractedDueDate(null);
+    setAiProcessed(true);
+
+    const isCardImport = importType === "creditCard";
+    const creditosCount = isCardImport ? markedTransactions.filter(t => t.aiType === "income").length : 0;
+    const comprasMes = markedTransactions.filter(t => !t.isInstallment && t.aiType !== "income").length;
+    const parcelas = markedTransactions.filter(t => t.isInstallment && t.aiType !== "income").length;
+    const regrasCount = markedTransactions.filter(t => t.categorySource === "rule").length;
+    toast.success(
+      `${markedTransactions.length} transação(ões) classificada(s) por IA: ${comprasMes} do mês` +
+        (parcelas > 0 ? `, ${parcelas} parcela(s)` : "") +
+        (creditosCount > 0 ? `, ${creditosCount} crédito(s)/estorno(s)` : "") +
+        (regrasCount > 0 ? ` — ${regrasCount} categorizada(s) pelas suas regras` : "")
+    );
+
+    if (importType === "creditCard") {
+      setShowDueDateConfirm(true);
+    } else {
+      await checkForDuplicates(extractedTransactions);
+    }
   };
 
   const handleProcessFile = async () => {
@@ -219,27 +280,11 @@ export default function ImportFile() {
 
     setIsLoading(true);
     try {
-      const fileExtension = file.name.split(".").pop()?.toLowerCase();
-
-      let pdfBase64: string | undefined;
-      let textContent: string | undefined;
-
-      if (fileExtension === "pdf") {
-        const arrayBuffer = await file.arrayBuffer();
-        pdfBase64 = fileToBase64(arrayBuffer);
-      } else if (fileExtension === "xlsx" || fileExtension === "xls") {
-        const arrayBuffer = await file.arrayBuffer();
-        const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: "array" });
-        textContent = xlsxToText(workbook);
-      } else if (fileExtension === "csv" || fileExtension === "txt" || fileExtension === "ofx") {
-        textContent = await file.text();
-      } else {
-        toast.error("Formato de arquivo não suportado para processamento automático");
-        return;
-      }
+      const { pdfBase64, textContent } = await readFileForClassification(file);
 
       // A IA lê o arquivo (PDF nativo ou texto), extrai as transações e já
-      // sugere tipo (receita/despesa) e categoria com base no seu histórico.
+      // sugere tipo (receita/despesa) e categoria com base nas suas regras
+      // e no seu histórico.
       const result = await classifyMutation.mutateAsync({
         entityType: importType,
         fileName: file.name,
@@ -247,55 +292,7 @@ export default function ImportFile() {
         textContent,
       });
 
-      const extractedTransactions: Transaction[] = result.transactions.map((t, idx) => ({
-        id: `${Date.now()}-${idx}-${Math.random()}`,
-        date: t.date,
-        description: t.description,
-        amount: t.amount,
-        categoryId: t.categoryId ?? undefined,
-        aiType: t.type,
-        installments: t.installments ?? 1,
-        currentInstallment: t.currentInstallment ?? 1,
-      }));
-
-      if (extractedTransactions.length === 0) {
-        toast.warning("Nenhuma transação encontrada no arquivo. Tente adicionar manualmente.");
-        return;
-      }
-
-      // Parcelada = o que está escrito na própria fatura (installments > 1,
-      // extraído pela IA da notação "03/10" etc.), não mais um chute pela
-      // data do arquivo. Mantemos o heurístico antigo só como reforço, pra
-      // fatura/texto onde a IA não tenha achado a notação de parcela.
-      const faturaRef = extrairMesFatura(file.name);
-      const markedTransactions = extractedTransactions.map(tx => ({
-        ...tx,
-        isInstallment:
-          (tx.installments ?? 1) > 1 ||
-          (faturaRef ? isParcelaAnterior(tx.date, faturaRef) : false),
-      }));
-
-      setTransactions(markedTransactions);
-      setPendingTransactions(markedTransactions);
-      setExtractedDueDate(null);
-      setAiProcessed(true);
-
-      const isCardImport = importType === "creditCard";
-      const creditosCount = isCardImport ? markedTransactions.filter(t => t.aiType === "income").length : 0;
-      const comprasMes = markedTransactions.filter(t => !t.isInstallment && t.aiType !== "income").length;
-      const parcelas = markedTransactions.filter(t => t.isInstallment && t.aiType !== "income").length;
-      toast.success(
-        `${markedTransactions.length} transação(ões) classificada(s) por IA: ${comprasMes} do mês` +
-          (parcelas > 0 ? `, ${parcelas} parcela(s)` : "") +
-          (creditosCount > 0 ? `, ${creditosCount} crédito(s)/estorno(s)` : "")
-      );
-
-      if (importType === "creditCard") {
-        setShowDueDateConfirm(true);
-      } else {
-        await checkForDuplicates(extractedTransactions);
-      }
-
+      await applyClassifiedResult(result.transactions, file.name);
     } catch (error) {
       console.error("Erro ao processar arquivo:", error);
       toast.error("Erro ao processar arquivo: " + (error instanceof Error ? error.message : "Erro desconhecido"));
@@ -420,15 +417,17 @@ export default function ImportFile() {
       console.log("[Import] Enviando", formattedTransactions.length, "transações");
       console.log("[Import] Exemplo:", formattedTransactions[0]);
 
-      // Arquivo XLS/binário não pode ser lido como texto — manda vazio
-      const isBinary = file?.name.match(/\.(xls|xlsx)$/i);
-      const fileContent = isBinary ? "" : (file ? await file.text() : "");
+      // Arquivo XLS/binário não pode ser lido como texto — manda vazio.
+      // Também vazio quando veio da importação inteligente (handoff): já
+      // não temos o File original em mãos, só as transações já classificadas.
+      const isBinary = fileName.match(/\.(xls|xlsx)$/i);
+      const fileContent = isBinary || !file ? "" : await file.text();
 
       const result = await importMutation.mutateAsync({
         entityType: importType,
         entityId,
         fileContent,
-        fileName: file?.name || "manual-import",
+        fileName: fileName || "manual-import",
         fileType: file?.type || "text/plain",
         transactions: formattedTransactions,
         dueDate: confirmedDueDate || undefined,
@@ -548,78 +547,90 @@ export default function ImportFile() {
           </div>
         </div>
 
-        {/* File Upload Section */}
-        <Card className="p-6 mb-6">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Upload de Arquivo (Opcional)
-              </label>
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".pdf,.ofx,.txt,.xlsx,.xls,.csv"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full"
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    {file ? file.name : "Selecionar arquivo"}
-                  </Button>
-                </div>
-                {file && (
-                  <div className="text-sm text-green-600 flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Selecionado
-                  </div>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Formatos aceitos: PDF, XLSX, XLS, CSV, OFX, TXT
+        {fromSmartImport ? (
+          <Card className="p-4 mb-6 flex items-center gap-3 bg-purple-50 border-purple-200">
+            <Sparkles className="h-5 w-5 text-purple-600 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm font-medium truncate">{fileName}</p>
+              <p className="text-xs text-muted-foreground">
+                Detectado e classificado automaticamente pela Importação Inteligente
               </p>
             </div>
-
-            {file && canProcess && (
-              <div className="space-y-2">
-                <Button
-                  onClick={handleProcessFile}
-                  disabled={isLoading}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Processando...
-                    </>
-                  ) : (
-                    <>Carregar Transações do Arquivo</>
-                  )}
-                </Button>
-                {aiProcessed && (
-                  <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded">
-                    <CheckCircle className="h-4 w-4" />
-                    <span>Transações classificadas por IA ✨</span>
+          </Card>
+        ) : (
+          /* File Upload Section */
+          <Card className="p-6 mb-6">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Upload de Arquivo (Opcional)
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,.ofx,.txt,.xlsx,.xls,.csv"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      {file ? file.name : "Selecionar arquivo"}
+                    </Button>
                   </div>
-                )}
-                {showDuplicateWarning && duplicates.length > 0 && (
-                  <div className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 p-3 rounded border border-amber-200">
-                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-semibold">{duplicates.length} transação(ões) pode(m) ser duplicada(s)</p>
-                      <p className="text-xs mt-1">Verifique as transações marcadas antes de importar</p>
+                  {file && (
+                    <div className="text-sm text-green-600 flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Selecionado
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Formatos aceitos: PDF, XLSX, XLS, CSV, OFX, TXT
+                </p>
               </div>
-            )}
-          </div>
-        </Card>
+
+              {file && canProcess && (
+                <div className="space-y-2">
+                  <Button
+                    onClick={handleProcessFile}
+                    disabled={isLoading}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Processando...
+                      </>
+                    ) : (
+                      <>Carregar Transações do Arquivo</>
+                    )}
+                  </Button>
+                  {aiProcessed && (
+                    <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-2 rounded">
+                      <CheckCircle className="h-4 w-4" />
+                      <span>Transações classificadas por IA ✨</span>
+                    </div>
+                  )}
+                  {showDuplicateWarning && duplicates.length > 0 && (
+                    <div className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 p-3 rounded border border-amber-200">
+                      <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-semibold">{duplicates.length} transação(ões) pode(m) ser duplicada(s)</p>
+                        <p className="text-xs mt-1">Verifique as transações marcadas antes de importar</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </Card>
+        )}
 
         {/* Transactions Table */}
         <Card className="p-6">

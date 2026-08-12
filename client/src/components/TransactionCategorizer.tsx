@@ -18,6 +18,7 @@ export interface TransactionWithCategory {
   aiType?: "income" | "expense"; // tipo já classificado pela IA no momento da importação
   installments?: number; // total de parcelas, extraído da fatura pela IA (1 = não parcelado)
   currentInstallment?: number; // parcela atual cobrada nesta fatura
+  categorySource?: "rule" | "ai"; // categoria veio de uma regra (Configurações → Categorização) ou de sugestão da IA
 }
 
 interface TransactionCategorizerProps {
@@ -239,6 +240,15 @@ export function TransactionCategorizer({
           <span className="font-semibold text-sm">
             R$ {parseFloat(transaction.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
           </span>
+          {transaction.categorySource === "rule" && (
+            <span
+              className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0"
+              title="Categoria aplicada por uma das suas regras de categorização"
+            >
+              <Zap className="h-3 w-3" />
+              regra
+            </span>
+          )}
           <div
             className="px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1 min-w-36 justify-between"
             style={{
