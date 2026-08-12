@@ -1007,8 +1007,112 @@ export async function importTransactionsFromOFX(userId: number, data: { accountI
 }
 
 
+// ============= IMPORTAÇÃO INTELIGENTE (detecção automática de cartão/conta) =============
+
+export async function getActiveCategorizationRules(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(categorizationRules)
+    .where(and(eq(categorizationRules.userId, userId), eq(categorizationRules.enabled, true)))
+    .orderBy(desc(categorizationRules.priority));
+}
+
+export interface DetectedEntity {
+  entityType: "creditCard" | "bankAccount";
+  entityId: number;
+  label: string;
+  confidence: "high" | "low";
+}
+
+/**
+ * Descobre a qual cartão/conta cadastrado um documento (fatura/extrato) lido
+ * pela IA pertence, a partir dos metadados extraídos do próprio PDF
+ * (banco, bandeira, últimos 4 dígitos, número da conta). Usado pelo fluxo
+ * de importação sem pré-seleção manual (Importar.tsx) — a pessoa só sobe o
+ * arquivo, sem escolher o cartão/conta antes.
+ *
+ * Retorna null quando não há candidato suficientemente confiável — nesse
+ * caso quem chamou deve pedir pra pessoa confirmar manualmente, em vez de
+ * arriscar lançar a fatura inteira no cartão errado.
+ */
+export async function detectEntityFromDocument(
+  userId: number,
+  doc: {
+    documentType: "creditCardInvoice" | "bankStatement" | "unknown";
+    issuerBank: string | null;
+    cardBrand: string | null;
+    cardLastFourDigits: string | null;
+    accountNumber: string | null;
+  }
+): Promise<DetectedEntity | null> {
+  const normalize = (s: string | null | undefined) => (s ?? "").toLowerCase().trim();
+
+  if (doc.documentType === "creditCardInvoice") {
+    const cards = await getCreditCards(userId);
+    if (cards.length === 0) return null;
+
+    // 1) Match forte: últimos 4 dígitos batem exatamente.
+    if (doc.cardLastFourDigits) {
+      const last4 = doc.cardLastFourDigits.replace(/\D/g, "");
+      const exact = cards.filter((c: CreditCard) => (c.lastFourDigits || "").replace(/\D/g, "") === last4);
+      if (exact.length === 1) {
+        return { entityType: "creditCard", entityId: exact[0].id, label: exact[0].name, confidence: "high" };
+      }
+    }
+
+    // 2) Match fraco: só um cartão cadastrado com essa bandeira.
+    if (doc.cardBrand) {
+      const brand = normalize(doc.cardBrand);
+      const byBrand = cards.filter((c: CreditCard) => normalize(c.brand).includes(brand) || brand.includes(normalize(c.brand)));
+      if (byBrand.length === 1) {
+        return { entityType: "creditCard", entityId: byBrand[0].id, label: byBrand[0].name, confidence: "low" };
+      }
+    }
+
+    // 3) Só existe um cartão cadastrado no total — provavelmente é esse.
+    if (cards.length === 1) {
+      return { entityType: "creditCard", entityId: cards[0].id, label: cards[0].name, confidence: "low" };
+    }
+
+    return null;
+  }
+
+  if (doc.documentType === "bankStatement") {
+    const accounts = await getBankAccounts(userId);
+    if (accounts.length === 0) return null;
+
+    // 1) Match forte: número da conta bate exatamente.
+    if (doc.accountNumber) {
+      const num = doc.accountNumber.replace(/\D/g, "");
+      const exact = accounts.filter((a: BankAccount) => (a.accountNumber || "").replace(/\D/g, "") === num && num.length > 0);
+      if (exact.length === 1) {
+        return { entityType: "bankAccount", entityId: exact[0].id, label: exact[0].name, confidence: "high" };
+      }
+    }
+
+    // 2) Match fraco: só uma conta cadastrada nesse banco.
+    if (doc.issuerBank) {
+      const bank = normalize(doc.issuerBank);
+      const byBank = accounts.filter((a: BankAccount) => normalize(a.bank).includes(bank) || bank.includes(normalize(a.bank)));
+      if (byBank.length === 1) {
+        return { entityType: "bankAccount", entityId: byBank[0].id, label: byBank[0].name, confidence: "low" };
+      }
+    }
+
+    if (accounts.length === 1) {
+      return { entityType: "bankAccount", entityId: accounts[0].id, label: accounts[0].name, confidence: "low" };
+    }
+
+    return null;
+  }
+
+  return null;
+}
+
 // Generic file import function for both credit cards and bank accounts
-export async function importFile(userId: number, data: { 
+export async function importFile(userId: number, data: {
   entityType: "creditCard" | "bankAccount"; 
   entityId: number; 
   fileContent: string; 
