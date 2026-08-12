@@ -2,6 +2,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as db from "./db";
 import { storagePut } from "./storage";
@@ -592,12 +593,26 @@ export const appRouter = router({
 
           return { document: result.document, transactions, detectedEntity };
         } catch (error) {
-          if (error instanceof Error) {
-            console.error("[files.classifyWithAI] Erro:", error.message, error.stack);
-            throw error;
-          }
-          console.error("[files.classifyWithAI] Erro não-Error:", error);
-          throw new Error("Erro inesperado ao classificar o arquivo. Tente novamente.");
+          // IMPORTANTE: nunca relançar o "error" original aqui. Ele pode ser
+          // um erro do SDK da Anthropic, do driver do MySQL etc. — objetos
+          // desse tipo às vezes carregam campos que não dão pra serializar em
+          // JSON (referência circular, Buffer grande, Headers, socket...).
+          // Se isso acontecer, o tRPC já mandou os headers da resposta com
+          // status de erro mas quebra NO MEIO da escrita do corpo, e o
+          // navegador recebe um JSON truncado/corrompido — exatamente o tipo
+          // de erro genérico e sem contexto que a gente via antes. Por isso
+          // sempre lançamos um TRPCError novo, com só uma mensagem de texto,
+          // que é garantidamente serializável.
+          const message = error instanceof Error ? error.message : String(error);
+          console.error(
+            "[files.classifyWithAI] Erro:",
+            message,
+            error instanceof Error ? error.stack : error
+          );
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Erro ao classificar o arquivo: " + message,
+          });
         }
       }),
   }),

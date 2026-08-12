@@ -60,6 +60,13 @@ async function startServer() {
     createExpressMiddleware({
       router: appRouter,
       createContext,
+      // Loga qualquer erro que chegue até o adapter do tRPC (mesmo os que
+      // escaparem de um try/catch dentro da procedure) direto no stdout —
+      // isso aparece no Cloud Run Logging e é o jeito de investigar futuros
+      // erros sem precisar reproduzir localmente.
+      onError({ error, path }) {
+        console.error(`[trpc] Erro em "${path}":`, error.message, error.stack);
+      },
     })
   );
   // development mode uses Vite, production mode uses static files
