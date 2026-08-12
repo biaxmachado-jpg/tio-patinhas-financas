@@ -527,63 +527,78 @@ export const appRouter = router({
         textContent: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const categories = await db.getCategories(ctx.user.id);
+        // Tudo aqui embrulhado num try/catch só — sem isso, qualquer erro
+        // não previsto (banco fora do ar, bug numa das funções auxiliares)
+        // sobe cru pro cliente. O tRPC normalmente formata isso como JSON
+        // de erro, mas se o processo lançar algo fora do fluxo esperado do
+        // tRPC o corpo da resposta pode não vir bem formado — e aí o
+        // navegador mostra um erro de "JSON inválido" sem contexto nenhum.
+        try {
+          const categories = await db.getCategories(ctx.user.id);
 
-        // Sem entityType (fluxo novo) ainda não sabemos se é fatura de
-        // cartão ou extrato de conta, então juntamos o histórico dos dois
-        // como referência pra IA — as regras de categorização (aplicadas
-        // logo abaixo) é que mandam de verdade, isso aqui é só contexto.
-        const historicalRows = input.entityType === "creditCard"
-          ? await db.getCreditCardTransactions(ctx.user.id)
-          : input.entityType === "bankAccount"
-          ? await db.getTransactions(ctx.user.id)
-          : [
-              ...(await db.getCreditCardTransactions(ctx.user.id)),
-              ...(await db.getTransactions(ctx.user.id)),
-            ];
+          // Sem entityType (fluxo novo) ainda não sabemos se é fatura de
+          // cartão ou extrato de conta, então juntamos o histórico dos dois
+          // como referência pra IA — as regras de categorização (aplicadas
+          // logo abaixo) é que mandam de verdade, isso aqui é só contexto.
+          const historicalRows = input.entityType === "creditCard"
+            ? await db.getCreditCardTransactions(ctx.user.id)
+            : input.entityType === "bankAccount"
+            ? await db.getTransactions(ctx.user.id)
+            : [
+                ...(await db.getCreditCardTransactions(ctx.user.id)),
+                ...(await db.getTransactions(ctx.user.id)),
+              ];
 
-        const historicalExamples = historicalRows
-          .filter((t: { categoryId: number | null }) => t.categoryId != null)
-          .slice(0, 200)
-          .map((t: { description: string; categoryId: number | null }) => ({
-            description: t.description,
-            categoryId: t.categoryId as number,
-          }));
+          const historicalExamples = historicalRows
+            .filter((t: { categoryId: number | null }) => t.categoryId != null)
+            .slice(0, 200)
+            .map((t: { description: string; categoryId: number | null }) => ({
+              description: t.description,
+              categoryId: t.categoryId as number,
+            }));
 
-        const result = await classifyStatementWithAI({
-          entityType: input.entityType,
-          fileName: input.fileName,
-          pdfBase64: input.pdfBase64,
-          textContent: input.textContent,
-          categories: categories.map((c: { id: number; name: string; type: "income" | "expense" }) => ({
-            id: c.id,
-            name: c.name,
-            type: c.type,
-          })),
-          historicalExamples,
-        });
+          const result = await classifyStatementWithAI({
+            entityType: input.entityType,
+            fileName: input.fileName,
+            pdfBase64: input.pdfBase64,
+            textContent: input.textContent,
+            categories: categories.map((c: { id: number; name: string; type: "income" | "expense" }) => ({
+              id: c.id,
+              name: c.name,
+              type: c.type,
+            })),
+            historicalExamples,
+          });
 
-        // Regras de categorização da pessoa mandam mais que o palpite da IA:
-        // qualquer transação que bata com uma regra ativa usa a categoria da
-        // regra, sem depender do histórico ou do "achismo" do modelo. Só o
-        // que nenhuma regra cobre fica com a sugestão da IA (e confiança
-        // dela), pra revisão manual.
-        const rules = await db.getActiveCategorizationRules(ctx.user.id);
-        const transactions = result.transactions.map((t) => {
-          const ruleCategoryId = rules.length > 0 ? applyCategorizationRules(t.description, rules) : null;
-          if (ruleCategoryId != null) {
-            return { ...t, categoryId: ruleCategoryId, confidence: "high" as const, categorySource: "rule" as const };
+          // Regras de categorização da pessoa mandam mais que o palpite da IA:
+          // qualquer transação que bata com uma regra ativa usa a categoria da
+          // regra, sem depender do histórico ou do "achismo" do modelo. Só o
+          // que nenhuma regra cobre fica com a sugestão da IA (e confiança
+          // dela), pra revisão manual.
+          const rules = await db.getActiveCategorizationRules(ctx.user.id);
+          const transactions = result.transactions.map((t) => {
+            const ruleCategoryId = rules.length > 0 ? applyCategorizationRules(t.description, rules) : null;
+            if (ruleCategoryId != null) {
+              return { ...t, categoryId: ruleCategoryId, confidence: "high" as const, categorySource: "rule" as const };
+            }
+            return { ...t, categorySource: "ai" as const };
+          });
+
+          // Detecção automática do cartão/conta: só faz sentido quando quem
+          // chamou não informou entityType (fluxo "Importar" sem pré-seleção).
+          const detectedEntity = input.entityType
+            ? null
+            : await db.detectEntityFromDocument(ctx.user.id, result.document);
+
+          return { document: result.document, transactions, detectedEntity };
+        } catch (error) {
+          if (error instanceof Error) {
+            console.error("[files.classifyWithAI] Erro:", error.message, error.stack);
+            throw error;
           }
-          return { ...t, categorySource: "ai" as const };
-        });
-
-        // Detecção automática do cartão/conta: só faz sentido quando quem
-        // chamou não informou entityType (fluxo "Importar" sem pré-seleção).
-        const detectedEntity = input.entityType
-          ? null
-          : await db.detectEntityFromDocument(ctx.user.id, result.document);
-
-        return { document: result.document, transactions, detectedEntity };
+          console.error("[files.classifyWithAI] Erro não-Error:", error);
+          throw new Error("Erro inesperado ao classificar o arquivo. Tente novamente.");
+        }
       }),
   }),
 
