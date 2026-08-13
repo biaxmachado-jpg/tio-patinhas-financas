@@ -72,6 +72,12 @@ const DocumentMetaSchema = z.object({
     .nullable()
     .describe("Número da conta bancária (com ou sem dígito), se for extrato de conta — null caso contrário"),
   cardholderName: z.string().nullable().describe("Nome do titular impresso no documento"),
+  statementTotal: z
+    .number()
+    .nullable()
+    .describe(
+      "O valor total IMPRESSO desta fatura/extrato, exatamente como aparece no documento (ex: 'Total desta fatura', 'Total dos lançamentos atuais', 'O total da sua fatura é', 'Total a pagar'). Use isso só pra conferência — não invente um número, coloque null se genuinamente não houver um total impresso."
+    ),
 });
 
 const ClassificationResultSchema = z.object({
@@ -125,7 +131,12 @@ ESTRUTURA DE FATURA DE CARTÃO (se o documento for uma fatura de cartão de cré
 - Notação de parcela: quando a descrição traz algo como "03/10", "PARC 02/06", "2 de 12", isso é currentInstallment/installments — extraia os dois números exatamente como aparecem, não invente.
 - Estornos/créditos às vezes vêm com um "-" na frente do valor, mas em várias faturas eles só ficam claros pela seção em que estão ou por palavras como "ESTORNO", "CRÉDITO", "CASHBACK", "CANCELAMENTO", "DEVOLUÇÃO" — mesmo sem sinal negativo explícito, classifique como type "income" (é dinheiro voltando).
 - Uma compra parcelada é type "expense" mesmo que installments > 1 — parcelamento não é crédito, é despesa dividida em várias faturas.
-- Ignore "pagamento efetuado"/"pagamento recebido" no topo da fatura — isso é o pagamento da própria fatura anterior, não uma compra.`;
+- Ignore "pagamento efetuado"/"pagamento recebido" no topo da fatura — isso é o pagamento da própria fatura anterior, não uma compra.
+
+ARMADILHA CRÍTICA — tabela de parcelas FUTURAS (NÃO extrair como transação):
+Praticamente toda fatura de cartão brasileira imprime, além dos lançamentos DESTA fatura, uma tabela separada mostrando as parcelas que AINDA VÃO SER cobradas nas PRÓXIMAS faturas — títulos típicos: "Compras parceladas — próximas faturas", "Parcelamentos futuros", "Parcelas a vencer", seguida de linhas como "Próxima fatura: R$X", "Demais faturas: R$Y", "Total para próximas faturas: R$Z". Essa tabela é só uma PROJEÇÃO informativa — cada compra parcelada listada ali JÁ TEVE sua parcela atual contabilizada na tabela de lançamentos desta fatura (a mesma compra aparece nas duas tabelas, com número de parcela diferente: ex. "03/10" na tabela de lançamentos desta fatura e "04/10" na tabela de próximas faturas — é A MESMA COMPRA, parcelas diferentes). NUNCA extraia linhas dessa tabela de projeção futura como transações — isso duplica valores e infla o total da fatura muito acima do valor real. Só extraia transações da(s) tabela(s) de lançamentos DESTA fatura (geralmente sob título como "Lançamentos: compras e saques", "Lançamentos atuais", "Lançamentos do período").
+- Confira seu trabalho: a fatura quase sempre imprime o total dela em algum lugar (ex: "Total desta fatura", "Total dos lançamentos atuais", "O total da sua fatura é", "Total a pagar"). Depois de extrair as transações, some (despesas − créditos/estornos) e confira mentalmente se bate com esse total impresso. Se a sua soma ficar muito maior que o total impresso, você quase certamente incluiu linhas da tabela de parcelas futuras por engano — revise e remova.
+- Faturas com mais de um cartão (titular + adicional, ex: "final 1234" e "final 5678" na mesma fatura) têm uma tabela de lançamentos separada para cada cartão — processe todas, mas cada uma delas é lançamento DESTA fatura (não confundir com a tabela de projeção futura, que também pode vir separada por cartão).`;
 
   const documentIdNotes = `
 
@@ -135,7 +146,8 @@ IDENTIFICAÇÃO DO DOCUMENTO (campo "document" — preencha sempre, mesmo no flu
 - cardBrand e cardProductName: bandeira e nome do produto do cartão (ex: "Mastercard" / "Mastercard Black"), lidos do cabeçalho da fatura — null se for extrato de conta.
 - cardLastFourDigits: os 4 últimos dígitos do cartão DO TITULAR impressos na fatura (geralmente no formato "XXXX.XXXX.XXXX.1234") — null se não aparecer ou for extrato de conta. NÃO confunda com os "finais" de cartões adicionais listados dentro da fatura.
 - accountNumber: número da conta bancária impresso no extrato — null se for fatura de cartão.
-- cardholderName: nome do titular impresso no documento.`;
+- cardholderName: nome do titular impresso no documento.
+- statementTotal: o total impresso desta fatura/extrato (não da tabela de parcelas futuras!) — use pra você mesmo(a) conferir a soma das transações que extraiu.`;
 
   const typeInstruction = isCard
     ? `Você vai analisar uma fatura de cartão de crédito e extrair cada transação real encontrada no documento.`

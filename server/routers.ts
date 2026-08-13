@@ -574,7 +574,31 @@ export const appRouter = router({
             ? null
             : await db.detectEntityFromDocument(ctx.user.id, result.document);
 
-          return { document: result.document, transactions, detectedEntity };
+          // Rede de segurança contra a IA misturar a tabela de lançamentos
+          // desta fatura com a tabela de parcelas FUTURAS (armadilha comum em
+          // fatura de cartão — projeção de cobranças que ainda não fazem
+          // parte do total desta fatura). Em vez de confiar cegamente no que
+          // a IA extraiu, conferimos a soma contra o total impresso que ela
+          // mesma leu do documento; se não bater, avisamos a pessoa em vez de
+          // deixar ela importar um valor errado sem perceber.
+          let totalMismatch: { extracted: number; printed: number } | null = null;
+          if (result.document.statementTotal != null) {
+            const extractedTotal = transactions.reduce((sum, t) => {
+              const amount = Number(t.amount) || 0;
+              return sum + (t.type === "income" ? -amount : amount);
+            }, 0);
+            const printedTotal = result.document.statementTotal;
+            // Tolerância de R$1 pra arredondamento — diferença maior que isso
+            // é sinal forte de que algo foi incluído (ou perdido) por engano.
+            if (Math.abs(extractedTotal - printedTotal) > 1) {
+              totalMismatch = {
+                extracted: Math.round(extractedTotal * 100) / 100,
+                printed: Math.round(printedTotal * 100) / 100,
+              };
+            }
+          }
+
+          return { document: result.document, transactions, detectedEntity, totalMismatch };
         } catch (error) {
           // IMPORTANTE: nunca relançar o "error" original aqui. Ele pode ser
           // um erro do SDK da Anthropic, do driver do MySQL etc. — objetos
