@@ -54,37 +54,42 @@ export function hasInstallmentPattern(description: string): boolean {
 /**
  * Classifies a single transaction into one of three types
  * @param transaction - The transaction to classify
- * @param dueDate - The due date of the billing cycle (for À Vista calculation)
+ * @param _billingDueDate - Não é mais usado pra decidir o tipo (ver nota na Rule 3);
+ *   mantido no parâmetro só por compatibilidade com quem já chama esta função.
  * @returns The transaction type
  */
 export function classifyTransaction(
   transaction: any,
-  billingDueDate?: Date
+  _billingDueDate?: Date
 ): TransactionType {
   const amount = toSafeAmount(transaction.amount);
 
-  // Rule 1: Créditos (Credits) - negative values
+  // Rule 1: Créditos (Credits) - negative values (estorno/crédito já vem com
+  // o sinal certo desde a importação, ver ImportFile.tsx)
   if (amount < 0) {
     return 'credito';
   }
 
-  // Rule 2: Parceladas (Installments) - multiple installments or installment pattern in description
+  // Rule 2: Parceladas (Installments) - installments > 1 é o dado
+  // estruturado que a IA extrai lendo a notação impressa na fatura (ex:
+  // "03/10"). hasInstallmentPattern é só um reforço pra descrições
+  // antigas/adicionadas manualmente que ainda carreguem a notação bruta.
   if (transaction.installments > 1 || hasInstallmentPattern(transaction.description ?? "")) {
     return 'parcelada';
   }
 
-  // Rule 3: À Vista (Upfront) - single installment made within the last 5
-  // days of the billing cycle. A single-installment purchase far from the
-  // due date (or dated after it) is more likely carried over from a
-  // previous cycle, so it's classified as parcelada instead of assumed
-  // à vista. Without a due date to compare against, default to à vista.
-  if (billingDueDate) {
-    const txDate = new Date(transaction.date);
-    const daysBeforeDue =
-      (billingDueDate.getTime() - txDate.getTime()) / (1000 * 60 * 60 * 24);
-    return daysBeforeDue >= 0 && daysBeforeDue <= 5 ? 'vista' : 'parcelada';
-  }
-
+  // Rule 3: À Vista — tudo que sobra (valor positivo, uma parcela só) é
+  // compra do mês, à vista.
+  //
+  // BUG CORRIGIDO: esta função classificava como "parcelada" qualquer
+  // transação à vista que não caísse nos "últimos 5 dias antes do
+  // vencimento" — mas o fechamento de uma fatura normalmente acontece
+  // ~1 semana ANTES do vencimento, então NENHUMA transação real de uma
+  // fatura cai nesse intervalo de 5 dias. Na prática isso jogava
+  // praticamente toda compra à vista pro balde "parcelada", por mais que o
+  // valor de installments estivesse certinho em 1. Proximidade de data não
+  // é um sinal confiável de parcelamento — só installments > 1 (ou a
+  // notação na descrição) é.
   return 'vista';
 }
 

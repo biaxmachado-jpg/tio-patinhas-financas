@@ -337,6 +337,7 @@ function QueueCard({
   const result = item.result!;
   const { isCard, creditos, parcelas, vista, receitas, despesas, porRegra, total } = summarize(result);
   const detected = result.detectedEntity;
+  const mismatch = result.totalMismatch;
   // "high" confidence (últimos 4 dígitos ou número de conta bateram exato)
   // segue direto. Qualquer outra coisa — sem detecção, ou um palpite "low"
   // (só um cartão dessa bandeira, por exemplo) — para e pede confirmação,
@@ -398,6 +399,22 @@ function QueueCard({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+        </div>
+      )}
+
+      {mismatch && (
+        <div className="flex items-start gap-2 text-sm bg-red-50 text-red-800 px-3 py-2 rounded-lg border border-red-200">
+          <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium">
+              A soma das transações (R$ {mismatch.extracted.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}) não
+              bate com o total impresso na fatura (R$ {mismatch.printed.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}).
+            </p>
+            <p className="text-xs mt-1">
+              A IA pode ter incluído alguma transação a mais ou a menos (ex: parcelas de faturas futuras). Confira com
+              atenção na tela de revisão antes de importar.
+            </p>
           </div>
         </div>
       )}

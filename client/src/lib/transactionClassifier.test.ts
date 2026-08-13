@@ -85,7 +85,7 @@ describe('Transaction Classifier', () => {
       expect(classifyTransaction(transaction, dueDate)).toBe('parcelada');
     });
 
-    it('should classify old purchases as parcelada', () => {
+    it('should NOT classify a single-installment purchase as parcelada just because its date is far from the due date (regression: date-proximity heuristic wrongly dumped almost every à vista purchase into parcelada, since a real invoice never has transactions in the days right before its own due date)', () => {
       const oldDate = new Date('2026-04-10'); // 10 days before due date
       const transaction = {
         id: 1,
@@ -95,7 +95,7 @@ describe('Transaction Classifier', () => {
         installments: 1,
         description: 'Compra antiga',
       };
-      expect(classifyTransaction(transaction, dueDate)).toBe('parcelada');
+      expect(classifyTransaction(transaction, dueDate)).toBe('vista');
     });
   });
 
@@ -167,7 +167,7 @@ describe('Transaction Classifier', () => {
           amount: '300.00',
           date: new Date('2026-04-10'),
           dueDate,
-          installments: 1,
+          installments: 3,
           description: 'Parcelada',
         },
         {
@@ -331,7 +331,7 @@ describe('Transaction Classifier', () => {
       expect(classifyTransaction(transaction, dueDate)).toBe('vista');
     });
 
-    it('should handle very old transactions', () => {
+    it('should handle very old transactions (single installment = vista, regardless of date)', () => {
       const veryOldDate = new Date('2026-01-01');
       const transaction = {
         id: 1,
@@ -341,10 +341,10 @@ describe('Transaction Classifier', () => {
         installments: 1,
         description: 'Very old',
       };
-      expect(classifyTransaction(transaction, dueDate)).toBe('parcelada');
+      expect(classifyTransaction(transaction, dueDate)).toBe('vista');
     });
 
-    it('should handle future transactions', () => {
+    it('should handle future transactions (single installment = vista, regardless of date)', () => {
       const futureDate = new Date('2026-05-01');
       const transaction = {
         id: 1,
@@ -354,7 +354,7 @@ describe('Transaction Classifier', () => {
         installments: 1,
         description: 'Future',
       };
-      expect(classifyTransaction(transaction, dueDate)).toBe('parcelada');
+      expect(classifyTransaction(transaction, dueDate)).toBe('vista');
     });
 
     it('should handle high installment counts', () => {
