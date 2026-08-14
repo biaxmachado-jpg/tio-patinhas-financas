@@ -1083,10 +1083,28 @@ export async function detectEntityFromDocument(
     const accounts = await getBankAccounts(userId);
     if (accounts.length === 0) return null;
 
-    // 1) Match forte: número da conta bate exatamente.
+    // 1) Match forte: número da conta bate. Tolerante a zero à esquerda
+    // (ex: "038502" salvo como "38502" na hora de cadastrar a conta — bem
+    // comum digitar sem o zero) e a agência colada no número salvo (ex:
+    // "7040038502" quando a fatura só traz "038502" da conta em si) — nesse
+    // segundo caso só aceita dentro do MESMO banco, pra não confundir conta
+    // de bancos diferentes que por acaso terminem nos mesmos dígitos.
     if (doc.accountNumber) {
-      const num = doc.accountNumber.replace(/\D/g, "");
-      const exact = accounts.filter((a: BankAccount) => (a.accountNumber || "").replace(/\D/g, "") === num && num.length > 0);
+      const num = doc.accountNumber.replace(/\D/g, "").replace(/^0+/, "");
+      const bank = normalize(doc.issuerBank);
+      const exact = accounts.filter((a: BankAccount) => {
+        if (num.length === 0) return false;
+        const stored = (a.accountNumber || "").replace(/\D/g, "").replace(/^0+/, "");
+        if (stored.length === 0) return false;
+        if (stored === num) return true;
+        // Agência+conta colados: um é sufixo do outro, mesmo banco, e o
+        // menor tem dígitos suficientes pra não ser coincidência boba.
+        const sameBank = doc.issuerBank ? normalize(a.bank).includes(bank) || bank.includes(normalize(a.bank)) : false;
+        if (!sameBank) return false;
+        const shorter = stored.length <= num.length ? stored : num;
+        const longer = stored.length <= num.length ? num : stored;
+        return shorter.length >= 4 && longer.endsWith(shorter);
+      });
       if (exact.length === 1) {
         return { entityType: "bankAccount", entityId: exact[0].id, label: exact[0].name, confidence: "high" };
       }
