@@ -234,13 +234,21 @@ export async function classifyStatementWithAI(params: {
   let response: Anthropic.Messages.Message;
   try {
     response = await anthropic.messages.create({
-      // Haiku 4.5 é o modelo mais barato da Anthropic (~5x mais barato que o
-      // Opus 5 usado antes, em entrada e saída). Suficiente pra extração
-      // estruturada de fatura/extrato — não é uma tarefa que exige raciocínio
-      // pesado. Se a qualidade da classificação cair muito, o Sonnet 5 é o
-      // meio-termo (mais caro que o Haiku, bem mais barato que o Opus).
-      model: "claude-haiku-4-5",
+      // Testei Haiku 4.5 e Sonnet 5 contra a mesma fatura de verdade, 3
+      // vezes cada, comparando a soma extraída com o total impresso:
+      // Haiku errava feio (incluindo a tabela de parcelas futuras) 1 em
+      // cada 3 rodadas — diferença de quase R$10 mil numa delas, mesmo com
+      // o prompt reforçado. Sonnet 5 tem "extended thinking" ligado por
+      // padrão, que consumia o próprio max_tokens antes de escrever a
+      // resposta (ou vinha vazia, ou — aumentando o limite — cruzava o teto
+      // que obrigaria migrar pra streaming, mudança maior que não ia
+      // arriscar sem testar). Desligando o thinking explicitamente (não
+      // precisamos dele pra extração estruturada) o Sonnet ficou estável e
+      // preciso nas 3 rodadas (diferença de R$9 a R$14, nunca mais que
+      // isso) — por isso o modelo, mesmo sendo o mais caro dos dois.
+      model: "claude-sonnet-5",
       max_tokens: 16000,
+      thinking: { type: "disabled" },
       output_config: {
         format: zodOutputFormat(ClassificationResultSchema),
       },
