@@ -76,7 +76,19 @@ const DocumentMetaSchema = z.object({
     .number()
     .nullable()
     .describe(
-      "O valor total IMPRESSO desta fatura/extrato, exatamente como aparece no documento (ex: 'Total desta fatura', 'Total dos lançamentos atuais', 'O total da sua fatura é', 'Total a pagar'). Use isso só pra conferência — não invente um número, coloque null se genuinamente não houver um total impresso."
+      "Só pra FATURA DE CARTÃO: o valor total IMPRESSO da fatura, exatamente como aparece no documento (ex: 'Total desta fatura', 'Total dos lançamentos atuais', 'O total da sua fatura é', 'Total a pagar'). Use isso só pra conferência — não invente um número, coloque null se genuinamente não houver um total impresso ou se for extrato de conta (use openingBalance/closingBalance nesse caso)."
+    ),
+  openingBalance: z
+    .number()
+    .nullable()
+    .describe(
+      "Só pra EXTRATO DE CONTA BANCÁRIA: o saldo IMPRESSO no início do período do extrato (ex: 'SALDO ANTERIOR', primeiro 'saldo do dia' listado), exatamente como aparece — não calcule, copie o número impresso. null se for fatura de cartão ou não houver saldo inicial impresso."
+    ),
+  closingBalance: z
+    .number()
+    .nullable()
+    .describe(
+      "Só pra EXTRATO DE CONTA BANCÁRIA: o saldo IMPRESSO no final do período do extrato (o último 'saldo do dia' listado, ou o saldo atual/final destacado no topo do documento) — não calcule, copie o número impresso. null se for fatura de cartão ou não houver saldo final impresso."
     ),
 });
 
@@ -139,7 +151,13 @@ DATA DA TRANSAÇÃO — cuidado com o ANO: faturas de cartão mostram a data de 
 ARMADILHA CRÍTICA — tabela de parcelas FUTURAS (NÃO extrair como transação):
 Praticamente toda fatura de cartão brasileira imprime, além dos lançamentos DESTA fatura, uma tabela separada mostrando as parcelas que AINDA VÃO SER cobradas nas PRÓXIMAS faturas — títulos típicos: "Compras parceladas — próximas faturas", "Parcelamentos futuros", "Parcelas a vencer", seguida de linhas como "Próxima fatura: R$X", "Demais faturas: R$Y", "Total para próximas faturas: R$Z". Essa tabela é só uma PROJEÇÃO informativa — cada compra parcelada listada ali JÁ TEVE sua parcela atual contabilizada na tabela de lançamentos desta fatura (a mesma compra aparece nas duas tabelas, com número de parcela diferente: ex. "03/10" na tabela de lançamentos desta fatura e "04/10" na tabela de próximas faturas — é A MESMA COMPRA, parcelas diferentes). NUNCA extraia linhas dessa tabela de projeção futura como transações — isso duplica valores e infla o total da fatura muito acima do valor real. Só extraia transações da(s) tabela(s) de lançamentos DESTA fatura (geralmente sob título como "Lançamentos: compras e saques", "Lançamentos atuais", "Lançamentos do período").
 - Confira seu trabalho: a fatura quase sempre imprime o total dela em algum lugar (ex: "Total desta fatura", "Total dos lançamentos atuais", "O total da sua fatura é", "Total a pagar"). Depois de extrair as transações, some (despesas − créditos/estornos) e confira mentalmente se bate com esse total impresso. Se a sua soma ficar muito maior que o total impresso, você quase certamente incluiu linhas da tabela de parcelas futuras por engano — revise e remova.
-- Faturas com mais de um cartão (titular + adicional, ex: "final 1234" e "final 5678" na mesma fatura) têm uma tabela de lançamentos separada para cada cartão — processe todas, mas cada uma delas é lançamento DESTA fatura (não confundir com a tabela de projeção futura, que também pode vir separada por cartão).`;
+- Faturas com mais de um cartão (titular + adicional, ex: "final 1234" e "final 5678" na mesma fatura) têm uma tabela de lançamentos separada para cada cartão — processe todas, mas cada uma delas é lançamento DESTA fatura (não confundir com a tabela de projeção futura, que também pode vir separada por cartão).
+
+ESTRUTURA DE EXTRATO DE CONTA BANCÁRIA (se o documento for um extrato de conta corrente):
+- Cada lançamento vem numa linha com data, descrição e valor; o valor positivo (ou impresso em verde) é entrada (type "income"), o valor negativo — com "-" na frente, ou impresso em vermelho — é saída (type "expense"). O SINAL é o que decide o type, NÃO a palavra na descrição.
+- ARMADILHA: bancos usam o mesmo PREFIXO de descrição pra transações de tipo oposto. Exemplo real: "COR JSCP ITUB4" e "COR RENDIMENTO PETR4" (juros/dividendos, entrada, positivo) MAS "COR ITAUCOR COMPRA TD" (compra de Tesouro Direto/investimento, SAÍDA, valor negativo, ex: "-74.997,26") — apesar de todas começarem com "COR", uma é receita e a outra é uma despesa grande. NUNCA decida o type pelo prefixo/palavra da descrição sozinho — sempre confira o sinal impresso do valor daquela linha específica. Isso vale pra qualquer descrição parecida (ex: "COMPRA" costuma ser saída mesmo que outras linhas com prefixo parecido sejam entrada).
+- Linhas como "SALDO ANTERIOR", "SALDO DO DIA", "SALDO TOTAL DISPONÍVEL DIA", "LIMITE DISPONÍVEL" não são transações — são saldos acumulados, ignore-as na lista de transações (mas veja abaixo, use pra preencher openingBalance/closingBalance).
+- Confira seu trabalho: some (entradas − saídas) de tudo que você extraiu e compare com a diferença entre closingBalance e openingBalance (ver campo "document" abaixo) — se não bater, você errou o sinal de alguma linha ou pulou uma transação.`;
 
   const documentIdNotes = `
 
@@ -150,7 +168,8 @@ IDENTIFICAÇÃO DO DOCUMENTO (campo "document" — preencha sempre, mesmo no flu
 - cardLastFourDigits: os 4 últimos dígitos do cartão DO TITULAR impressos na fatura (geralmente no formato "XXXX.XXXX.XXXX.1234") — null se não aparecer ou for extrato de conta. NÃO confunda com os "finais" de cartões adicionais listados dentro da fatura.
 - accountNumber: número da conta bancária impresso no extrato — null se for fatura de cartão.
 - cardholderName: nome do titular impresso no documento.
-- statementTotal: o total impresso desta fatura/extrato (não da tabela de parcelas futuras!) — use pra você mesmo(a) conferir a soma das transações que extraiu.`;
+- statementTotal: SÓ fatura de cartão — o total impresso da fatura (não da tabela de parcelas futuras!) — null se for extrato de conta.
+- openingBalance/closingBalance: SÓ extrato de conta — o saldo impresso no início e no fim do período do extrato (copie os números impressos, ex: "SALDO ANTERIOR" e o último "saldo do dia") — null se for fatura de cartão.`;
 
   const typeInstruction = isCard
     ? `Você vai analisar uma fatura de cartão de crédito e extrair cada transação real encontrada no documento.`

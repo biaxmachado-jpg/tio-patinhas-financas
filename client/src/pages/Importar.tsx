@@ -408,12 +408,15 @@ function QueueCard({
           <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
           <div>
             <p className="font-medium">
-              A soma das transações (R$ {mismatch.extracted.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}) não
-              bate com o total impresso na fatura (R$ {mismatch.printed.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}).
+              {isCard
+                ? <>A soma das transações (R$ {mismatch.extracted.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}) não bate com o total impresso na fatura (R$ {mismatch.printed.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}).</>
+                : <>A variação de saldo das transações (R$ {mismatch.extracted.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}) não bate com a diferença entre saldo inicial e final do extrato (R$ {mismatch.printed.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}).</>}
             </p>
             <p className="text-xs mt-1">
-              A IA pode ter incluído alguma transação a mais ou a menos (ex: parcelas de faturas futuras). Confira com
-              atenção na tela de revisão antes de importar.
+              {isCard
+                ? "A IA pode ter incluído alguma transação a mais ou a menos (ex: parcelas de faturas futuras)."
+                : "A IA pode ter errado o sinal de alguma transação (entrada/saída) ou pulado uma linha."}{" "}
+              Confira com atenção na tela de revisão antes de importar.
             </p>
           </div>
         </div>
