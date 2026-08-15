@@ -574,15 +574,37 @@ export const appRouter = router({
             ? null
             : await db.detectEntityFromDocument(ctx.user.id, result.document);
 
-          // Rede de segurança contra a IA misturar a tabela de lançamentos
-          // desta fatura com a tabela de parcelas FUTURAS (armadilha comum em
-          // fatura de cartão — projeção de cobranças que ainda não fazem
-          // parte do total desta fatura). Em vez de confiar cegamente no que
-          // a IA extraiu, conferimos a soma contra o total impresso que ela
-          // mesma leu do documento; se não bater, avisamos a pessoa em vez de
-          // deixar ela importar um valor errado sem perceber.
+          // Rede de segurança contra a IA errar a extração de um jeito que
+          // distorce o total sem dar nenhum sinal visível — pra fatura de
+          // cartão, a armadilha comum é misturar a tabela de parcelas
+          // FUTURAS; pra extrato de conta, é confundir o sinal de uma
+          // transação pelo prefixo da descrição (ex: "COR ITAUCOR COMPRA TD"
+          // é saída, mas outras linhas "COR ..." são entrada). Em vez de
+          // confiar cegamente no que a IA extraiu, conferimos a soma contra
+          // um valor de referência que ela mesma leu do documento; se não
+          // bater, avisamos a pessoa em vez de deixar ela importar um valor
+          // errado sem perceber.
           let totalMismatch: { extracted: number; printed: number } | null = null;
-          if (result.document.statementTotal != null) {
+          if (result.document.documentType === "bankStatement") {
+            // Extrato: a referência é a variação de saldo do período (saldo
+            // final − saldo inicial, ambos IMPRESSOS no documento, não
+            // calculados pela IA) comparada com (saídas − entradas) das
+            // transações extraídas — mesma polaridade da conferência de
+            // fatura (positivo = saiu mais do que entrou).
+            if (result.document.openingBalance != null && result.document.closingBalance != null) {
+              const extractedNetOut = transactions.reduce((sum, t) => {
+                const amount = Number(t.amount) || 0;
+                return sum + (t.type === "income" ? -amount : amount);
+              }, 0);
+              const printedNetOut = result.document.openingBalance - result.document.closingBalance;
+              if (Math.abs(extractedNetOut - printedNetOut) > 1) {
+                totalMismatch = {
+                  extracted: Math.round(extractedNetOut * 100) / 100,
+                  printed: Math.round(printedNetOut * 100) / 100,
+                };
+              }
+            }
+          } else if (result.document.statementTotal != null) {
             const extractedTotal = transactions.reduce((sum, t) => {
               const amount = Number(t.amount) || 0;
               return sum + (t.type === "income" ? -amount : amount);
